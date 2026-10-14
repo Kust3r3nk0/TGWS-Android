@@ -13,6 +13,8 @@ local.properties
 *.jks
 *.keystore
 *.p12
+# Deliberately public, test-only localhost TLS identity; never packaged into the APK.
+!app/src/test/resources/websocket/localhost.p12
 *.pem
 *.p8
 key.properties
