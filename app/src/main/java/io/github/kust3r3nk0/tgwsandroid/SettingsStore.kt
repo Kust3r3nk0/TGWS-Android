@@ -3,25 +3,41 @@ package io.github.kust3r3nk0.tgwsandroid
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import android.util.Base64
 import java.security.KeyStore
-import java.security.SecureRandom
-import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
-import javax.crypto.spec.GCMParameterSpec
 
-/** Port stored in preferences; secret encrypted using an Android Keystore AES key. */
+enum class SettingsIssue { INVALID_CONFIGURATION, SECRET_UNAVAILABLE, WRITE_FAILED }
+class SettingsException(val issue: SettingsIssue) : Exception(issue.name)
+data class StoredSettings(val port: Int, val secret: String)
+
+/** Only an encrypted secret enters preferences. Reads never replace an unreadable record. */
 class SettingsStore(context: Context) {
-    private val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    private val prefs = context.applicationContext.getSharedPreferences("settings", Context.MODE_PRIVATE)
     private val alias = "tgws-secret-aes-v1"
-    var port: Int
-        get() = prefs.getInt("port", 1443)
-        set(value) { require(value in 1..65535); prefs.edit().putInt("port", value).apply() }
 
-    private fun key(): SecretKey {
-        val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        (ks.getKey(alias, null) as? SecretKey)?.let { return it }
+    var port: Int
+        get() = try {
+            prefs.getInt("port", SettingsValidation.DEFAULT_PORT).also {
+                if (!SettingsValidation.validPort(it)) throw SettingsException(SettingsIssue.INVALID_CONFIGURATION)
+            }
+        } catch (_: ClassCastException) {
+            throw SettingsException(SettingsIssue.INVALID_CONFIGURATION)
+        }
+        set(value) {
+            if (!SettingsValidation.validPort(value)) throw SettingsException(SettingsIssue.INVALID_CONFIGURATION)
+            if (!prefs.edit().putInt("port", value).commit()) throw SettingsException(SettingsIssue.WRITE_FAILED)
+        }
+
+    var secret: String
+        get() = load().secret
+        set(value) = save(port, value)
+
+    private fun keyStore() = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+
+    private fun existingKey(): SecretKey? = keyStore().getKey(alias, null) as? SecretKey
+
+    private fun newKey(): SecretKey {
         val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
         generator.init(KeyGenParameterSpec.Builder(alias,
             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
@@ -31,34 +47,72 @@ class SettingsStore(context: Context) {
         return generator.generateKey()
     }
 
-    private fun encrypt(plain: String): String {
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, key())
-        val bytes = cipher.iv + cipher.doFinal(plain.toByteArray(Charsets.UTF_8))
-        return Base64.encodeToString(bytes, Base64.NO_WRAP)
+    private fun record(): String? = try {
+        prefs.getString("secret_encrypted", null)
+    } catch (_: ClassCastException) {
+        throw SettingsException(SettingsIssue.SECRET_UNAVAILABLE)
     }
 
-    private fun decrypt(data: String): String {
-        val bytes = Base64.decode(data, Base64.NO_WRAP)
-        require(bytes.size >= 13)
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, bytes.copyOfRange(0, 12)))
-        return cipher.doFinal(bytes.copyOfRange(12, bytes.size)).toString(Charsets.UTF_8)
+    private fun decrypt(saved: String): String = try {
+        val key = existingKey() ?: throw SettingsException(SettingsIssue.SECRET_UNAVAILABLE)
+        SecretRecordCodec.decrypt(key, saved)
+    } catch (_: Exception) {
+        // Do not emit exception messages, which may contain sensitive provider data.
+        throw SettingsException(SettingsIssue.SECRET_UNAVAILABLE)
     }
 
-    var secret: String
-        get() {
-            val saved = prefs.getString("secret_encrypted", null)
-            if (saved != null) {
-                try { return decrypt(saved) } catch (_: Exception) { /* re-key if needed */ }
+    fun load(): StoredSettings = synchronized(lock) {
+        val localPort = port
+        val saved = record()
+        if (saved != null) return@synchronized StoredSettings(localPort, decrypt(saved))
+        val generated = SettingsValidation.generateSecret()
+        persist(localPort, generated, recovery = false)
+        StoredSettings(localPort, generated)
+    }
+
+    fun save(port: Int, secret: String) = synchronized(lock) {
+        validate(port, secret)
+        // A UI edit cannot silently overwrite settings after loss of the Keystore key.
+        record()?.let(::decrypt)
+        persist(port, secret, recovery = false)
+    }
+
+    /** Called only after the user explicitly asks to replace the unavailable secret. */
+    fun recover(port: Int, secret: String) = synchronized(lock) {
+        validate(port, secret)
+        persist(port, secret, recovery = true)
+    }
+
+    private fun persist(port: Int, secret: String, recovery: Boolean) {
+        val encrypted = try {
+            val key = try {
+                existingKey() ?: if (recovery || !prefs.contains("secret_encrypted")) newKey()
+                    else throw SettingsException(SettingsIssue.SECRET_UNAVAILABLE)
+            } catch (error: Exception) {
+                if (!recovery) throw error
+                keyStore().deleteEntry(alias)
+                newKey()
             }
-            val generated = ByteArray(16).also(SecureRandom()::nextBytes)
-                .joinToString("") { "%02x".format(it.toInt() and 255) }
-            secret = generated
-            return generated
+            try {
+                SecretRecordCodec.encrypt(key, secret)
+            } catch (error: Exception) {
+                if (!recovery) throw error
+                keyStore().deleteEntry(alias)
+                SecretRecordCodec.encrypt(newKey(), secret)
+            }
+        } catch (_: Exception) {
+            throw SettingsException(SettingsIssue.WRITE_FAILED)
         }
-        set(value) {
-            require(value.matches(Regex("[0-9a-fA-F]{32}")))
-            prefs.edit().putString("secret_encrypted", encrypt(value.lowercase())).apply()
+        if (!prefs.edit().putInt("port", port).putString("secret_encrypted", encrypted).commit()) {
+            throw SettingsException(SettingsIssue.WRITE_FAILED)
         }
+    }
+
+    private fun validate(port: Int, secret: String) {
+        if (!SettingsValidation.validPort(port) || !SettingsValidation.validSecret(secret)) {
+            throw SettingsException(SettingsIssue.INVALID_CONFIGURATION)
+        }
+    }
+
+    companion object { private val lock = Any() }
 }

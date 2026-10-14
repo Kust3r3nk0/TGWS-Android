@@ -3,67 +3,212 @@ package io.github.kust3r3nk0.tgwsandroid
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import io.github.kust3r3nk0.tgwsandroid.core.MtprotoServer
+import io.github.kust3r3nk0.tgwsandroid.core.ServerEvent
+import io.github.kust3r3nk0.tgwsandroid.core.ServerIssue
+import io.github.kust3r3nk0.tgwsandroid.core.ServerPhase
+import java.util.concurrent.Executors
 
-/** User-started foreground service; NO Android VpnService is used. */
+/** A user-started local proxy, kept visible by a specialUse foreground notification. */
 class ProxyService : Service() {
     companion object {
         const val ACTION_START = "io.github.kust3r3nk0.tgwsandroid.START"
         const val ACTION_STOP = "io.github.kust3r3nk0.tgwsandroid.STOP"
         private const val CHANNEL_ID = "proxy_connection"
         private const val NOTIFICATION_ID = 1443
+        private const val TAG = "TGWSProxy"
     }
 
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val settingsExecutor = Executors.newSingleThreadExecutor { task -> Thread(task, "TGWS-settings") }
     private var server: MtprotoServer? = null
+    private var loading = false
+    private var destroyed = false
+    private var stopping = false
+    private var fatalError = false
+    private var callbackRegistered = false
+    private var currentNetwork: Network? = null
+    private var receivedNetwork = false
+    private val connectivity by lazy { getSystemService(ConnectivityManager::class.java) }
+    private val notifications by lazy { getSystemService(NotificationManager::class.java) }
+
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            if (receivedNetwork && network != currentNetwork) disconnectForNetworkChange()
+            receivedNetwork = true
+            currentNetwork = network
+        }
+        override fun onLost(network: Network) {
+            if (network == currentNetwork) {
+                currentNetwork = null
+                disconnectForNetworkChange()
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
-        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Proxy connection", NotificationManager.IMPORTANCE_LOW)
-        )
+        notifications.createNotificationChannel(NotificationChannel(
+            CHANNEL_ID, getString(R.string.notification_channel), NotificationManager.IMPORTANCE_LOW
+        ))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
-        if (intent?.action != ACTION_START) return START_NOT_STICKY
-        val notification = Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("TGWS-Android")
-            .setContentText("Локальный MTProto-прокси активен")
-            .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setOngoing(true)
-            .build()
-        startForeground(NOTIFICATION_ID, notification)
-        server?.stop()
-        try {
-            val store = SettingsStore(this)
-            server = MtprotoServer(store.port, store.secret,
-                report = { status -> ProxyState.description = status },
-                sessionCount = { ProxyState.sessions = it },
-                onFatalError = { stopSelf() }).also { it.start() }
-        } catch (error: Exception) {
-            Log.e("TGWSProxy", "Unable to start server", error)
-            ProxyState.description = "Ошибка запуска: ${error.javaClass.simpleName}"
-            stopSelf()
+        when (intent?.action) {
+            ACTION_STOP -> {
+                stopping = true
+                if (!fatalError) ProxyState.snapshot = ProxyState.snapshot.copy(phase = ProxyPhase.STOPPING)
+                stopSelf()
+            }
+            ACTION_START -> startFromUserAction()
+            else -> if (server == null && !loading) stopSelfResult(startId)
         }
         return START_NOT_STICKY
     }
 
+    private fun startFromUserAction() {
+        // Repeated explicit starts keep the existing listener and sessions intact.
+        if (destroyed || stopping || loading || server != null) return
+        fatalError = false
+        ProxyState.snapshot = ProxySnapshot(phase = ProxyPhase.STARTING)
+        try {
+            startForeground(NOTIFICATION_ID, notification())
+        } catch (_: RuntimeException) {
+            fail(ProxyIssue.SERVICE_START)
+            return
+        }
+        loading = true
+        settingsExecutor.execute {
+            try {
+                val settings = SettingsStore(this).load()
+                mainHandler.post {
+                    if (destroyed || stopping) return@post
+                    loading = false
+                    try {
+                        server = MtprotoServer(settings.port, settings.secret,
+                            onEvent = { event -> mainHandler.post { if (!destroyed) receive(event) } },
+                            onFatalError = { mainHandler.post { if (!destroyed) fail(ProxyState.snapshot.issue ?: ProxyIssue.SESSION) } }
+                        )
+                        connectivity.registerDefaultNetworkCallback(networkCallback, mainHandler)
+                        callbackRegistered = true
+                        server?.start()
+                    } catch (_: Exception) {
+                        fail(ProxyIssue.CONFIGURATION)
+                    }
+                }
+            } catch (error: SettingsException) {
+                mainHandler.post {
+                    if (!destroyed) fail(when (error.issue) {
+                        SettingsIssue.INVALID_CONFIGURATION -> ProxyIssue.CONFIGURATION
+                        SettingsIssue.SECRET_UNAVAILABLE -> ProxyIssue.SECRET_UNAVAILABLE
+                        SettingsIssue.WRITE_FAILED -> ProxyIssue.STORAGE
+                    })
+                }
+            } catch (_: Exception) {
+                mainHandler.post { if (!destroyed) fail(ProxyIssue.STORAGE) }
+            }
+        }
+    }
+
+    private fun receive(event: ServerEvent) {
+        when (event) {
+            is ServerEvent.State -> {
+                val phase = when (event.phase) {
+                    ServerPhase.STARTING -> ProxyPhase.STARTING
+                    ServerPhase.LISTENING -> if (ProxyState.snapshot.sessions > 0) ProxyPhase.ACTIVE else ProxyPhase.LISTENING
+                    ServerPhase.STOPPING -> ProxyPhase.STOPPING
+                    ServerPhase.STOPPED -> if (fatalError) ProxyPhase.ERROR else ProxyPhase.STOPPED
+                    ServerPhase.ERROR -> ProxyPhase.ERROR
+                }
+                if (phase == ProxyPhase.ERROR) fatalError = true
+                ProxyState.snapshot = ProxyState.snapshot.copy(phase = phase)
+                Log.i(TAG, "Local server state: ${event.phase.name}")
+            }
+            is ServerEvent.Sessions -> {
+                val previous = ProxyState.snapshot
+                if (event.established + event.pending < previous.sessions + previous.pending) {
+                    Log.i(TAG, "Client session closed")
+                }
+                ProxyState.snapshot = previous.withSessions(event.established, event.pending)
+            }
+            is ServerEvent.Diagnostic -> {
+                val issue = when (event.issue) {
+                    ServerIssue.CONFIGURATION -> ProxyIssue.CONFIGURATION
+                    ServerIssue.PORT -> ProxyIssue.PORT
+                    ServerIssue.HANDSHAKE -> ProxyIssue.HANDSHAKE
+                    ServerIssue.WSS_HANDSHAKE -> ProxyIssue.WSS_HANDSHAKE
+                    ServerIssue.TLS -> ProxyIssue.TLS
+                    ServerIssue.TCP -> ProxyIssue.TCP
+                    ServerIssue.SESSION -> ProxyIssue.SESSION
+                    ServerIssue.CAPACITY -> ProxyIssue.CAPACITY
+                    ServerIssue.TIMEOUT -> ProxyIssue.TIMEOUT
+                }
+                ProxyState.snapshot = ProxyState.snapshot.copy(issue = issue)
+                Log.w(TAG, "Proxy diagnostic: ${event.issue.name}")
+            }
+        }
+        if (ProxyState.snapshot.running) notifications.notify(NOTIFICATION_ID, notification())
+    }
+
+    private fun fail(issue: ProxyIssue) {
+        fatalError = true
+        stopping = true
+        loading = false
+        ProxyState.snapshot = ProxyState.snapshot.copy(phase = ProxyPhase.ERROR, issue = issue)
+        Log.e(TAG, "Unable to start local proxy: ${issue.name}")
+        stopSelf()
+    }
+
+    private fun disconnectForNetworkChange() {
+        if (destroyed) return
+        if (ProxyState.snapshot.sessions > 0 || ProxyState.snapshot.pending > 0) {
+            ProxyState.snapshot = ProxyState.snapshot.copy(issue = ProxyIssue.NETWORK_CHANGED)
+        }
+        server?.disconnectSessions()
+        Log.i(TAG, "Network changed; client sessions closed")
+    }
+
+    private fun notification(): Notification {
+        val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val stop = PendingIntent.getService(this, 1, Intent(this, ProxyService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE)
+        val message = if (ProxyState.snapshot.localAvailable) R.string.notification_listening else R.string.notification_starting
+        return Notification.Builder(this, CHANNEL_ID)
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(getString(message))
+            .setContentIntent(open)
+            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setOngoing(true)
+            .addAction(Notification.Action.Builder(null, getString(R.string.stop), stop).build())
+            .build()
+    }
+
     override fun onDestroy() {
+        destroyed = true
+        if (callbackRegistered) {
+            connectivity.unregisterNetworkCallback(networkCallback)
+            callbackRegistered = false
+        }
         server?.stop()
         server = null
-        ProxyState.running = false
-        ProxyState.sessions = 0
-        if (!ProxyState.description.startsWith("Ошибка")) {
-            ProxyState.description = "Остановлен"
-        }
+        settingsExecutor.shutdownNow()
+        mainHandler.removeCallbacksAndMessages(null)
+        ProxyState.snapshot = ProxyState.snapshot.copy(
+            phase = if (fatalError) ProxyPhase.ERROR else ProxyPhase.STOPPED,
+            sessions = 0, pending = 0
+        )
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        notifications.cancel(NOTIFICATION_ID)
         super.onDestroy()
     }
+
     override fun onBind(intent: Intent?): IBinder? = null
 }

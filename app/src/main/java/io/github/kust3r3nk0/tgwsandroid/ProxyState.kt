@@ -4,9 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
-/** In-process transient state; networking runs in ProxyService. */
+/** UI adapter only. The core never imports Compose or writes this state directly. */
 object ProxyState {
-    var running by mutableStateOf(false)
-    var description by mutableStateOf("Остановлен")
-    var sessions by mutableStateOf(0)
+    var snapshot by mutableStateOf(ProxySnapshot())
+        internal set
 }
