@@ -7,7 +7,7 @@
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 14+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[English README](README_EN.md) · [План разработки](ROADMAP.md) · [ТЗ по переносу](PORTING_SPEC_RU.md) · [Помощь проекту](CONTRIBUTING.md)**
+**[English README](README_EN.md) · [План разработки](ROADMAP.md) · [Помощь проекту](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
 > **Ранняя альфа-версия.** Это не готовый релиз, не подтверждённый рабочий прокси и не полная замена оригинального проекта. Полная Android-сборка и соединение с серверами Telegram пока **не проверены**. Не используйте эту версию как единственный канал связи.
