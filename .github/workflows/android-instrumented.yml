@@ -73,41 +73,9 @@ jobs:
           # API 37 SurfaceFlinger (mapper.ranchu ReadColorBufferDma assertion).
           # Use the supported software backend; application tests remain unchanged.
           emulator-options: -no-window -gpu software -no-snapshot -noaudio -no-boot-anim -no-metrics -show-kernel
-          pre-emulator-launch-script: |
-            set -eu
-            adb start-server
-            python3 - <<'PY'
-            import os
-            from pathlib import Path
-            import re
-
-            api = '${{ matrix.api }}'
-            directory = Path(os.environ['ANDROID_AVD_HOME'])
-            config = (directory / 'test.avd/config.ini').read_text()
-            if f'android-{api}/' not in config:
-                raise SystemExit('AVD image does not match the requested API')
-            # Older avdmanager writes android-0 for minor-versioned images. The
-            # emulator then misdetects the API and omits required graphics features.
-            # Correct only AVD metadata to match its actual installed system image.
-            root = directory / 'test.ini'
-            data = root.read_text()
-            old = re.search(r'^target=(.*)$', data, re.M)
-            if not old:
-                raise SystemExit('AVD target is absent')
-            target = f'android-{api}'
-            if old[1] != target:
-                print(f'Correcting AVD target {old[1]} -> {target}')
-                root.write_text(re.sub(r'^target=.*$', f'target={target}', data, flags=re.M))
-            print(f'AVD target matches installed image: {target}')
-            PY
+          pre-emulator-launch-script: python3 .github/scripts/configure_avd.py --api '${{ matrix.api }}'
           disable-animations: true
-          script: |
-            set -eu
-            actual_api=$(adb -s emulator-5554 shell getprop ro.build.version.sdk | tr -d '\r')
-            requested_api='${{ matrix.api }}'
-            test "$actual_api" = "${requested_api%%.*}"
-            ./gradlew --no-daemon :app:connectedDebugAndroidTest
-            python3 .github/scripts/verify_android_tests.py
+          script: bash .github/scripts/run_android_tests.sh '${{ matrix.api }}'
       - name: Upload device test reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
