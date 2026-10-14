@@ -2,7 +2,7 @@
 
 **Unofficial, open-source Android 14+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
-> **Pre-release warning:** This is an early **0.1.0-alpha source snapshot**, not a verified functional build or a full feature-parity port. Android build and live Telegram compatibility are not yet validated. Do not rely on it as your sole means of communication.
+> **Pre-release warning:** This is an early **0.1.0-alpha source snapshot**, not a verified functional build or a full feature-parity port. The Android build and basic JVM checks have passed CI; live Telegram connectivity is not yet validated. Do not rely on it as your sole means of communication.
 
 ## Architecture & roadmap
 
@@ -25,7 +25,7 @@ Not yet ported: Fake TLS, Cloudflare routes and worker pool, HTTP/2 media multip
 
 ## Build prerequisites
 
-Android Studio compatible with Android Gradle Plugin 9.4.0, JDK 17, Android SDK Platform 37, and Gradle 9.8.1. There is currently no committed Gradle wrapper JAR. With a locally installed Gradle 9.8.1, run `gradle :app:testDebugUnitTest :app:assembleDebug`. **Build success has not been verified yet.**
+Android Studio compatible with Android Gradle Plugin 9.4.0, JDK 17, Android SDK Platform 37, and Gradle 9.8.1. A complete Gradle 9.8.1 wrapper is committed. Run `./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug` (Linux/macOS) or `gradlew.bat` (Windows). CI has built a debug APK; device-level connection testing is still pending.
 
 ## Versions
 

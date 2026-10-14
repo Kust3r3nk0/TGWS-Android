@@ -14,10 +14,10 @@
 ## Проверки
 
 ```bash
-gradle :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
-В проекте ещё нет Gradle Wrapper JAR: используется установленный Gradle 9.8.1.
+В репозитории доступен полный Gradle Wrapper 9.8.1. В Windows используйте `gradlew.bat`.
 
 ## Стиль PR
 

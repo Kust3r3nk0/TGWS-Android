@@ -33,7 +33,7 @@ jobs:
       - name: Install Android API 37 platform
         run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
       - name: Run tests, lint and debug build
-        run: gradle --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
       - name: Upload debug APK (not a stable release)
         if: success()
         uses: actions/upload-artifact@v7
