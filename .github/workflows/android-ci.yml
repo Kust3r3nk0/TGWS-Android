@@ -52,6 +52,6 @@ jobs:
             echo 'JVM tests, Android Lint and Debug APK build completed successfully.'
             echo "Commit: \`$GITHUB_SHA\`"
             echo ''
-            echo 'Download the \`TGWS-Android-debug-apk\` artifact (ZIP) from this run.'
+            echo 'Download the TGWS-Android-debug-apk artifact (ZIP) from this run.'
             echo 'This is a test/debug build, not a production release.'
           } >> "$GITHUB_STEP_SUMMARY"
