@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest functionality for TGWS-Android
+labels: [enhancement]
+body:
+  - type: textarea
+    id: feature
+    attributes:
+      label: Feature description
+      description: Describe the need, not just a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: upstream
+    attributes:
+      label: Related upstream behavior or roadmap item
+      description: Link to relevant Flowseal file, issue or roadmap section, if any.

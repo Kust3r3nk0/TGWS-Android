@@ -79,4 +79,4 @@ app/src/main/java/io/github/kust3r3nk0/tgwsandroid/
 Код распространяется по лицензии **MIT**. Приветствуются сообщения об ошибках, тестирование и Pull Requests. Перед внесением изменений ознакомьтесь с [CONTRIBUTING.md](CONTRIBUTING.md) и [SECURITY.md](SECURITY.md).
 
 **Разработчик / инициатор проекта:** Makarov Lab's 3.0™.  
-**Предлагаемый репозиторий:** `Kust3r3nk0/TGWS-Android`.
+**Репозиторий:** `Kust3r3nk0/TGWS-Android`.
