@@ -89,18 +89,8 @@ class MtprotoServer(
         if (handshake.dc >= 10000) return
         val relay = MtprotoCrypto.createRelayInit(handshake)
         val ctx = MtprotoCrypto.buildContext(handshake, secret, relay)
-        val redirect = when (handshake.dc) {
-            2 -> "149.154.167.51"
-            4 -> "149.154.167.91"
-            1 -> "149.154.175.50"
-            3 -> "149.154.175.100"
-            5 -> "149.154.171.5"
-            203 -> "91.105.192.100"
-            else -> return
-        }
-        val hostDc = if (handshake.dc == 203) 2 else handshake.dc
-        val names = if (handshake.media) listOf("kws$hostDc-1.web.telegram.org", "kws$hostDc.web.telegram.org")
-                    else listOf("kws$hostDc.web.telegram.org")
+        val redirect = TelegramRoutes.ip(handshake.dc) ?: return
+        val names = TelegramRoutes.webSocketDomains(handshake.dc, handshake.media)
         var ws: RawWebSocket? = null
         for (name in names) {
             try { ws = RawWebSocket.connect(redirect, name); break }
