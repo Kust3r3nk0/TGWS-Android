@@ -22,6 +22,7 @@ class MtprotoServer(
     private val port: Int, secretHex: String,
     private val report: (String) -> Unit,
     private val sessionCount: (Int) -> Unit,
+    private val onFatalError: () -> Unit = {},
 ) : Closeable {
     private val secret = secretHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
     private val sockets = ConcurrentHashMap.newKeySet<Socket>()
@@ -42,6 +43,10 @@ class MtprotoServer(
         try {
             val ss = ServerSocket()
             server = ss
+            if (!listening) {
+                ss.close()
+                return
+            }
             ss.reuseAddress = true
             ss.bind(InetSocketAddress(InetAddress.getByName("127.0.0.1"), port), 32)
             ProxyState.running = true
@@ -63,7 +68,10 @@ class MtprotoServer(
                 }
             }
         } catch (error: Exception) {
-            if (listening) report("Ошибка локального порта: ${error.javaClass.simpleName}")
+            if (listening) {
+                report("Ошибка локального порта: ${error.javaClass.simpleName}")
+                onFatalError()
+            }
         } finally {
             listening = false
             ProxyState.running = false

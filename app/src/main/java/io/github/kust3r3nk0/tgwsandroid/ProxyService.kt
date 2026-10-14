@@ -45,7 +45,8 @@ class ProxyService : Service() {
             val store = SettingsStore(this)
             server = MtprotoServer(store.port, store.secret,
                 report = { status -> ProxyState.description = status },
-                sessionCount = { ProxyState.sessions = it }).also { it.start() }
+                sessionCount = { ProxyState.sessions = it },
+                onFatalError = { stopSelf() }).also { it.start() }
         } catch (error: Exception) {
             Log.e("TGWSProxy", "Unable to start server", error)
             ProxyState.description = "Ошибка запуска: ${error.javaClass.simpleName}"
@@ -59,7 +60,9 @@ class ProxyService : Service() {
         server = null
         ProxyState.running = false
         ProxyState.sessions = 0
-        ProxyState.description = "Остановлен"
+        if (!ProxyState.description.startsWith("Ошибка")) {
+            ProxyState.description = "Остановлен"
+        }
         super.onDestroy()
     }
     override fun onBind(intent: Intent?): IBinder? = null
