@@ -28,7 +28,6 @@ Kotlin 2.4.21, Android Gradle Plugin 9.4.0, Gradle 9.8.1, minimum Android 14 / A
 ## Roadmap and community
 
 - [Feature parity roadmap](docs/en/ROADMAP.md)
-- [Porting specification (Russian)](PORTING_SPEC_RU.md)
 - [Contributing](docs/en/CONTRIBUTING.md)
 - [Security disclosure](docs/en/SECURITY.md)
 - [License](LICENSE) / [Attribution](docs/en/NOTICE.md)
