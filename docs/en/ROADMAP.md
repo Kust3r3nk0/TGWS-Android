@@ -12,15 +12,19 @@ This is a plan, not a statement that a release has shipped.
 - [x] Local foreground service and Keystore-backed settings code
 - [x] JVM test sources for crypto and packet splitting
 - [x] Green CI: Android build, unit tests and lint (device validation still pending)
+- [x] Deterministic byte-level Flowseal v1.11.2 vectors
+- [x] Strict WebSocket/TLS/MTProto and malformed packet checks
+- [x] Bounded fallback, I/O deadlines, cancellation and safe diagnostic categories
+- [x] RU/EN resources, hidden secrets and explicit Keystore recovery
+- [x] Android instrumentation sources and API 34–37 CI matrix
+- [ ] Run Android matrix and manual network scenarios (see test report)
 - [ ] Device and Telegram end-to-end smoke test
 
 ## v0.2.0 — Reliability and protocol parity
 
-- [ ] Compare native packet vectors against upstream Python
-- [ ] Add malformed WebSocket/MTProto handshake tests
 - [ ] Connection-pool warmup, rotations, backoff and limits
-- [ ] Network timeout, cancellation and resource-leak tests
-- [ ] Protocol diagnostics without disclosing secrets
+- [ ] Extend protocol vectors when updating the upstream baseline
+- [ ] Long-running load and network testing
 
 ## v0.3.0 — Extended transports
 
