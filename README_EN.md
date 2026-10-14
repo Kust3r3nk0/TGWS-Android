@@ -4,6 +4,12 @@
 
 > **Pre-release warning:** This is an early **0.1.0-alpha source snapshot**, not a verified functional build or a full feature-parity port. Android build and live Telegram compatibility are not yet validated. Do not rely on it as your sole means of communication.
 
+## Architecture & roadmap
+
+![TGWS-Android: current alpha architecture and planned 1.0 features](docs/images/tgws-android-workflow-en.svg)
+
+*The diagram separates the current unverified alpha source snapshot from features planned for 1.0.*
+
 ## Goal
 
 Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 34+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
