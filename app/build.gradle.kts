@@ -5,7 +5,11 @@ plugins {
 
 android {
     namespace = "io.github.kust3r3nk0.tgwsandroid"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 0
+        }
+    }
     defaultConfig {
         applicationId = "io.github.kust3r3nk0.tgwsandroid"
         minSdk = 34

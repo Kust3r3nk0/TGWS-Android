@@ -31,7 +31,7 @@ jobs:
       - name: Install Android SDK
         uses: android-actions/setup-android@v4
       - name: Install Android API 37 platform
-        run: sdkmanager 'platforms;android-37' 'build-tools;36.0.0'
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
       - name: Run tests, lint and debug build
         run: gradle --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
       - name: Upload debug APK (not a stable release)

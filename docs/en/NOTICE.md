@@ -2,7 +2,7 @@
 
 **Original:** [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy), maintained by Flowseal, MIT License (Copyright © 2026 Flowseal).
 
-**This project:** TGWS-Android, an independently maintained Android port developed under the Makarov Lab's 3.0™ project. Original and new portions are licensed under the terms of [LICENSE](LICENSE).
+**This project:** TGWS-Android, an independently maintained Android port developed under the Makarov Lab's 3.0™ project. Original and new portions are licensed under the terms of [LICENSE](../../LICENSE).
 
 Upstream reference used to plan this port: tag `v1.11.2`, commit `307a384ab7f522e34bb1a045884d0bd90f40bee5`.
 

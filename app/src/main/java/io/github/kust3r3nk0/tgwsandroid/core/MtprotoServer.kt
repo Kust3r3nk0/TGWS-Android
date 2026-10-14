@@ -90,7 +90,8 @@ class MtprotoServer(
         val relay = MtprotoCrypto.createRelayInit(handshake)
         val ctx = MtprotoCrypto.buildContext(handshake, secret, relay)
         val redirect = when (handshake.dc) {
-            2, 4 -> "149.154.167.220"
+            2 -> "149.154.167.51"
+            4 -> "149.154.167.91"
             1 -> "149.154.175.50"
             3 -> "149.154.175.100"
             5 -> "149.154.171.5"
