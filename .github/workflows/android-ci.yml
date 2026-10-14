@@ -31,6 +31,8 @@ jobs:
         run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
       - name: Run tests, lint and debug build
         run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Verify instrumentation report gate tests
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
       - name: Collect debug APK, checksum and build information
         if: success()
         run: |

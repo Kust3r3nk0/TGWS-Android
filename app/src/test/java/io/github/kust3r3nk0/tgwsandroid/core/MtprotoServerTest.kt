@@ -196,7 +196,8 @@ class MtprotoServerTest {
                 connect(port).use { second ->
                     await("Pending capacity missing") { events.sessions(0, 2) }
                     connect(port).use(::assertClosed)
-                    assertTrue(events.issue(ServerIssue.CAPACITY))
+                    // EOF becomes visible before the listener publishes its asynchronous diagnostic.
+                    await("Capacity rejection not diagnosed") { events.issue(ServerIssue.CAPACITY) }
                     server.stop()
                     assertClosed(first)
                     assertClosed(second)
