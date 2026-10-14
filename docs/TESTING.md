@@ -31,6 +31,13 @@ fallback и локальный WebSocket-сервер. Они не подтве�
 ./gradlew --no-daemon :app:connectedDebugAndroidTest
 ```
 
+CI дополнительно запускает `python3 .github/scripts/verify_android_tests.py`:
+проверяются записи всех 10 тестов, а не только exit code Gradle. Пустые отчёты,
+пропуски, повторяющиеся записи и любой failed/error не засчитываются. Саму
+проверку и настройку эмулятора проверяет
+`python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
+
+
 Ручная матрица для каждого API:
 
 | Сценарий | Что проверять |

@@ -31,6 +31,12 @@ Instrumentation requires a connected device or emulator:
 ./gradlew --no-daemon :app:connectedDebugAndroidTest
 ```
 
+CI also runs `python3 .github/scripts/verify_android_tests.py`, requiring entries
+for all 10 tests instead of relying only on Gradle's exit code. Empty reports,
+skips, duplicates and failures/errors fail the job. Test the gate and emulator
+entry points with `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
+
+
 | Scenario | Expected observation |
 |---|---|
 | First launch | Secret hidden; listener does not start automatically |

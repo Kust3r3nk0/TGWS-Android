@@ -24,9 +24,9 @@ Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket p
 | Abridged / Intermediate / Padded Intermediate | Implemented and tested: JVM, 4 MiB packet bound and malformed length rejection |
 | Loopback listener and WSS → TCP fallback | Implemented and tested locally; live Telegram network validation required |
 | WebSocket framing, Upgrade and TLS | Implemented and tested with local RFC 6455 / TLS peers; live WSS validation required |
-| Foreground Service and network loss | Implemented; Android API 34–37 execution still required |
+| Foreground Service and network loss | Basic lifecycle tested on API 34–37 emulators; real Wi-Fi/LTE requires validation |
 | Compose / Material 3, Russian and English UI | Implemented; device validation required |
-| Keystore AES-256-GCM | Implemented; device validation required; lost keys require explicit recovery |
+| Keystore AES-256-GCM | Implemented and tested on API 34–37 emulators; lost keys require explicit recovery |
 | Official Telegram physical-device E2E | Planned; no physical device currently available |
 | Debug APK | Debug-signed test artifact, not a distribution release |
 | Trusted signed APK / GitHub Pre-release | Planned; release gate not passed |
@@ -48,7 +48,8 @@ Run `:app:connectedDebugAndroidTest` with a device or emulator. CI checks pushes
 `main`, Pull Requests and manual runs; successful builds publish the debug APK,
 checksum, build version/commit and changelog, with JVM/Lint reports separately.
 Action versions are pinned to verified commit SHAs. A separate PR/manual workflow
-targets API 34, 35, 36 and 37.0. See [testing](docs/en/TESTING.md) and the
+passed all 10 instrumentation tests on each API 34, 35, 36 and 37.0.
+104 JVM tests, Lint and APK assembly also passed. See [testing](docs/en/TESTING.md) and the
 [actual test report](docs/en/TEST_REPORT.md).
 
 ## Versions

@@ -58,7 +58,7 @@ Final mandatory command:
 ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
 ```
 
-Tested code and CI configuration: `143fb7e08bbb52b619d3d69566e622f8664e3ca0`.
+Tested code and CI configuration: `450ae9ed69b40cbba940ab11363603079686ce73`.
 The complete local run passed: **104 tests, 0 failures/errors/skips**.
 
 | Group | JVM tests |
@@ -81,7 +81,44 @@ Debug APK signature verified with `apksigner` (v2). Local APK SHA-256:
 Artifacts include `SHA256SUMS`, `build-info.json`, changelog and JVM/Lint reports.
 Compiling instrumentation does not establish Android execution.
 
-New branch GitHub CI and API matrix execution are still pending.
+A clean checkout of `450ae9e` passed the same complete command. The public
+localhost TLS fixture is tracked only as a test resource and is absent from the
+APK. **16 CI script tests** additionally cover complete JUnit reports, AVD setup,
+and stopping on a wrong device API or Gradle failure.
+
+GitHub JVM/Lint/APK and 16 CI script tests: [successful run 38627799074](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38627799074)
+at `450ae9e`. Downloaded JUnit reports confirm all 104 JVM tests.
+
+### Android verification integrity
+
+Previous API 34, 35 and 36 artifacts contain **10 passing tests each**.
+The apparently successful API 37 run contained no JUnit tests: the emulator
+restarted system services, and Gradle returned success after APK installation
+failed. This result **does not count** as device verification.
+
+The workflow now checks actual `ro.build.version.sdk` and requires JUnit entries
+for every instrumentation test with no errors or skips. Empty, incomplete or
+duplicated reports fail CI. For minor-versioned API 37.0, AVD target metadata is
+corrected only after checking the installed system image path; the supported
+`-gpu software` backend is used. Entry points run in single processes because
+the emulator action executes separate script lines in separate shells. These
+fixes do not alter the application or relax test acceptance criteria.
+
+Repeated Android matrix: [successful run 38627804320](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38627804320),
+commit `450ae9e`. All downloaded JUnit artifacts pass the same strict gate:
+
+| Emulator | Executed | Errors / skips | Artifact ID |
+|---|---:|---|---|
+| Android 14 / API 34 | 10 | 0 / 0 | 11924757599 |
+| Android 15 / API 35 | 10 | 0 / 0 | 11925800757 |
+| Android 16 / API 36 | 10 | 0 / 0 | 11925436007 |
+| Android 17 / API 37.0 | 10 | 0 / 0 | 11925980806 |
+
+Covered: start/stop, repeated start, background/return and Activity recreation,
+occupied port, malformed handshake and stopping during startup; AES-256 Keystore,
+encrypted records, lost keys, corrupt settings and explicit recovery. These tests
+do not exercise official Telegram, every visual UI scenario or real Wi-Fi/LTE
+changes.
 
 ## Alpha limits
 

@@ -17,7 +17,8 @@ This is a plan, not a statement that a release has shipped.
 - [x] Bounded fallback, I/O deadlines, cancellation and safe diagnostic categories
 - [x] RU/EN resources, hidden secrets and explicit Keystore recovery
 - [x] Android instrumentation sources and API 34–37 CI matrix
-- [ ] Run Android matrix and manual network scenarios (see test report)
+- [x] Execute all 10 instrumentation tests on each API 34–37 emulator (see test report)
+- [ ] Manual UI and network scenarios on a physical device
 - [ ] Device and Telegram end-to-end smoke test
 
 ## v0.2.0 — Reliability and protocol parity
