@@ -8,7 +8,7 @@
 - [x] Первичная реализация WSS и TCP fallback
 - [x] Android Foreground Service и хранение настроек через Keystore
 - [x] Исходники модульных тестов
-- [ ] Успешная Android CI-сборка
+- [x] Успешная Android CI-сборка: JVM-тесты, Android Lint и debug APK (не означает проверку на устройстве)
 - [ ] Реальные end-to-end тесты Telegram
 
 ## 0.2.0 — надёжность и совместимость

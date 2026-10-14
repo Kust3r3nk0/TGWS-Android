@@ -11,7 +11,7 @@ This is a plan, not a statement that a release has shipped.
 - [x] Direct WS/WSS and TCP fallback source implementation
 - [x] Local foreground service and Keystore-backed settings code
 - [x] JVM test sources for crypto and packet splitting
-- [ ] Green CI: Android build, unit tests and lint
+- [x] Green CI: Android build, unit tests and lint (device validation still pending)
 - [ ] Device and Telegram end-to-end smoke test
 
 ## v0.2.0 — Reliability and protocol parity

@@ -13,7 +13,7 @@ All notable changes will be documented in this file. Versions of this Android po
 
 ### Limitations
 
-- No tested APK, no end-to-end Telegram connection test and no completed parity port.
+- Debug APK builds in CI, but device testing, end-to-end Telegram connectivity, and full upstream feature parity are still pending.
 - Fake TLS, Cloudflare transports, media HTTP/2 and robust mobile network support are pending.
 
 [Русская версия](../../CHANGELOG.md)
