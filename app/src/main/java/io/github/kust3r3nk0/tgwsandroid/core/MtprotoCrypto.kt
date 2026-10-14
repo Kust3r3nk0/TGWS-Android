@@ -31,11 +31,12 @@ internal object MtprotoCrypto {
             prefix in setOf("HEAD", "POST", "GET ", "OPTI") ||
             bytes.part(0, 4).all { (it.toInt() and 255) == 0xee } ||
             bytes.part(0, 4).all { (it.toInt() and 255) == 0xdd } ||
+            bytes.part(0, 4).contentEquals(byteArrayOf(0x16, 0x03, 0x01, 0x02)) ||
             (bytes[4] == 0.toByte() && bytes[5] == 0.toByte() &&
              bytes[6] == 0.toByte() && bytes[7] == 0.toByte())
     }
     fun parseClientInit(header: ByteArray, secret: ByteArray): Handshake? {
-        if (header.size != 64 || secret.size != 16) return null
+        if (header.size != 64 || secret.size != 16 || forbidden(header)) return null
         val keyMaterial = header.part(8, 56)
         val dec = ctr(digest(keyMaterial.part(0, 32), secret), keyMaterial.part(32, 48))
         val plain = dec.update(header)
@@ -44,21 +45,54 @@ internal object MtprotoCrypto {
         if (prefix !in tags || !tag.all { (it.toInt() and 255) == prefix }) return null
         val signed = ((plain[61].toInt() shl 8) or (plain[60].toInt() and 255)).toShort().toInt()
         val dc = abs(signed)
-        if (dc !in 1..5 && dc != 203 && dc !in 10001..10005) return null
+        if (dc !in 1..5 && dc != 203) return null
         return Handshake(dc, signed < 0, tag, signed, keyMaterial)
     }
-    fun createRelayInit(handshake: Handshake): ByteArray {
-        var result: ByteArray
-        do { result = ByteArray(64).also(random::nextBytes) } while (forbidden(result))
-        val cipher = ctr(result.part(8, 40), result.part(40, 56))
-        val encrypted = cipher.update(result)
+    private fun validateHandshake(handshake: Handshake) {
+        require(handshake.dc in 1..5 || handshake.dc == 203) { "Unsupported Telegram DC" }
+        require(handshake.originalSignedDc == if (handshake.media) -handshake.dc else handshake.dc) {
+            "Inconsistent Telegram DC"
+        }
+        require(handshake.clientKeyMaterial.size == 48) { "Invalid client key material length" }
+        require(handshake.tag.size == 4 && tags.any { value ->
+            handshake.tag.all { (it.toInt() and 255) == value }
+        }) { "Unsupported MTProto transport" }
+    }
+    private fun secureBytes(size: Int) = ByteArray(size).also(random::nextBytes)
+
+    /** Injectable randomness permits byte-for-byte comparison with the pinned Python reference. */
+    fun createRelayInit(handshake: Handshake, randomBytes: (Int) -> ByteArray = ::secureBytes): ByteArray {
+        validateHandshake(handshake)
+        var result: ByteArray? = null
+        for (attempt in 0 until 128) {
+            val candidate = randomBytes(64)
+            require(candidate.size == 64) { "Invalid relay randomness length" }
+            if (!forbidden(candidate)) {
+                result = candidate.copyOf()
+                break
+            }
+        }
+        val relay = checkNotNull(result) { "Unable to generate a valid relay initialization" }
+        val cipher = ctr(relay.part(8, 40), relay.part(40, 56))
+        val encrypted = cipher.update(relay)
+        val padding = randomBytes(2)
+        require(padding.size == 2) { "Invalid relay padding length" }
         val tail = handshake.tag + byteArrayOf(handshake.originalSignedDc.toByte(),
-            (handshake.originalSignedDc shr 8).toByte()) + ByteArray(2).also(random::nextBytes)
-        for (i in 0..7) result[56 + i] = (tail[i].toInt() xor encrypted[56 + i].toInt()
-            xor result[56 + i].toInt()).toByte()
-        return result
+            (handshake.originalSignedDc shr 8).toByte()) + padding
+        for (i in 0..7) relay[56 + i] = (tail[i].toInt() xor encrypted[56 + i].toInt()
+            xor relay[56 + i].toInt()).toByte()
+        return relay
     }
     fun buildContext(handshake: Handshake, secret: ByteArray, relay: ByteArray): CryptoContext {
+        validateHandshake(handshake)
+        require(secret.size == 16) { "Invalid MTProto secret length" }
+        require(relay.size == 64 && !forbidden(relay)) { "Invalid relay initialization" }
+        val relayPlain = ctr(relay.part(8, 40), relay.part(40, 56)).update(relay)
+        require(relayPlain.part(56, 60).contentEquals(handshake.tag) &&
+            relayPlain[60] == handshake.originalSignedDc.toByte() &&
+            relayPlain[61] == (handshake.originalSignedDc shr 8).toByte()) {
+            "Inconsistent relay initialization"
+        }
         val material = handshake.clientKeyMaterial
         val backwards = material.reversedArray()
         val fromClient = ctr(digest(material.part(0, 32), secret), material.part(32, 48))
