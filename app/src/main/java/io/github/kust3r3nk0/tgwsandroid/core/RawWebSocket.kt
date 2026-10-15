@@ -86,10 +86,10 @@ internal class RawWebSocket private constructor(
         ): RawWebSocket {
             validateRequest(domain, path)
             val tcp = Socket()
-            tcp.tcpNoDelay = true
             var tls: SSLSocket? = null
             try {
                 socketOwner(tcp)
+                tcp.tcpNoDelay = true
                 tcp.connect(InetSocketAddress(address, port), limits.connectMillis)
                 tcp.soTimeout = limits.handshakeMillis
                 val ssl = context.socketFactory.createSocket(tcp, domain, port, true) as SSLSocket

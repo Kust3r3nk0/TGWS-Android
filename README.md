@@ -5,14 +5,14 @@
 [![Android](https://img.shields.io/badge/Android-14%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/14)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Status](https://img.shields.io/badge/Status-0.1.0--alpha-orange)
+![Status](https://img.shields.io/badge/Status-0.1.1--alpha-orange)
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 14+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[English README](README_EN.md) · [План разработки](ROADMAP.md) · [Проверки и Telegram E2E](docs/TESTING.md) · [Отчёт](docs/TEST_REPORT.md)**
+**[English README](README_EN.md) · [План разработки](ROADMAP.md) · [Проверки и Telegram E2E](docs/TESTING.md) · [Отчёт обновления](docs/TEST_REPORT_0.1.1-alpha.md) · [Разработка с Codex](docs/CODEX_WORKFLOW.md)**
 
 > [!IMPORTANT]
-> **Ранняя альфа-версия.** Это не готовый релиз, не подтверждённый рабочий прокси и не полная замена оригинального проекта. Android-сборка и базовые JVM-тесты прошли CI; реальное соединение с серверами Telegram пока **не проверено**. Не используйте эту версию как единственный канал связи.
+> **0.1.1-alpha — тестовое обновление.** Пользователь подтвердил отправку, получение и загрузку в 0.1.0-alpha на Android 16 / Telegram 13.0.2 / Wi-Fi, но сообщил о кратких обрывах. Исправления 0.1.1-alpha требуют повторной проверки на устройстве; устойчивость всех маршрутов не подтверждена.
 
 ## Как работает TGWS-Android
 
@@ -35,7 +35,7 @@ TGWS-Android — нативное Android-приложение на Kotlin и Je
 | Foreground Service, реакция на потерю сети | Основной lifecycle протестирован на эмуляторах API 34–37; реальные Wi-Fi/LTE требуют проверки |
 | Compose / Material 3, русский и английский UI | Реализовано, требует проверки на устройстве |
 | Android Keystore AES-256-GCM | Реализовано и протестировано на эмуляторах API 34–37; утрата ключа требует явного восстановления |
-| Реальное подключение официального Telegram | Запланировано; физическое устройство сейчас недоступно |
+| Реальное подключение официального Telegram | Частично проверено пользователем: 0.1.0-alpha, Android 16, Wi-Fi; повтор 0.1.1-alpha и восстановление сети требуют проверки |
 | Fake TLS (ee-secret) | Запланировано |
 | Cloudflare Proxy, Worker и балансировка | Запланировано |
 | HTTP/2 для медиатрафика | Запланировано |
@@ -63,7 +63,7 @@ TGWS-Android — нативное Android-приложение на Kotlin и Je
 6. Debug APK доступен в **Actions → Android CI → запуск → Artifacts**. [Инструкции Codex](AGENTS.md).
 
 > [!NOTE]
-> Подтверждены 104 JVM-теста, Lint, сборка APK и по 10 инструментальных тестов на эмуляторах API 34–37. [Результаты и CI](docs/TEST_REPORT.md). Реальное подключение официального Telegram не проверено.
+> Локально прошли 113 JVM-тестов, Lint и сборка APK; CI выполняет также по 10 инструментальных тестов на API 34–37. [Результаты и ограничения обновления](docs/TEST_REPORT_0.1.1-alpha.md).
 
 CI запускается при push в `main`, Pull Request и вручную. Успешная проверка
 публикует debug APK, `SHA256SUMS`, версию и commit, changelog; отчёты JVM/Lint
@@ -89,9 +89,14 @@ WSS использует обычную проверку доверия TLS и �
 `ee-secret` в эту версию не входит. Ciphertext сохранённого секрета не заменяется
 молча при утрате ключа Keystore. Диагностика содержит только категории событий.
 
+После 60 с тишины WSS проверяет peer через Ping/Pong, вместо немедленного
+разрыва. Срок сборки неполного сообщения — 60 с; MTProto-сессия без полезной
+активности ограничена 300 с. На экране отдельно видны активные WSS/TCP-сессии;
+прошлая ошибка fallback снимается при успешном новом соединении.
+
 При смене сети существующие сессии закрываются; Telegram должен создать новые.
 Бесшовной миграции нет. Полные критерии, ограничения и фактически выполненные
-проверки приведены в [отчёте](docs/TEST_REPORT.md).
+проверки приведены в [отчёте обновления](docs/TEST_REPORT_0.1.1-alpha.md).
 
 ## Архитектура исходников
 

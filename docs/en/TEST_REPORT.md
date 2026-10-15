@@ -1,5 +1,7 @@
 # 0.1.0-alpha test report
 
+> 15 October update: the user confirmed exchange/downloads in 0.1.0-alpha on Android 16 / Telegram 13.0.2 / Wi-Fi, with disconnections. [Update report](TEST_REPORT_0.1.1-alpha.md). Historical results below describe 14 October.
+
 Date: **14 October 2026, UTC**. [Русский](../TEST_REPORT.md).
 
 **Release gate remains closed:** no physical Android 14+ device with official

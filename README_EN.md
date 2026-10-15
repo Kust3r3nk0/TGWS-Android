@@ -4,7 +4,7 @@
 
 **Unofficial, open-source Android 14+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
-> **Pre-release warning:** This is an early **0.1.0-alpha source snapshot**, not a verified functional build or a full feature-parity port. The Android build and basic JVM checks have passed CI; live Telegram connectivity is not yet validated. Do not rely on it as your sole means of communication.
+> **0.1.1-alpha test update:** The user confirmed text send/receive and downloads in 0.1.0-alpha on Android 16 / Telegram 13.0.2 / Wi-Fi, with brief disconnections. Version 0.1.1-alpha requires another device test; stability of every route is unverified.
 
 ## Architecture & roadmap
 
@@ -27,7 +27,7 @@ Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket p
 | Foreground Service and network loss | Basic lifecycle tested on API 34–37 emulators; real Wi-Fi/LTE requires validation |
 | Compose / Material 3, Russian and English UI | Implemented; device validation required |
 | Keystore AES-256-GCM | Implemented and tested on API 34–37 emulators; lost keys require explicit recovery |
-| Official Telegram physical-device E2E | Planned; no physical device currently available |
+| Official Telegram physical-device E2E | Partial user verification of 0.1.0-alpha on Android 16 / Wi-Fi; update and network recovery require retesting |
 | Debug APK | Debug-signed test artifact, not a distribution release |
 | Trusted signed APK / GitHub Pre-release | Planned; release gate not passed |
 
@@ -49,8 +49,8 @@ Run `:app:connectedDebugAndroidTest` with a device or emulator. CI checks pushes
 checksum, build version/commit and changelog, with JVM/Lint reports separately.
 Action versions are pinned to verified commit SHAs. A separate PR/manual workflow
 passed all 10 instrumentation tests on each API 34, 35, 36 and 37.0.
-104 JVM tests, Lint and APK assembly also passed. See [testing](docs/en/TESTING.md) and the
-[actual test report](docs/en/TEST_REPORT.md).
+113 JVM tests, Lint and APK assembly passed locally. See [testing](docs/en/TESTING.md) and the
+[update test report](docs/en/TEST_REPORT_0.1.1-alpha.md).
 
 ## Versions
 
@@ -69,6 +69,11 @@ default WSS redirects use `149.154.167.220` for DC 2 and 4; other DCs use direct
 Media tries `kwsN-1` before `kwsN`. Existing DC 203 remains a separate TCP route;
 test DCs `10001–10005` are rejected. Fronting with disabled hostname verification
 is excluded.
+
+WSS checks an idle peer with Ping/Pong after 60 seconds instead of immediately
+reconnecting. Partial-message assembly is bounded to 60 seconds, and MTProto
+inactivity to 300 seconds. The UI shows WSS/TCP session counts and clears obsolete
+fallback errors after a new connection succeeds.
 
 Secrets are hidden by default; reveal, copy and link opening require user action.
 Telegram links use `dd` for Padded Intermediate. Transport marker `ee` in basic
@@ -90,4 +95,4 @@ This is an independent community port, not an official Flowseal Android release.
 
 ## Codex development and CI artifacts
 
-To implement a specification with Codex, follow the [English Codex workflow](docs/en/CODEX_WORKFLOW.md) and [project agent instructions](AGENTS.md). The existing GitHub Actions workflow runs JVM tests, Android Lint and debug build checks for pull requests to `main`; after a successful run, download the `TGWS-Android-debug-apk` ZIP under **Actions → Android CI → Artifacts**. A successful CI run is not proof of real Telegram connectivity or production readiness.
+To implement a specification with Codex, follow the [English Codex workflow](docs/en/CODEX_WORKFLOW.md) and [project agent instructions](AGENTS.md). The existing GitHub Actions workflow runs JVM tests, Android Lint and debug build checks for pull requests to `main`; after a successful run, download the `TGWS-Android-<version>-debug-<commit>` ZIP under **Actions → Android CI → Artifacts**. A successful CI run is not proof of real Telegram connectivity or production readiness.
