@@ -1,4 +1,4 @@
-# Testing 0.1.3-alpha
+# Testing 0.2.0-alpha
 
 Baseline: Flowseal/tg-ws-proxy **v1.11.2**, commit
 `307a384ab7f522e34bb1a045884d0bd90f40bee5`. [Русский](../TESTING.md).
@@ -32,7 +32,7 @@ Instrumentation requires a connected device or emulator:
 ```
 
 CI also runs `python3 .github/scripts/verify_android_tests.py`, requiring entries
-for all 13 tests instead of relying only on Gradle's exit code. Empty reports,
+for all 14 tests instead of relying only on Gradle's exit code. Empty reports,
 skips, duplicates and failures/errors fail the job. Test the gate and emulator
 entry points with `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
 
@@ -71,7 +71,7 @@ Record:
 ```text
 UTC date:
 Git commit:
-TGWS-Android version: 0.1.3-alpha
+TGWS-Android version: 0.2.0-alpha
 APK SHA-256:
 Device / Android / API:
 Official Telegram version:
@@ -98,3 +98,5 @@ Telegram E2E separately in direct and configured relay-only mode with Wi-Fi off.
 Record carrier/country and compare results. Check clearing the URL restores
 direct mode, a failed relay has a bounded deadline with no direct fallback, and
 Keystore key loss requires explicit URL recovery. [Relay setup](MOBILE_NETWORKS.md).
+
+For the 0.2 soak, add `-PsoakSeconds=180` to the Wrapper command (1–3600 seconds; CI 60). [Policy and fixture](RELIABILITY_0.2.md).

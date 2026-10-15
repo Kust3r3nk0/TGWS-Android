@@ -124,6 +124,10 @@ class ProxyService : Service() {
 
     private fun receive(event: ServerEvent) {
         when (event) {
+            is ServerEvent.BackgroundIssue -> {
+                Log.i(TAG, "Warm WSS attempt failed: ${event.issue.name}")
+                return
+            }
             is ServerEvent.State -> {
                 val phase = when (event.phase) {
                     ServerPhase.STARTING -> ProxyPhase.STARTING
@@ -158,6 +162,7 @@ class ProxyService : Service() {
                     ServerIssue.TLS -> ProxyIssue.TLS
                     ServerIssue.TCP -> ProxyIssue.TCP
                     ServerIssue.RELAY -> ProxyIssue.RELAY
+                    ServerIssue.RETRY_LATER -> ProxyIssue.RETRY_LATER
                     ServerIssue.SESSION -> ProxyIssue.SESSION
                     ServerIssue.CAPACITY -> ProxyIssue.CAPACITY
                     ServerIssue.TIMEOUT -> ProxyIssue.TIMEOUT

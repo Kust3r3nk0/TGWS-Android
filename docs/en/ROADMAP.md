@@ -2,6 +2,18 @@
 
 Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 2026. Historical reports remain unchanged. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
+## 0.2.0-alpha — reliability and compatibility
+
+- [x] Preserve pinned Flowseal v1.11.2 vectors and strict MTProto/WebSocket handshakes
+- [x] Bounded fresh direct-WSS pool, single-use leases and pre-init Ping/Pong
+- [x] Age rotation without perpetual idle refill; close/cancel on network change and stop
+- [x] Per-route 1–30 second backoff, one half-open probe and no payload replay
+- [x] Extended local TCP/TLS/WSS soak with ef/ee/dd and network resets
+- [ ] Prolonged real Wi-Fi/LTE and physical Telegram 0.2.0 E2E
+- [ ] Extend vectors when upstream is separately upgraded; this version retains v1.11.2
+
+[Policy and limits](RELIABILITY_0.2.md) · [Actual results](TEST_REPORT_0.2.0-alpha.md).
+
 ## 0.1.3-alpha — alternate route for IP-filtered networks
 
 - [x] Configurable Worker-compatible WSS relay, explicit relay-only mode
@@ -46,12 +58,6 @@ This is a plan, not a statement that a release has shipped.
 - [x] Execute all 10 instrumentation tests on each API 34–37 emulator (see test report)
 - [ ] Manual UI and network scenarios on a physical device
 - [ ] Device and Telegram end-to-end smoke test
-
-## v0.2.0 — Reliability and protocol parity
-
-- [ ] Connection-pool warmup, rotations, backoff and limits
-- [ ] Extend protocol vectors when updating the upstream baseline
-- [ ] Long-running load and network testing
 
 ## v0.3.0 — Extended transports
 

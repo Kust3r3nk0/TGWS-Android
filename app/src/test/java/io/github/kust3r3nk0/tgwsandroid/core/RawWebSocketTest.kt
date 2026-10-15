@@ -26,6 +26,49 @@ import javax.net.ssl.TrustManagerFactory
 class RawWebSocketTest {
     private val limits = RawWebSocket.Limits(readMillis = 750, handshakeMillis = 750, writeMillis = 750, closeMillis = 200)
 
+    @Test(timeout = 5000) fun idlePoolProbeRequiresMatchingPongAndDoesNotConsumeSubsequentPayload() {
+        peer(server = { socket ->
+            val ping = readClientFrame(socket.getInputStream())
+            assertEquals(9, ping.opcode)
+            socket.getOutputStream().write(frame(10, byteArrayOf(0)) + frame(9, byteArrayOf(5)))
+            assertEquals(10, readClientFrame(socket.getInputStream()).opcode)
+            socket.getOutputStream().write(frame(10, ping.body))
+            val init = readClientFrame(socket.getInputStream())
+            assertEquals(64, init.body.size)
+            socket.getOutputStream().write(frame(2, byteArrayOf(42)))
+        }) { socket ->
+            val ws = RawWebSocket.upgrade(socket, "localhost", limits = limits)
+            ws.probeIdle(500)
+            ws.send(ByteArray(64))
+            assertArrayEquals(byteArrayOf(42), ws.receive())
+            ws.abort()
+        }
+    }
+
+    @Test(timeout = 5000) fun unsolicitedBinaryDataCannotBeReusedAsAnotherClientsSession() {
+        peer(server = { socket ->
+            readClientFrame(socket.getInputStream())
+            socket.getOutputStream().write(frame(2, byteArrayOf(42)))
+            readClientFrame(socket.getInputStream())
+        }) { socket ->
+            val ws = RawWebSocket.upgrade(socket, "localhost", limits = limits)
+            expect<ProtocolException> { ws.probeIdle(200) }
+            assertTrue(socket.isClosed)
+        }
+    }
+
+    @Test(timeout = 5000) fun idleProbeWrongPongsCannotExtendItsDeadline() {
+        peer(server = { socket ->
+            readClientFrame(socket.getInputStream())
+            socket.getOutputStream().write(frame(10, byteArrayOf(0)))
+            assertEquals(-1, socket.getInputStream().read())
+        }) { socket ->
+            val ws = RawWebSocket.upgrade(socket, "localhost", limits = limits)
+            expect<SocketTimeoutException> { ws.probeIdle(100) }
+            assertTrue(socket.isClosed)
+        }
+    }
+
     @Test(timeout = 5000) fun controlFramesKeepHealthyConnectionAliveBeyondOneReadWindow() {
         peer(server = { socket ->
             repeat(6) {

@@ -62,4 +62,5 @@
     <string name="relay_direct_notice">Empty: direct Telegram WSS/TCP routes. If your carrier blocks their IPs, a reachable relay that you control is required.</string>
     <string name="relay_enabled_notice">Relay only: wss://domain/path, port 443. A compatible Worker must support dst/dc. No direct fallback. The address is hidden and encrypted; use Show above to reveal it. Avoid untrusted relays.</string>
     <string name="error_relay">Could not connect to the WSS relay. Check its address, path key and reachability on this network. Direct routes are disabled in relay mode.</string>
+    <string name="retry_later">Routes are cooling down after failures. Telegram can retry; the delay is capped at 30 seconds.</string>
 </resources>

@@ -299,6 +299,7 @@ private fun issueResource(issue: ProxyIssue): Int = when (issue) {
     ProxyIssue.TLS -> R.string.error_tls
     ProxyIssue.TCP -> R.string.error_tcp
     ProxyIssue.RELAY -> R.string.error_relay
+    ProxyIssue.RETRY_LATER -> R.string.retry_later
     ProxyIssue.SESSION -> R.string.error_session
     ProxyIssue.CAPACITY -> R.string.error_capacity
     ProxyIssue.TIMEOUT -> R.string.error_timeout
