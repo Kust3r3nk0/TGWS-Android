@@ -18,6 +18,8 @@
 
 Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 35+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
 
+[Download 0.1.3 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.1.3-alpha-debug/TGWS-Android-0.1.3-debug.apk)
+
 ## Mobile networks
 
 If a carrier blocks Telegram IPs, direct WSS → TCP fallback can fail on both paths.

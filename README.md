@@ -74,6 +74,8 @@ CI запускается при push в `main`, Pull Request и вручную.
 сохраняются отдельно. Actions и Wrapper закреплены по проверенным SHA.
 Отдельный workflow при PR и вручную проверяет Android API 35, 36, 37.0.
 
+[Скачать 0.1.3 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.1.3-alpha-debug/TGWS-Android-0.1.3-debug.apk)
+
 ## Мобильные сети
 
 Если оператор блокирует IP Telegram, прямой WSS → TCP может не помочь.

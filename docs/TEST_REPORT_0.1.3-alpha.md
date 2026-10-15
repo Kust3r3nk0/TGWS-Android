@@ -28,9 +28,17 @@ Android 15+ / minSdk 35, versionName `0.1.3-alpha`, versionCode 4.
 
 ## GitHub CI
 
-После push должны пройти Android CI и все 13 инструментальных тестов на каждом
-API 35/36/37.0. Результаты будут дополнены по фактическим JUnit, без подмены
-выполнения на устройстве фактом сборки. До этого debug-предрелиз не публикуется.
+Проверенный commit: `328564b2ec6a8956a5ca4d7f12d44841b4ba85e1`; merge commit CI `c2614878a653fb25476fc9de2594594dc0ba2245` имеет ту же Git tree.
+
+- [Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38758903208): **success**, 126 JVM, 11 Node.js, Lint и оба APK.
+- [Android device tests](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38758903121): **success**. Скачанные JUnit проверены обязательным gate: **13/13 на каждом API 35, 36, 37.0**, всего 39 выполнений, 0 failures/errors/skipped.
+- Регрессионный тест длительной передачи падает со старым тайм-аутом реле и проходит после исправления; лимит применяется к каждой записи, а не общей длительности передачи.
+
+Debug APK: `TGWS-Android-0.1.3-debug.apk`, тот же debug-сертификат, что 0.1.2.
+Все ZIP entries совпадают побайтово с финальным CI APK; изменён только блок подписи.
+SHA-256: `827887c64b1ce7b7edee5391dc021be30f31d51de83c8917e2a9c971cd4250b7`.
+[Debug Pre-release](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.1.3-alpha-debug).
+Это не production-подпись и не подтверждение мобильного E2E.
 
 ## Что не подтверждено
 
