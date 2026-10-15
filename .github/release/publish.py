@@ -44,6 +44,13 @@ def command(*args):
     return subprocess.check_output(args, text=True).strip()
 
 
+def single_file(directory, name):
+    matches = list(Path(directory).rglob(name))
+    if len(matches) != 1:
+        raise ValueError('Expected exactly one CI artifact file: ' + name)
+    return matches[0]
+
+
 def main():
     inputs = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())['inputs']
     validate_inputs(inputs)
@@ -77,7 +84,7 @@ def main():
         raise ValueError('Signed APK checksum mismatch')
     command('gh', 'run', 'download', inputs['build_run'], '--repo', repository,
             '--pattern', 'TGWS-Android-*-debug-*', '--dir', 'ci-apk')
-    verify_payload(Path('ci-apk/app-debug.apk'), candidate)
+    verify_payload(single_file('ci-apk', 'app-debug.apk'), candidate)
     signers = sorted(Path(os.environ['ANDROID_HOME']).glob('build-tools/*/apksigner'))
     if not signers:
         raise ValueError('Android signature verifier is unavailable')
@@ -101,7 +108,7 @@ def main():
         if len(directories) != 1:
             raise ValueError('Missing or duplicate device artifact')
         devices[api] = gate.verify('app/src/androidTest/java', directories[0])
-    meta = json.loads(Path('ci-apk/build-info.json').read_text())
+    meta = json.loads(single_file('ci-apk', 'build-info.json').read_text())
     meta.update(source_commit=source, jvm_tests=counts, android_instrumentation=devices,
                 min_sdk=35, signer_certificate_sha256=inputs['signer_sha256'],
                 signature='Preserved workspace debug key; not production signing',

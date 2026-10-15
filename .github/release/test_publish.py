@@ -10,6 +10,20 @@ spec.loader.exec_module(publisher)
 
 
 class PublicationGuardsTest(unittest.TestCase):
+    def test_artifact_file_is_found_under_gh_pattern_directory_but_duplicates_fail(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            artifact = root / 'TGWS-Android-version-debug-commit'
+            artifact.mkdir()
+            apk = artifact / 'app-debug.apk'
+            apk.write_bytes(b'checked')
+            self.assertEqual(apk, publisher.single_file(root, 'app-debug.apk'))
+            (root / 'app-debug.apk').write_bytes(b'unexpected duplicate')
+            with self.assertRaises(ValueError):
+                publisher.single_file(root, 'app-debug.apk')
+            with self.assertRaises(ValueError):
+                publisher.single_file(root, 'absent.apk')
+
     def test_valid_inputs_and_rejected_untrusted_urls(self):
         inputs = dict(source_commit='a' * 40, build_run='1', device_run='2',
                       apk_sha256='b' * 64, signer_sha256='c' * 64,
