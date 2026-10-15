@@ -29,3 +29,8 @@ __pycache__/
 .venv/
 node_modules/
 relay/test-results.xml
+cloudflare-worker/dist/
+cloudflare-worker/.wrangler/
+cloudflare-worker/.dev.vars*
+cloudflare-worker/.env*
+cloudflare-worker/test-results.xml
