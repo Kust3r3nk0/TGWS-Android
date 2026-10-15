@@ -1,0 +1,49 @@
+name: Publish checked debug release
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_commit:
+        description: Application commit verified by both CI runs
+        required: true
+      build_run:
+        description: Successful Android CI run ID
+        required: true
+      device_run:
+        description: Successful Android device tests run ID
+        required: true
+      apk_url:
+        description: Temporary HTTPS file reference for already signed public debug APK
+        required: true
+      apk_sha256:
+        description: Signed APK SHA-256
+        required: true
+      signer_sha256:
+        description: Expected public signing certificate SHA-256
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: debug-release-${{ inputs.source_commit }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Test publication guards
+        run: python3 -m unittest discover -s .github/release -p 'test_*.py'
+      - name: Verify source, CI, reports, payload and signature; publish debug Pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Inputs are read from GITHUB_EVENT_PATH, never expanded as shell code or
+        # printed. No private signing key is sent to the runner.
+        run: python3 .github/release/publish.py
