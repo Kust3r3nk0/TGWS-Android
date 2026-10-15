@@ -53,3 +53,27 @@ internal object SecretRecordCodec {
         )
     }
 }
+
+/** Distinct AAD prevents substitution with the existing MTProto-secret record. */
+internal object RelayRecordCodec {
+    private val aad = "tgws-relay-v1".toByteArray(Charsets.US_ASCII)
+    fun encrypt(key: SecretKey, url: String): String {
+        io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint.parse(url)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, key)
+        cipher.updateAAD(aad)
+        return Base64.getEncoder().encodeToString(cipher.iv + cipher.doFinal(url.toByteArray(Charsets.US_ASCII)))
+    }
+    fun decrypt(key: SecretKey, encoded: String): String {
+        require(encoded.length in 40..1404) { "Invalid relay record" }
+        val record = Base64.getDecoder().decode(encoded)
+        require(record.size in 28..1052) { "Invalid relay record" }
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, record.copyOfRange(0, 12)))
+        cipher.updateAAD(aad)
+        val url = cipher.doFinal(record.copyOfRange(12, record.size)).toString(Charsets.US_ASCII)
+        require(url.isNotEmpty()) { "Invalid relay record" }
+        io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint.parse(url)
+        return url
+    }
+}

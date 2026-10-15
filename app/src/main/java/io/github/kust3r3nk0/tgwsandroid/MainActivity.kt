@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
+import io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -67,6 +68,7 @@ class MainActivity : ComponentActivity() {
                 var portText by rememberSaveable { mutableStateOf(SettingsValidation.DEFAULT_PORT.toString()) }
                 // Secret/reveal state is deliberately absent from savedInstanceState.
                 var secretText by remember { mutableStateOf("") }
+                var relayUrl by remember { mutableStateOf("") }
                 var revealSecret by remember { mutableStateOf(false) }
                 var secretUnavailable by remember { mutableStateOf(false) }
                 var busy by remember { mutableStateOf(true) }
@@ -76,13 +78,15 @@ class MainActivity : ComponentActivity() {
                 val snapshot = ProxyState.snapshot
                 val editable = !snapshot.running && !busy
                 val validConfiguration = portText.toIntOrNull()?.let(SettingsValidation::validPort) == true &&
-                    SettingsValidation.validSecret(secretText) && !secretUnavailable
+                    SettingsValidation.validSecret(secretText) && !secretUnavailable &&
+                    runCatching { RelayEndpoint.parse(relayUrl) }.isSuccess
 
                 LaunchedEffect(Unit) {
                     try {
                         val saved = withContext(Dispatchers.IO) { store.load() }
                         portText = saved.port.toString()
                         secretText = saved.secret
+                        relayUrl = saved.relayUrl
                     } catch (error: SettingsException) {
                         secretUnavailable = error.issue == SettingsIssue.SECRET_UNAVAILABLE
                         errorResource = settingsError(error.issue)
@@ -120,7 +124,7 @@ class MainActivity : ComponentActivity() {
                     Text(stringResource(statusResource(snapshot.phase)), style = MaterialTheme.typography.bodyLarge)
                     Text(stringResource(R.string.local_address, SettingsValidation.LOOPBACK, portText))
                     Text(stringResource(R.string.session_counts, snapshot.sessions, snapshot.pending))
-                    Text(stringResource(R.string.transport_counts, snapshot.wssSessions, snapshot.tcpSessions))
+                    Text(stringResource(R.string.transport_counts, snapshot.wssSessions, snapshot.tcpSessions, snapshot.relaySessions))
                     Text(stringResource(when {
                         snapshot.sessions > 0 -> R.string.remote_transport_established
                         snapshot.pending > 0 -> R.string.remote_transport_connecting
@@ -153,11 +157,24 @@ class MainActivity : ComponentActivity() {
                         enabled = editable && !secretUnavailable,
                         singleLine = true,
                         trailingIcon = {
-                            TextButton(onClick = { revealSecret = !revealSecret }, enabled = secretText.isNotEmpty()) {
+                            TextButton(onClick = { revealSecret = !revealSecret }, enabled = secretText.isNotEmpty() || relayUrl.isNotEmpty()) {
                                 Text(stringResource(if (revealSecret) R.string.secret_hide else R.string.secret_show))
                             }
                         }
                     )
+                    OutlinedTextField(
+                        value = relayUrl,
+                        onValueChange = { relayUrl = it.take(RelayEndpoint.MAX_URL_LENGTH); feedbackResource = null },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.relay_label)) },
+                        visualTransformation = if (revealSecret) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                        enabled = editable,
+                        singleLine = true,
+                        isError = runCatching { RelayEndpoint.parse(relayUrl) }.isFailure,
+                    )
+                    Text(stringResource(if (relayUrl.isEmpty()) R.string.relay_direct_notice else R.string.relay_enabled_notice),
+                        style = MaterialTheme.typography.bodySmall)
                     if (secretUnavailable) Text(stringResource(R.string.secret_recovery_notice), color = MaterialTheme.colorScheme.error)
                     OutlinedButton(onClick = {
                         val generated = SettingsValidation.generateSecret()
@@ -169,7 +186,7 @@ class MainActivity : ComponentActivity() {
                             else scope.launch {
                                 busy = true
                                 try {
-                                    withContext(Dispatchers.IO) { store.recover(port, generated) }
+                                    withContext(Dispatchers.IO) { store.recover(port, generated, relayUrl) }
                                     secretText = generated
                                     secretUnavailable = false
                                     errorResource = null
@@ -206,7 +223,7 @@ class MainActivity : ComponentActivity() {
                                 scope.launch {
                                     busy = true
                                     try {
-                                        withContext(Dispatchers.IO) { store.save(port, secret) }
+                                        withContext(Dispatchers.IO) { store.save(port, secret, relayUrl) }
                                         if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                                             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 10)
                                         }
@@ -281,6 +298,7 @@ private fun issueResource(issue: ProxyIssue): Int = when (issue) {
     ProxyIssue.WSS_HANDSHAKE -> R.string.error_wss_handshake
     ProxyIssue.TLS -> R.string.error_tls
     ProxyIssue.TCP -> R.string.error_tcp
+    ProxyIssue.RELAY -> R.string.error_relay
     ProxyIssue.SESSION -> R.string.error_session
     ProxyIssue.CAPACITY -> R.string.error_capacity
     ProxyIssue.TIMEOUT -> R.string.error_timeout

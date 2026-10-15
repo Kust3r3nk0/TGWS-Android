@@ -18,16 +18,16 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.net.ssl.SSLException
 
 enum class ServerPhase { STARTING, LISTENING, STOPPING, STOPPED, ERROR }
-enum class ServerIssue { CONFIGURATION, PORT, HANDSHAKE, WSS_HANDSHAKE, TLS, TCP, SESSION, CAPACITY, TIMEOUT }
+enum class ServerIssue { CONFIGURATION, PORT, HANDSHAKE, WSS_HANDSHAKE, TLS, TCP, RELAY, SESSION, CAPACITY, TIMEOUT }
 
 /** Safe diagnostics never carry peer data, cryptographic material or exception messages. */
 sealed interface ServerEvent {
     data class State(val phase: ServerPhase) : ServerEvent
-    data class Sessions(val established: Int, val pending: Int, val wss: Int = 0, val tcp: Int = 0) : ServerEvent
+    data class Sessions(val established: Int, val pending: Int, val wss: Int = 0, val tcp: Int = 0, val relay: Int = 0) : ServerEvent
     data class Diagnostic(val issue: ServerIssue, val rejection: HandshakeRejection? = null) : ServerEvent
 }
 
-enum class TransportKind { WSS, TCP }
+enum class TransportKind { WSS, TCP, RELAY }
 
 /** A future transport can implement this interface without depending on Android or Compose. */
 interface RemoteTransport : Closeable {
@@ -41,19 +41,26 @@ interface RemoteTransport : Closeable {
 interface TransportFactory {
     /** Register every socket before connect/TLS/upgrade can block. */
     fun openWebSocket(address: String, domain: String, own: (Closeable) -> Unit): RemoteTransport
+    fun openRelay(endpoint: RelayEndpoint, dc: Int, own: (Closeable) -> Unit): RemoteTransport =
+        throw java.io.IOException("Relay transport unavailable")
     fun openTcp(address: String, own: (Closeable) -> Unit): RemoteTransport
 }
 
 private object DirectTransportFactory : TransportFactory {
+    override fun openRelay(endpoint: RelayEndpoint, dc: Int, own: (Closeable) -> Unit): RemoteTransport =
+        wrap(RawWebSocket.connect(endpoint.domain, endpoint.domain, endpoint.requestPath(dc), socketOwner = { own(it) }), TransportKind.RELAY)
+
     override fun openWebSocket(address: String, domain: String, own: (Closeable) -> Unit): RemoteTransport {
         val websocket = RawWebSocket.connect(address, domain, socketOwner = { own(it) })
-        return object : RemoteTransport {
-            override val kind = TransportKind.WSS
+        return wrap(websocket, TransportKind.WSS)
+    }
+
+    private fun wrap(websocket: RawWebSocket, transportKind: TransportKind) = object : RemoteTransport {
+            override val kind = transportKind
             override fun send(data: ByteArray) = websocket.send(data)
             override fun receive() = websocket.receive()
             override fun close() = websocket.close()
             override fun abort() = websocket.abort()
-        }
     }
 
     override fun openTcp(address: String, own: (Closeable) -> Unit): RemoteTransport {
@@ -104,6 +111,7 @@ class MtprotoServer(
     private val onFatalError: () -> Unit = {},
     private val transports: TransportFactory = DirectTransportFactory,
     private val limits: ServerLimits = ServerLimits(),
+    private val relayEndpoint: RelayEndpoint? = null,
 ) : Closeable {
     private val secret: ByteArray
     private val lifecycle = Any()
@@ -209,7 +217,8 @@ class MtprotoServer(
         val sessions = run.sessions.toList()
         emit(run, ServerEvent.Sessions(sessions.count { it.established }, sessions.count { !it.established },
             sessions.count { it.established && it.transportKind == TransportKind.WSS },
-            sessions.count { it.established && it.transportKind == TransportKind.TCP }))
+            sessions.count { it.established && it.transportKind == TransportKind.TCP },
+            sessions.count { it.established && it.transportKind == TransportKind.RELAY }))
     }
 
     fun start() {
@@ -334,6 +343,28 @@ class MtprotoServer(
     }
 
     private fun establish(session: Session, handshake: Handshake, relay: ByteArray): RemoteTransport? {
+        relayEndpoint?.let { endpoint ->
+            val attempt = Attempt()
+            session.own(attempt)
+            val timeout = session.run.watchdog.schedule(
+                { attempt.expire() }, limits.wssAttemptTimeoutMillis.toLong(), TimeUnit.MILLISECONDS,
+            )
+            try {
+                session.checkOpen()
+                val candidate = transports.openRelay(endpoint, handshake.dc, attempt::own)
+                attempt.own(candidate)
+                session.checkOpen()
+                if (attempt.closed.get()) throw java.net.SocketTimeoutException("Relay route deadline")
+                candidate.send(relay)
+                if (!attempt.retain()) throw java.net.SocketTimeoutException("Relay route deadline")
+                return candidate
+            } catch (error: Exception) {
+                attempt.close()
+                if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(
+                    if (error is SSLException) ServerIssue.TLS else ServerIssue.RELAY))
+                return null
+            } finally { timeout.cancel(false) }
+        }
         val wssIp = TelegramRoutes.webSocketIp(handshake.dc)
         if (wssIp != null) {
             for (domain in TelegramRoutes.webSocketDomains(handshake.dc, handshake.media)) {

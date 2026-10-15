@@ -5,7 +5,7 @@
     <string name="version_label">Android 15+ · %1$s</string>
     <string name="local_address">Local address: %1$s:%2$s</string>
     <string name="session_counts">Active sessions: %1$d · connecting: %2$d</string>
-    <string name="transport_counts">Active transports: WSS %1$d · TCP %2$d</string>
+    <string name="transport_counts">Active transports: WSS %1$d · TCP %2$d · relay %3$d</string>
     <string name="session_event">Last event from an individual session: %1$s</string>
     <string name="remote_transport_established">Remote transport is established. Session counts do not confirm Telegram message delivery.</string>
     <string name="remote_transport_unconfirmed">Connectivity to remote servers has not been confirmed.</string>
@@ -16,7 +16,7 @@
     <string name="secret_hide">Hide</string>
     <string name="secret_generate">Generate a new secret</string>
     <string name="secret_replace">Create a secret and replace the unavailable one</string>
-    <string name="secret_recovery_notice">The stored secret could not be decrypted and has not been replaced. Creating a new secret replaces the old one; update the proxy link in Telegram.</string>
+    <string name="secret_recovery_notice">Encrypted settings could not be read and were preserved. Re-enter your relay URL when recovering if you used one. Creating a new secret replaces the old one; update the Telegram proxy link.</string>
     <string name="secret_recovered">New secret saved. Update the proxy link in Telegram.</string>
     <string name="start_proxy">Start local proxy</string>
     <string name="stop">Stop</string>
@@ -27,7 +27,7 @@
     <string name="clipboard_secret">Telegram proxy secret</string>
     <string name="link_copied">Link copied.</string>
     <string name="secret_copied">Secret copied.</string>
-    <string name="alpha_notice">Experimental proxy: direct WSS and TCP fallback. Reconnection may occur. Fake TLS, Cloudflare, HTTP/2 and full IPv6-only operation are unsupported.</string>
+    <string name="alpha_notice">Experimental proxy: direct WSS/TCP or your own WSS relay. A relay requires an external endpoint and testing on your network. Fake TLS, HTTP/2 and full IPv6-only are unsupported.</string>
     <string name="local_notice">The proxy is available on this device only, via 127.0.0.1. This is not a VPN. Opening the port does not confirm Telegram connectivity.</string>
     <string name="status_stopped">Stopped</string>
     <string name="status_starting">Starting</string>
@@ -38,7 +38,7 @@
     <string name="notification_channel">Local proxy</string>
     <string name="notification_starting">Starting local MTProto server</string>
     <string name="notification_listening">Local MTProto server is running</string>
-    <string name="error_configuration">Enter a port from 1 to 65535 and a 32-character HEX secret.</string>
+    <string name="error_configuration">Enter a port from 1 to 65535, a 32-character HEX secret and a valid WSS relay URL, or leave the URL empty.</string>
     <string name="error_port">Could not open the local port. It may be in use. Choose another port.</string>
     <string name="error_secret_unavailable">Could not decrypt the stored secret. Explicitly create a new secret.</string>
     <string name="error_storage">Could not save protected settings. The service was not started.</string>
@@ -58,4 +58,8 @@
     <string name="rejection_prefix">Last rejection: the header does not match supported Obfuscated2.</string>
     <string name="rejection_secret_or_transport">Last rejection: secret or MTProto format validation failed. Check the secret and proxy link in Telegram.</string>
     <string name="rejection_dc">Last rejection: unsupported DC. Main DCs 1–5 are supported; test DCs are not enabled.</string>
+    <string name="relay_label">WSS relay (optional)</string>
+    <string name="relay_direct_notice">Empty: direct Telegram WSS/TCP routes. If your carrier blocks their IPs, a reachable relay that you control is required.</string>
+    <string name="relay_enabled_notice">Relay only: wss://domain/path, port 443. A compatible Worker must support dst/dc. No direct fallback. The address is hidden and encrypted; use Show above to reveal it. Avoid untrusted relays.</string>
+    <string name="error_relay">Could not connect to the WSS relay. Check its address, path key and reachability on this network. Direct routes are disabled in relay mode.</string>
 </resources>

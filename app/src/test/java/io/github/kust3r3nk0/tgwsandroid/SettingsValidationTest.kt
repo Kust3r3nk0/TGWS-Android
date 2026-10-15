@@ -10,6 +10,19 @@ class SettingsValidationTest {
     private val secret = "0123456789abcdef0123456789abcdef"
     private val key = SecretKeySpec(ByteArray(32) { it.toByte() }, "AES")
 
+    @Test fun relayUrlIsAuthenticatedEncryptedAndCannotBeSubstitutedForSecretRecord() {
+        val url = "wss://relay.example/private-key/apiws"
+        val encrypted = RelayRecordCodec.encrypt(key, url)
+        assertEquals(url, RelayRecordCodec.decrypt(key, encrypted))
+        assertNotEquals(encrypted, RelayRecordCodec.encrypt(key, url))
+        assertFalse(encrypted.contains("private-key"))
+        val corrupt = Base64.getDecoder().decode(encrypted).also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() }
+        assertThrows(AEADBadTagException::class.java) { RelayRecordCodec.decrypt(key, Base64.getEncoder().encodeToString(corrupt)) }
+        assertThrows(AEADBadTagException::class.java) { RelayRecordCodec.decrypt(key, SecretRecordCodec.encrypt(key, secret)) }
+        assertThrows(IllegalArgumentException::class.java) { RelayRecordCodec.decrypt(key, "x".repeat(1405)) }
+        assertThrows(IllegalArgumentException::class.java) { RelayRecordCodec.encrypt(key, "ws://relay.example") }
+    }
+
     @Test fun localPortBoundsAreCheckedBeforeProducingLink() {
         assertFalse(SettingsValidation.validPort(0))
         assertFalse(SettingsValidation.validPort(65536))

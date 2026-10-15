@@ -43,6 +43,38 @@ class SettingsStoreInstrumentedTest {
         assertArrayEquals(arrayOf("GCM"), info.blockModes)
     }
 
+    @Test fun relayIsEncryptedRetainedAcrossEditsAndNeverSilentlyFallsBackAfterKeyLoss() {
+        val store = SettingsStore(context)
+        val url = "wss://relay.example/test-key/apiws"
+        store.save(2443, sample, url)
+        assertEquals(StoredSettings(2443, sample, url), store.load())
+        assertFalse(prefs.all.values.contains(url))
+        val encrypted = prefs.getString("relay_encrypted", null)
+        assertNotNull(encrypted)
+        store.save(3443, sample)
+        assertEquals(url, store.load().relayUrl)
+        keystore().deleteEntry(alias)
+        assertThrows(SettingsException::class.java) { store.load() }
+        assertThrows(SettingsException::class.java) { store.save(3443, sample, "") }
+        assertNotNull(prefs.getString("relay_encrypted", null))
+        store.recover(3443, sample, url)
+        assertEquals(url, store.load().relayUrl)
+        store.save(3443, sample, "")
+        assertEquals("", store.load().relayUrl)
+        assertFalse(prefs.contains("relay_encrypted"))
+    }
+
+    @Test fun corruptedRelayDoesNotChangeSecretOrSwitchToDirect() {
+        val store = SettingsStore(context)
+        store.save(1443, sample, "wss://relay.example")
+        val secretRecord = prefs.getString("secret_encrypted", null)
+        prefs.edit().putString("relay_encrypted", "corrupted").commit()
+        assertThrows(SettingsException::class.java) { store.load() }
+        assertThrows(SettingsException::class.java) { store.save(1443, sample, "") }
+        assertEquals(secretRecord, prefs.getString("secret_encrypted", null))
+        assertEquals("corrupted", prefs.getString("relay_encrypted", null))
+    }
+
     @Test fun missingKeystoreAliasPreservesCiphertextAndRequiresExplicitRecovery() {
         val store = SettingsStore(context)
         store.save(1443, sample)

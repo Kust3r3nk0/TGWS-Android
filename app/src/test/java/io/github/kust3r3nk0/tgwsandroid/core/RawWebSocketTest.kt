@@ -371,6 +371,15 @@ class RawWebSocketTest {
         }
     }
 
+    @Test(timeout = 5000) fun protectedRelayPathAndFlowsealQuerySurviveRealTlsUpgrade() {
+        val path = RelayEndpoint.parse("wss://relay.example/private-key/apiws")!!.requestPath(4)
+        tlsPeer(expectedPath = path) { port, context ->
+            val ws = RawWebSocket.connectTls("127.0.0.1", "localhost", path, port, context, limits)
+            assertArrayEquals(byteArrayOf(1, 2), ws.receive())
+            ws.abort()
+        }
+    }
+
     @Test(timeout = 5000) fun rejectsWrongTlsHostname() {
         tlsPeer(expectTlsFailure = true) { port, context ->
             expect<SSLException> { RawWebSocket.connectTls("127.0.0.1", "other.invalid", "/apiws", port, context, limits) }
@@ -461,7 +470,7 @@ class RawWebSocketTest {
         }
     }
 
-    private fun tlsPeer(expectTlsFailure: Boolean = false, client: (Int, SSLContext) -> Unit) {
+    private fun tlsPeer(expectTlsFailure: Boolean = false, expectedPath: String = "/apiws", client: (Int, SSLContext) -> Unit) {
         val (serverContext, clientContext) = tlsContexts()
         serverContext.serverSocketFactory.createServerSocket(0, 1, InetAddress.getLoopbackAddress()).use { listener ->
             listener.soTimeout = 2000
@@ -471,7 +480,7 @@ class RawWebSocketTest {
                     listener.accept().use { socket ->
                         socket.soTimeout = 2000
                         (socket as SSLSocket).startHandshake()
-                        val key = requestKey(socket.getInputStream())
+                        val key = requestKey(socket.getInputStream(), expectedPath)
                         socket.getOutputStream().write(response(key).toByteArray(Charsets.US_ASCII) + frame(2, byteArrayOf(1, 2)))
                         socket.getOutputStream().flush()
                     }
@@ -526,8 +535,9 @@ class RawWebSocketTest {
         return ClientFrame(first and 15, body)
     }
 
-    private fun requestKey(input: InputStream): String {
+    private fun requestKey(input: InputStream, expectedPath: String? = null): String {
         var key: String? = null
+        var first = true
         while (true) {
             val bytes = ByteArrayOutputStream()
             while (true) {
@@ -537,6 +547,8 @@ class RawWebSocketTest {
                 if (ch != 13) bytes.write(ch)
             }
             val line = bytes.toString(Charsets.US_ASCII.name())
+            if (first && expectedPath != null) assertEquals("GET $expectedPath HTTP/1.1", line)
+            first = false
             if (line.isEmpty()) return requireNotNull(key)
             if (line.startsWith("Sec-WebSocket-Key: ")) key = line.substringAfter(": ")
         }

@@ -9,7 +9,7 @@ import javax.crypto.SecretKey
 
 enum class SettingsIssue { INVALID_CONFIGURATION, SECRET_UNAVAILABLE, WRITE_FAILED }
 class SettingsException(val issue: SettingsIssue) : Exception(issue.name)
-data class StoredSettings(val port: Int, val secret: String)
+data class StoredSettings(val port: Int, val secret: String, val relayUrl: String = "")
 
 /** Only an encrypted secret enters preferences. Reads never replace an unreadable record. */
 class SettingsStore(context: Context) {
@@ -63,27 +63,35 @@ class SettingsStore(context: Context) {
 
     fun load(): StoredSettings = synchronized(lock) {
         val localPort = port
+        val relay = loadRelay()
         val saved = record()
-        if (saved != null) return@synchronized StoredSettings(localPort, decrypt(saved))
+        if (saved != null) return@synchronized StoredSettings(localPort, decrypt(saved), relay)
         val generated = SettingsValidation.generateSecret()
-        persist(localPort, generated, recovery = false)
-        StoredSettings(localPort, generated)
+        persist(localPort, generated, recovery = false, relayUrl = relay)
+        StoredSettings(localPort, generated, relay)
     }
 
-    fun save(port: Int, secret: String) = synchronized(lock) {
-        validate(port, secret)
+    private fun loadRelay(): String = try {
+        val saved = prefs.getString("relay_encrypted", null)
+        if (saved == null) "" else RelayRecordCodec.decrypt(existingKey() ?: error("Key unavailable"), saved)
+    } catch (_: Exception) { throw SettingsException(SettingsIssue.SECRET_UNAVAILABLE) }
+
+    fun save(port: Int, secret: String, relayUrl: String? = null) = synchronized(lock) {
+        val relay = relayUrl ?: loadRelay()
+        validate(port, secret, relay)
         // A UI edit cannot silently overwrite settings after loss of the Keystore key.
         record()?.let(::decrypt)
-        persist(port, secret, recovery = false)
+        loadRelay() // An unreadable relay must never silently switch to direct routes.
+        persist(port, secret, recovery = false, relayUrl = relay)
     }
 
     /** Called only after the user explicitly asks to replace the unavailable secret. */
-    fun recover(port: Int, secret: String) = synchronized(lock) {
-        validate(port, secret)
-        persist(port, secret, recovery = true)
+    fun recover(port: Int, secret: String, relayUrl: String = "") = synchronized(lock) {
+        validate(port, secret, relayUrl)
+        persist(port, secret, recovery = true, relayUrl = relayUrl)
     }
 
-    private fun persist(port: Int, secret: String, recovery: Boolean) {
+    private fun persist(port: Int, secret: String, recovery: Boolean, relayUrl: String = "") {
         val encrypted = try {
             val key = try {
                 existingKey() ?: if (recovery || !prefs.contains("secret_encrypted")) newKey()
@@ -103,12 +111,18 @@ class SettingsStore(context: Context) {
         } catch (_: Exception) {
             throw SettingsException(SettingsIssue.WRITE_FAILED)
         }
-        if (!prefs.edit().putInt("port", port).putString("secret_encrypted", encrypted).commit()) {
+        val relayEncrypted = try {
+            if (relayUrl.isEmpty()) null else RelayRecordCodec.encrypt(existingKey() ?: error("Key unavailable"), relayUrl)
+        } catch (_: Exception) { throw SettingsException(SettingsIssue.WRITE_FAILED) }
+        if (!prefs.edit().putInt("port", port).putString("secret_encrypted", encrypted)
+                .putString("relay_encrypted", relayEncrypted).commit()) {
             throw SettingsException(SettingsIssue.WRITE_FAILED)
         }
     }
 
-    private fun validate(port: Int, secret: String) {
+    private fun validate(port: Int, secret: String, relayUrl: String) {
+        try { io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint.parse(relayUrl) }
+        catch (_: IllegalArgumentException) { throw SettingsException(SettingsIssue.INVALID_CONFIGURATION) }
         if (!SettingsValidation.validPort(port) || !SettingsValidation.validSecret(secret)) {
             throw SettingsException(SettingsIssue.INVALID_CONFIGURATION)
         }

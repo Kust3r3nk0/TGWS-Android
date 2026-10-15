@@ -59,6 +59,7 @@ internal class RawWebSocket private constructor(
     private var fragmented = false
 
     companion object {
+        private val dns = BoundedDns()
         private const val HEADER_LIMIT = 16 * 1024
         private const val MAGIC = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
         private val token = Regex("[!#$%&'*+.^_`|~0-9A-Za-z-]+")
@@ -90,7 +91,7 @@ internal class RawWebSocket private constructor(
             try {
                 socketOwner(tcp)
                 tcp.tcpNoDelay = true
-                tcp.connect(InetSocketAddress(address, port), limits.connectMillis)
+                tcp.connect(InetSocketAddress(dns.resolve(address, limits.connectMillis), port), limits.connectMillis)
                 tcp.soTimeout = limits.handshakeMillis
                 val ssl = context.socketFactory.createSocket(tcp, domain, port, true) as SSLSocket
                 tls = ssl

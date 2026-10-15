@@ -13,6 +13,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import io.github.kust3r3nk0.tgwsandroid.core.MtprotoServer
+import io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint
 import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
 import io.github.kust3r3nk0.tgwsandroid.core.ServerEvent
 import io.github.kust3r3nk0.tgwsandroid.core.ServerIssue
@@ -97,7 +98,8 @@ class ProxyService : Service() {
                     try {
                         server = MtprotoServer(settings.port, settings.secret,
                             onEvent = { event -> mainHandler.post { if (!destroyed) receive(event) } },
-                            onFatalError = { mainHandler.post { if (!destroyed) fail(ProxyState.snapshot.issue ?: ProxyIssue.SESSION) } }
+                            onFatalError = { mainHandler.post { if (!destroyed) fail(ProxyState.snapshot.issue ?: ProxyIssue.SESSION) } },
+                            relayEndpoint = RelayEndpoint.parse(settings.relayUrl)
                         )
                         connectivity.registerDefaultNetworkCallback(networkCallback, mainHandler)
                         callbackRegistered = true
@@ -139,7 +141,7 @@ class ProxyService : Service() {
                 if (event.established + event.pending < previous.sessions + previous.pending) {
                     Log.i(TAG, "Client session closed")
                 }
-                ProxyState.snapshot = previous.withSessions(event.established, event.pending, event.wss, event.tcp)
+                ProxyState.snapshot = previous.withSessions(event.established, event.pending, event.wss, event.tcp, event.relay)
             }
             is ServerEvent.Diagnostic -> {
                 if (event.issue == ServerIssue.HANDSHAKE) {
@@ -155,6 +157,7 @@ class ProxyService : Service() {
                     ServerIssue.WSS_HANDSHAKE -> ProxyIssue.WSS_HANDSHAKE
                     ServerIssue.TLS -> ProxyIssue.TLS
                     ServerIssue.TCP -> ProxyIssue.TCP
+                    ServerIssue.RELAY -> ProxyIssue.RELAY
                     ServerIssue.SESSION -> ProxyIssue.SESSION
                     ServerIssue.CAPACITY -> ProxyIssue.CAPACITY
                     ServerIssue.TIMEOUT -> ProxyIssue.TIMEOUT
@@ -210,7 +213,7 @@ class ProxyService : Service() {
         mainHandler.removeCallbacksAndMessages(null)
         ProxyState.snapshot = ProxyState.snapshot.copy(
             phase = if (fatalError) ProxyPhase.ERROR else ProxyPhase.STOPPED,
-            sessions = 0, pending = 0, wssSessions = 0, tcpSessions = 0
+            sessions = 0, pending = 0, wssSessions = 0, tcpSessions = 0, relaySessions = 0
         )
         stopForeground(STOP_FOREGROUND_REMOVE)
         notifications.cancel(NOTIFICATION_ID)

@@ -5,7 +5,7 @@
     <string name="version_label">Android 15+ · %1$s</string>
     <string name="local_address">Локальный адрес: %1$s:%2$s</string>
     <string name="session_counts">Активные сессии: %1$d · подключаются: %2$d</string>
-    <string name="transport_counts">Транспорт активных сессий: WSS %1$d · TCP %2$d</string>
+    <string name="transport_counts">Транспорт активных сессий: WSS %1$d · TCP %2$d · реле %3$d</string>
     <string name="session_event">Последнее событие отдельной сессии: %1$s</string>
     <string name="remote_transport_established">Удалённый транспорт установлен. Счётчик сессий не подтверждает доставку сообщений Telegram.</string>
     <string name="remote_transport_unconfirmed">Подключение к удалённым серверам не подтверждено.</string>
@@ -16,7 +16,7 @@
     <string name="secret_hide">Скрыть</string>
     <string name="secret_generate">Сгенерировать новый секрет</string>
     <string name="secret_replace">Создать секрет и заменить недоступный</string>
-    <string name="secret_recovery_notice">Сохранённый секрет не расшифрован и не заменён. Создание нового секрета заменит старый; ссылку в Telegram потребуется обновить.</string>
+    <string name="secret_recovery_notice">Сохранённые защищённые настройки не расшифрованы и не заменены. При восстановлении укажите адрес реле заново, если он использовался. Создание нового секрета заменит старый; обновите ссылку в Telegram.</string>
     <string name="secret_recovered">Новый секрет сохранён. Обновите ссылку прокси в Telegram.</string>
     <string name="start_proxy">Запустить локальный прокси</string>
     <string name="stop">Остановить</string>
@@ -27,7 +27,7 @@
     <string name="clipboard_secret">Секрет прокси Telegram</string>
     <string name="link_copied">Ссылка скопирована.</string>
     <string name="secret_copied">Секрет скопирован.</string>
-    <string name="alpha_notice">Экспериментальный прокси: прямой WSS и резервный TCP. Возможны переподключения. Fake TLS, Cloudflare, HTTP/2 и полноценный IPv6-only не поддерживаются.</string>
+    <string name="alpha_notice">Экспериментальный прокси: прямой WSS/TCP или собственное WSS-реле. Реле требует настройки внешнего узла и проверки в вашей сети. Fake TLS, HTTP/2 и полноценный IPv6-only не поддерживаются.</string>
     <string name="local_notice">Прокси доступен только на этом устройстве, через 127.0.0.1. Это не VPN. Открытие порта не подтверждает доступность Telegram.</string>
     <string name="status_stopped">Остановлен</string>
     <string name="status_starting">Запускается</string>
@@ -38,7 +38,7 @@
     <string name="notification_channel">Локальный прокси</string>
     <string name="notification_starting">Запускается локальный MTProto-сервер</string>
     <string name="notification_listening">Локальный MTProto-сервер работает</string>
-    <string name="error_configuration">Укажите порт от 1 до 65535 и секрет из 32 HEX-символов.</string>
+    <string name="error_configuration">Укажите порт от 1 до 65535, секрет из 32 HEX-символов и корректный WSS-адрес реле либо оставьте адрес пустым.</string>
     <string name="error_port">Не удалось открыть локальный порт. Возможно, он занят. Выберите другой порт.</string>
     <string name="error_secret_unavailable">Не удалось расшифровать сохранённый секрет. Создайте новый секрет явно.</string>
     <string name="error_storage">Не удалось сохранить защищённые настройки. Сервис не запущен.</string>
@@ -58,4 +58,8 @@
     <string name="rejection_prefix">Последний отказ: заголовок не соответствует поддерживаемому Obfuscated2.</string>
     <string name="rejection_secret_or_transport">Последний отказ: секрет или формат MTProto не прошёл проверку. Сверьте секрет и ссылку прокси в Telegram.</string>
     <string name="rejection_dc">Последний отказ: неподдерживаемый DC. Основные DC 1–5 поддерживаются; тестовые DC не включены.</string>
+    <string name="relay_label">WSS-реле (необязательно)</string>
+    <string name="relay_direct_notice">Пустое поле: прямые WSS/TCP-маршруты Telegram. Если оператор блокирует их IP, нужен собственный доступный WSS-узел.</string>
+    <string name="relay_enabled_notice">Только реле: wss://домен/путь, порт 443. Совместимый Worker должен поддерживать dst/dc. Без прямого fallback. Адрес скрыт и зашифрован; показать можно кнопкой выше. Не используйте чужие непроверенные узлы.</string>
+    <string name="error_relay">Не удалось подключиться к WSS-реле. Проверьте адрес, ключ в пути и доступность узла в текущей сети. Прямые маршруты в режиме реле отключены.</string>
 </resources>

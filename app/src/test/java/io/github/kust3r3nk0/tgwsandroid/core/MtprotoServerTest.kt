@@ -112,6 +112,74 @@ class MtprotoServerTest {
     private fun server(port: Int, events: Events, factory: TransportFactory = FakeFactory(), customLimits: ServerLimits = limits) =
         MtprotoServer(port, secretHex, events.all::add, transports = factory, limits = customLimits)
 
+    @Test fun relayOnlyCarriesIdenticalCryptoForAllDcAndMediaWithoutDirectAttempts() {
+        for (dc in listOf(1, 2, 3, 4, 5, 203, -2, -4)) {
+            val port = freePort()
+            val events = Events()
+            val channel = Channel(TransportKind.RELAY)
+            val calls = CopyOnWriteArrayList<String>()
+            val factory = object : TransportFactory {
+                override fun openRelay(endpoint: RelayEndpoint, dc: Int, own: (Closeable) -> Unit): RemoteTransport {
+                    calls += endpoint.requestPath(dc)
+                    own(channel)
+                    return channel
+                }
+                override fun openWebSocket(address: String, domain: String, own: (Closeable) -> Unit): RemoteTransport =
+                    throw AssertionError("Direct WSS must not run in relay mode")
+                override fun openTcp(address: String, own: (Closeable) -> Unit): RemoteTransport =
+                    throw AssertionError("Direct TCP must not run in relay mode")
+            }
+            MtprotoServer(port, secretHex, events.all::add, transports = factory, limits = limits,
+                relayEndpoint = RelayEndpoint.parse("wss://relay.example/test-key/apiws")).use { server ->
+                server.start()
+                await("Relay listener not ready") { events.phase(ServerPhase.LISTENING) }
+                connect(port).use { client ->
+                    val hello = init(dc)
+                    val packet = byteArrayOf(4, 0, 0, 0, 21, 22, 23, 24)
+                    client.getOutputStream().write(hello.bytes + hello.encrypt.update(packet))
+                    await("Relay packet missing") { channel.sent.size == 2 }
+                    assertEquals(listOf("/test-key/apiws?dst=${TelegramRoutes.ip(kotlin.math.abs(dc))}&dc=${kotlin.math.abs(dc)}"), calls.toList())
+                    val handshake = MtprotoCrypto.parseClientInit(hello.bytes, secret)!!
+                    val expected = MtprotoCrypto.buildContext(handshake, secret, channel.sent[0]).toTelegram.update(packet)
+                    assertArrayEquals(expected, channel.sent[1])
+                    assertEquals(ServerEvent.Sessions(1, 0, relay = 1), events.all.last { it is ServerEvent.Sessions })
+                    server.stop()
+                    assertClosed(client)
+                    assertEquals(0L, channel.closed.count)
+                }
+            }
+        }
+    }
+
+    @Test fun stalledRelayDeadlineClosesResourcesWithoutDirectFallback() {
+        val port = freePort()
+        val events = Events()
+        val channel = Channel(TransportKind.RELAY)
+        val factory = object : TransportFactory {
+            override fun openRelay(endpoint: RelayEndpoint, dc: Int, own: (Closeable) -> Unit): RemoteTransport {
+                own(channel)
+                assertTrue(channel.closed.await(2, TimeUnit.SECONDS))
+                return channel
+            }
+            override fun openWebSocket(address: String, domain: String, own: (Closeable) -> Unit): RemoteTransport =
+                throw AssertionError("Unexpected direct WSS")
+            override fun openTcp(address: String, own: (Closeable) -> Unit): RemoteTransport =
+                throw AssertionError("Unexpected direct TCP")
+        }
+        MtprotoServer(port, secretHex, events.all::add, transports = factory,
+            limits = limits.copy(wssAttemptTimeoutMillis = 100),
+            relayEndpoint = RelayEndpoint.parse("wss://relay.example")).use { server ->
+            server.start()
+            await("Relay listener not ready") { events.phase(ServerPhase.LISTENING) }
+            connect(port).use { client ->
+                client.getOutputStream().write(init().bytes)
+                assertClosed(client)
+                await("Missing relay failure") { events.issue(ServerIssue.RELAY) && events.sessions(0, 0) }
+                assertTrue(channel.sent.isEmpty())
+            }
+        }
+    }
+
     @Test fun repeatedStartStopAndRestartReleaseListener() {
         val port = freePort()
         val events = Events()
