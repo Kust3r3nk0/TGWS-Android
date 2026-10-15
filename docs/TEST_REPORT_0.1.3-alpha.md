@@ -19,7 +19,7 @@ Android 15+ / minSdk 35, versionName `0.1.3-alpha`, versionCode 4.
   отказ и deadline без прямого fallback, bounded/uninterruptible DNS,
   настоящий локальный TLS Upgrade с защищённым путём и dst/dc.
 - Android Lint: **0 errors**, 3 прежних `UseKtx` warnings.
-- **10 Node.js тестов**, настоящий локальный TLS/WSS → TCP echo, двусторонние
+- **11 Node.js тестов**, настоящий локальный TLS/WSS → TCP echo, двусторонние
   байты/фрагменты, недоверенный сертификат, ключ пути до TCP dial, размеры,
   capacity, connect/idle/stalled-write deadlines.
 - **16 тестов CI-скриптов**, **4 теста publication guards**; actionlint пройден.

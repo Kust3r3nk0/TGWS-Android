@@ -8,7 +8,7 @@ The full Wrapper command (JVM, Lint, Debug APK and instrumentation APK) passed
 with JDK 17. **126 JVM tests** passed with zero failures/errors/skips, including
 existing Flowseal vectors and new relay crypto/routes, GCM/AAD, deadlines, DNS
 and real local TLS path/query tests. Lint: **0 errors**, 3 existing UseKtx warnings.
-**10 Node.js tests** passed: real TLS/WSS/TCP bytes, fragments, authentication,
+**11 Node.js tests** passed: real TLS/WSS/TCP bytes, fragments, authentication,
 certificate trust, capacity, payload size and connect/idle/stalled-write deadlines.
 All **16 CI script tests**, **4 publication guard tests** and actionlint passed.
 

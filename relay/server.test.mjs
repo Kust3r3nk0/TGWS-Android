@@ -157,3 +157,25 @@ test('stalled upstream write deadline closes a backpressured session', async t =
   await waitFor(() => relay.activeSessions() === 0);
   assert.equal(blocked.destroyed, true);
 });
+
+test('ongoing backpressured transfer can last longer than the per-write deadline', async t => {
+  class SlowTcp extends Duplex {
+    _read() {}
+    _write(_chunk, _encoding, callback) { setTimeout(callback, 15); }
+    setNoDelay() {}
+    setTimeout() {}
+  }
+  const slow = new SlowTcp();
+  const { connect, relay } = await fixture(t, { writeMillis: 80, dial: () => {
+    queueMicrotask(() => slow.emit('connect'));
+    return slow;
+  } });
+  const ws = await connect();
+  ws.send(Buffer.alloc(64));
+  for (let index = 0; index < 20; index++) ws.send(Buffer.alloc(1024));
+  await new Promise(resolve => setTimeout(resolve, 380));
+  assert.equal(ws.readyState, WebSocket.OPEN);
+  assert.equal(relay.activeSessions(), 1);
+  ws.close();
+  await once(ws, 'close');
+});

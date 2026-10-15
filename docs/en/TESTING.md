@@ -1,4 +1,4 @@
-# Testing 0.1.2-alpha
+# Testing 0.1.3-alpha
 
 Baseline: Flowseal/tg-ws-proxy **v1.11.2**, commit
 `307a384ab7f522e34bb1a045884d0bd90f40bee5`. [Русский](../TESTING.md).
@@ -32,7 +32,7 @@ Instrumentation requires a connected device or emulator:
 ```
 
 CI also runs `python3 .github/scripts/verify_android_tests.py`, requiring entries
-for all 11 tests instead of relying only on Gradle's exit code. Empty reports,
+for all 13 tests instead of relying only on Gradle's exit code. Empty reports,
 skips, duplicates and failures/errors fail the job. Test the gate and emulator
 entry points with `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
 
@@ -71,11 +71,13 @@ Record:
 ```text
 UTC date:
 Git commit:
-TGWS-Android version: 0.1.2-alpha
+TGWS-Android version: 0.1.3-alpha
 APK SHA-256:
 Device / Android / API:
 Official Telegram version:
 Network type (no personal addresses):
+Carrier / country (cellular):
+Mode: direct / WSS relay (do not publish credential-bearing URLs)
 Proxy connection: PASS / FAIL / NOT RUN
 Send text: PASS / FAIL / NOT RUN
 Receive text: PASS / FAIL / NOT RUN
@@ -84,6 +86,15 @@ Stop and port release: PASS / FAIL / NOT RUN
 Notes (no secrets or message contents):
 ```
 
-Until this scenario passes, do not claim a verified working proxy or create
-a GitHub Pre-release meeting the specification. The debug APK is signed with
-a debug key and is a test artifact. A distributable release needs a trusted signature.
+Until this scenario passes, do not claim a fully verified working proxy. The owner
+authorized clearly labeled debug Pre-releases after automated checks; these do
+not pass the stable release gate. Stable distribution requires a trusted signature.
+
+## Relay and cellular checks
+
+Run `npm ci --ignore-scripts --prefix relay && npm test --prefix relay` for local
+TLS/WSS/TCP tests. These do not establish carrier reachability. Repeat physical
+Telegram E2E separately in direct and configured relay-only mode with Wi-Fi off.
+Record carrier/country and compare results. Check clearing the URL restores
+direct mode, a failed relay has a bounded deadline with no direct fallback, and
+Keystore key loss requires explicit URL recovery. [Relay setup](MOBILE_NETWORKS.md).

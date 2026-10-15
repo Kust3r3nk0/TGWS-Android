@@ -1,6 +1,7 @@
 import https from 'node:https';
 import net from 'node:net';
 import { timingSafeEqual } from 'node:crypto';
+import { Writable } from 'node:stream';
 import { WebSocketServer, createWebSocketStream } from 'ws';
 
 // Flowseal v1.11.2 DC_DEFAULT_IPS. This endpoint is never an arbitrary TCP proxy.
@@ -43,7 +44,9 @@ export function createRelay({ tls, token, maxSessions = 8, connectMillis = 8000,
       client.end(`HTTP/1.1 ${target ? '503 Service Unavailable' : '404 Not Found'}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`, () => client.destroy());
       return;
     }
-    let tcp, ws, stream, ping, pong, writeTimer, initTimer;
+    let tcp, ws, stream, ping, pong, initTimer;
+    const sinks = [];
+    const writes = new Set();
     let ended = false;
     const setup = setTimeout(() => finish(), connectMillis);
     const stop = () => finish();
@@ -54,8 +57,9 @@ export function createRelay({ tls, token, maxSessions = 8, connectMillis = 8000,
       clearTimeout(setup);
       clearInterval(ping);
       clearTimeout(pong);
-      clearTimeout(writeTimer);
+      for (const timer of writes) clearTimeout(timer);
       clearTimeout(initTimer);
+      for (const sink of sinks) sink.destroy();
       stream?.destroy();
       ws?.terminate();
       tcp?.destroy();
@@ -86,26 +90,27 @@ export function createRelay({ tls, token, maxSessions = 8, connectMillis = 8000,
           });
           stream = createWebSocketStream(ws, { highWaterMark: 64 * 1024 });
           stream.on('error', finish);
-          // A stalled write in either direction must not retain a session forever.
-          const drain = () => {
-            if (tcp.writableLength === 0 && stream.writableLength === 0) {
-              clearTimeout(writeTimer);
-              writeTimer = undefined;
-            }
+          // Deadline follows each actual write completion, never total transfer duration.
+          const forward = (source, output) => {
+            const sink = new Writable({
+              highWaterMark: 64 * 1024,
+              write(chunk, _encoding, callback) {
+                const timer = setTimeout(finish, writeMillis);
+                writes.add(timer);
+                output.write(chunk, error => {
+                  clearTimeout(timer);
+                  writes.delete(timer);
+                  callback(error);
+                });
+              },
+              final(callback) { output.end(callback); },
+            });
+            sinks.push(sink);
+            sink.on('error', finish);
+            source.pipe(sink);
           };
-          tcp.on('drain', drain);
-          stream.on('drain', drain);
-          // A small write need not emit drain; inspect outstanding bytes on the same bounded timer.
-          const checkWrite = () => {
-            if (tcp.writableLength > 0 || stream.writableLength > 0) finish();
-            writeTimer = undefined;
-          };
-          const resetWrite = () => {
-            if (writeTimer === undefined) writeTimer = setTimeout(checkWrite, writeMillis);
-          };
-          tcp.on('data', resetWrite);
-          stream.on('data', resetWrite);
-          stream.pipe(tcp).pipe(stream);
+          forward(stream, tcp);
+          forward(tcp, stream);
           ws.on('pong', () => { clearTimeout(pong); pong = undefined; });
           ping = setInterval(() => {
             if (pong !== undefined) return;
