@@ -18,17 +18,19 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.net.ssl.SSLException
 
 enum class ServerPhase { STARTING, LISTENING, STOPPING, STOPPED, ERROR }
-enum class ServerIssue { CONFIGURATION, PORT, HANDSHAKE, WSS_HANDSHAKE, TLS, TCP, RELAY, RETRY_LATER, SESSION, CAPACITY, TIMEOUT }
+enum class ServerIssue { CONFIGURATION, PORT, HANDSHAKE, WSS_HANDSHAKE, TLS, TCP, RELAY, RETRY_LATER, SESSION, CAPACITY, TIMEOUT, HTTP2, DNS, NETWORK }
 
 /** Safe diagnostics never carry peer data, cryptographic material or exception messages. */
 sealed interface ServerEvent {
     data class State(val phase: ServerPhase) : ServerEvent
-    data class Sessions(val established: Int, val pending: Int, val wss: Int = 0, val tcp: Int = 0, val relay: Int = 0) : ServerEvent
+    data class Sessions(val established: Int, val pending: Int, val wss: Int = 0, val tcp: Int = 0, val relay: Int = 0,val cf:Int=0,val h2:Int=0) : ServerEvent
     data class Diagnostic(val issue: ServerIssue, val rejection: HandshakeRejection? = null) : ServerEvent
     data class BackgroundIssue(val issue: ServerIssue) : ServerEvent
+    data class Routes(val routes: List<RouteObservation>) : ServerEvent
+    data class Traffic(val sent:Long,val received:Long) : ServerEvent
 }
 
-enum class TransportKind { WSS, TCP, RELAY }
+enum class TransportKind { WSS, TCP, RELAY, WORKER, CLOUDFLARE, HTTP2 }
 
 /** A future transport can implement this interface without depending on Android or Compose. */
 interface RemoteTransport : Closeable {
@@ -48,6 +50,8 @@ interface TransportFactory {
     fun openRelay(endpoint: RelayEndpoint, dc: Int, own: (Closeable) -> Unit): RemoteTransport =
         throw java.io.IOException("Relay transport unavailable")
     fun openTcp(address: String, own: (Closeable) -> Unit): RemoteTransport
+    fun openHttpMedia(domain:String,tag:ByteArray,own:(Closeable)->Unit):RemoteTransport =
+        throw java.io.IOException("HTTP2 transport unavailable")
 }
 
 private object DirectTransportFactory : TransportFactory {
@@ -121,7 +125,8 @@ class MtprotoServer(
     private val transports: TransportFactory = DirectTransportFactory,
     private val limits: ServerLimits = ServerLimits(),
     private val relayEndpoint: RelayEndpoint? = null,
-    private val fakeTlsDomain: String = "",
+    private val transportSettings:TransportSettings = TransportSettings(),
+    private val fakeTlsDomain: String = transportSettings.fakeTlsDomain,
 ) : Closeable {
     private val secret: ByteArray
     private val lifecycle = Any()
@@ -129,6 +134,7 @@ class MtprotoServer(
 
     init {
         require(fakeTlsDomain.isEmpty() || TelegramSecret.validDomain(fakeTlsDomain))
+        require(transportSettings.mode!=TransportMode.RELAY_ONLY || relayEndpoint!=null)
         require(port in 1..65535) { "Invalid local port" }
         require(secretHex.matches(Regex("[0-9a-fA-F]{32}"))) { "Invalid MTProto secret format" }
         secret = secretHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
@@ -155,8 +161,17 @@ class MtprotoServer(
             removeOnCancelPolicy = true
         }
         val retries = RouteBackoff<String>()
+        val diagnostics=RouteDiagnostics()
+        val rotation=ConcurrentHashMap<String,Int>()
+        val sent=java.util.concurrent.atomic.AtomicLong()
+        val received=java.util.concurrent.atomic.AtomicLong()
+        var reportedTraffic=0L to 0L
+        val probes=ConcurrentHashMap.newKeySet<Attempt>()
+        val probing=AtomicBoolean()
+        var lastProbe=Long.MIN_VALUE
+        var networkGeneration=0L
         val warm = WarmConnectionPool<WssRoute>(
-            if (transports.supportsWarmWebSockets && relayEndpoint == null) limits.warmPoolCapacity else 0,
+            if (transports.supportsWarmWebSockets && relayEndpoint == null && transportSettings.mode==TransportMode.DIRECT) limits.warmPoolCapacity else 0,
             limits.warmMaxAgeMillis, limits.wssAttemptTimeoutMillis, watchdog,
             opener = { route, own ->
                 val permit = retries.acquire(routeKey(route))
@@ -180,6 +195,8 @@ class MtprotoServer(
         val closed = AtomicBoolean(false)
         @Volatile var established = false
         @Volatile var transportKind: TransportKind? = null
+        @Volatile var routeKey:String?=null
+        @Volatile var remoteFailureReported=false
         @Volatile var deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(limits.handshakeTimeoutMillis.toLong())
         @Volatile var lastActivity = System.nanoTime()
         @Volatile var upstreamWriteDeadline = 0L
@@ -215,7 +232,8 @@ class MtprotoServer(
         private val resources = mutableSetOf<Closeable>()
         val closed = AtomicBoolean(false)
         private val deadlineActive = AtomicBoolean(true)
-        fun expire() { if (deadlineActive.compareAndSet(true, false)) close() }
+        @Volatile var timedOut=false;private set
+        fun expire() { if (deadlineActive.compareAndSet(true, false)){timedOut=true;close()} }
         fun retain() = deadlineActive.compareAndSet(true, false) && !closed.get()
         fun own(resource: Closeable) {
             val expired = synchronized(lock) {
@@ -245,7 +263,9 @@ class MtprotoServer(
         emit(run, ServerEvent.Sessions(sessions.count { it.established }, sessions.count { !it.established },
             sessions.count { it.established && it.transportKind == TransportKind.WSS },
             sessions.count { it.established && it.transportKind == TransportKind.TCP },
-            sessions.count { it.established && it.transportKind == TransportKind.RELAY }))
+            sessions.count { it.established && it.transportKind in setOf(TransportKind.RELAY,TransportKind.WORKER) },
+            sessions.count { it.established && it.transportKind == TransportKind.CLOUDFLARE },
+            sessions.count { it.established && it.transportKind == TransportKind.HTTP2 }))
     }
 
     fun start() {
@@ -314,6 +334,8 @@ class MtprotoServer(
 
     private fun expire(run: Run) {
         run.warm.rotate()
+        val traffic=run.sent.get() to run.received.get()
+        if(traffic!=run.reportedTraffic){run.reportedTraffic=traffic;emit(run,ServerEvent.Traffic(traffic.first,traffic.second));emit(run,ServerEvent.Routes(run.diagnostics.snapshot()))}
         val now = System.nanoTime()
         for (session in run.sessions) {
             val upstreamDeadline = session.upstreamWriteDeadline
@@ -375,7 +397,8 @@ class MtprotoServer(
         val handshake = (result as ClientInitResult.Accepted).handshake
         val relay = MtprotoCrypto.createRelayInit(handshake)
         val context = MtprotoCrypto.buildContext(handshake, secret, relay)
-        session.deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(limits.connectTimeoutMillis.toLong())
+        val budget=if(transportSettings.mode==TransportMode.AUTO_CLOUDFLARE)maxOf(limits.connectTimeoutMillis.toLong(),limits.wssAttemptTimeoutMillis.toLong()*5)else limits.connectTimeoutMillis.toLong()
+        session.deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(budget)
         val remote = establish(session, handshake, relay) ?: return
         session.checkOpen()
         synchronized(lifecycle) {
@@ -392,10 +415,21 @@ class MtprotoServer(
 
     private fun establish(session: Session, handshake: Handshake, relay: ByteArray): RemoteTransport? {
         var attempted = false
+        var attempts=0
+        fun kind(issue:ServerIssue)=when(issue){ServerIssue.TCP->TransportKind.TCP;ServerIssue.RELAY->TransportKind.RELAY;ServerIssue.HTTP2->TransportKind.HTTP2;else->TransportKind.WSS}
+        fun mark(key:String,issue:ServerIssue,status:RouteStatus,failure:ServerIssue?=null){
+            synchronized(lifecycle){if(!session.closed.get()){
+                val transport=when{key.startsWith("cf:")->TransportKind.CLOUDFLARE;key.startsWith("worker:")->TransportKind.WORKER;else->kind(issue)}
+                session.run.diagnostics.mark(key,handshake.dc,handshake.media,transport,status,failure)
+                emit(session.run,ServerEvent.Routes(session.run.diagnostics.snapshot()))}}
+        }
         fun connect(key: String, issue: ServerIssue, open: ((Closeable) -> Unit) -> RemoteTransport): RemoteTransport? {
             session.checkOpen()
-            val permit = session.run.retries.acquire(key) ?: return null
+            if(transportSettings.mode==TransportMode.AUTO_CLOUDFLARE && attempts>=4 && issue!=ServerIssue.TCP)return null
+            val permit = session.run.retries.acquire(key) ?: run{mark(key,issue,RouteStatus.BACKOFF);return null}
+            attempts++
             attempted = true
+            mark(key,issue,RouteStatus.CONNECTING)
             val attempt = Attempt()
             session.own(attempt)
             val timeout = session.run.watchdog.schedule(
@@ -409,14 +443,22 @@ class MtprotoServer(
                 // Client payload is untouched: route retries never replay consumed AES-CTR state.
                 candidate.send(relay)
                 if (!attempt.retain()) throw java.net.SocketTimeoutException("Route deadline")
-                session.run.retries.success(permit)
+                synchronized(lifecycle){
+                    session.checkOpen()
+                    session.run.retries.success(permit)
+                    session.routeKey=key
+                    session.run.diagnostics.mark(key,handshake.dc,handshake.media,candidate.kind,RouteStatus.AVAILABLE)
+                    emit(session.run,ServerEvent.Routes(session.run.diagnostics.snapshot()))
+                }
                 return candidate
             } catch (error: Exception) {
                 attempt.close()
                 if (session.closed.get()) session.run.retries.cancel(permit)
                 else {
                     session.run.retries.failure(permit)
-                    emit(session.run, ServerEvent.Diagnostic(if (error is SSLException) ServerIssue.TLS else issue))
+                    val failure=when(error){is SSLException->ServerIssue.TLS;is java.net.UnknownHostException->ServerIssue.DNS;is NetworkUnavailable->ServerIssue.NETWORK;else->issue}
+                    synchronized(lifecycle){if(!session.closed.get())mark(key,issue,RouteStatus.UNAVAILABLE,failure)}
+                    emit(session.run, ServerEvent.Diagnostic(failure))
                 }
                 return null
             } finally { timeout.cancel(false) }
@@ -429,7 +471,40 @@ class MtprotoServer(
             if (result == null && !attempted && !session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.RETRY_LATER))
             return result
         }
-        TelegramRoutes.webSocketIp(handshake.dc)?.let { ip ->
+        if(transportSettings.mode==TransportMode.RELAY_ONLY){emit(session.run,ServerEvent.Diagnostic(ServerIssue.CONFIGURATION));return null}
+        if(transportSettings.mode==TransportMode.AUTO_CLOUDFLARE){
+            val workers=transportSettings.workerUrls
+            val workerGroup="workers:${handshake.dc}"
+            val start=session.run.rotation[workerGroup]?:0
+            for(offset in 0 until minOf(2,workers.size)){
+                val index=(start+offset)%workers.size
+                val worker=requireNotNull(RelayEndpoint.parse(workers[index]))
+                val result=connect("worker:$index:${handshake.dc}",ServerIssue.RELAY){own->
+                    val base=transports.openRelay(worker,handshake.dc,own)
+                    object:RemoteTransport by base{override val kind=TransportKind.WORKER}
+                }
+                if(result!=null){session.run.rotation[workerGroup]=index;return result}
+                session.run.rotation[workerGroup]=(index+1)%workers.size
+            }
+            val domains=transportSettings.cloudflareDomains
+            val cfGroup="cf:${handshake.dc}"
+            val first=session.run.rotation[cfGroup]?:0
+            for(offset in 0 until minOf(2,domains.size)){
+                val index=(first+offset)%domains.size
+                val domain="kws${handshake.dc}.${domains[index]}"
+                if(handshake.media && transportSettings.http2Media){
+                    val h2=connect("h2:$index:${handshake.dc}",ServerIssue.HTTP2){own->transports.openHttpMedia(domain,handshake.tag,own)}
+                    if(h2!=null){session.run.rotation[cfGroup]=index;return h2}
+                }
+                val cf=connect("cf:$index:${handshake.dc}",ServerIssue.WSS_HANDSHAKE){own->
+                    val base=transports.openWebSocket(domain,domain,own)
+                    object:RemoteTransport by base{override val kind=TransportKind.CLOUDFLARE}
+                }
+                if(cf!=null){session.run.rotation[cfGroup]=index;return cf}
+                session.run.rotation[cfGroup]=(index+1)%domains.size
+            }
+        }
+        if(transportSettings.mode==TransportMode.DIRECT)TelegramRoutes.webSocketIp(handshake.dc)?.let { ip ->
             for (domain in TelegramRoutes.webSocketDomains(handshake.dc, handshake.media)) {
                 val route = WssRoute(ip, domain)
                 val remote = connect(routeKey(route), ServerIssue.WSS_HANDSHAKE) { own ->
@@ -460,10 +535,20 @@ class MtprotoServer(
 
     private fun bridge(session: Session, remote: RemoteTransport, context: CryptoContext, tag: ByteArray) {
         val splitter = PacketSplitter(tag)
+        fun remoteFailure(error:Exception){
+            synchronized(lifecycle){if(!session.closed.get()){
+                session.remoteFailureReported=true
+                val issue=if(error is SSLException)ServerIssue.TLS else if(remote.kind==TransportKind.HTTP2)ServerIssue.HTTP2 else ServerIssue.SESSION
+                session.run.diagnostics.failed(session.routeKey,issue)
+                emit(session.run,ServerEvent.Routes(session.run.diagnostics.snapshot()))
+                emit(session.run,ServerEvent.Diagnostic(issue))
+            }}
+        }
+        fun send(data:ByteArray){try{remote.send(data)}catch(error:Exception){remoteFailure(error);throw error}}
         val downstream = session.run.downstream.submit {
             try {
                 while (!session.closed.get()) {
-                    val data = remote.receive() ?: break
+                    val data = try{remote.receive()}catch(error:Exception){remoteFailure(error);throw error} ?: break
                     // Empty WS messages are legal, but cannot keep an idle proxy session alive.
                     if (data.isEmpty()) continue
                     val plain = context.fromTelegram.update(data)
@@ -471,11 +556,12 @@ class MtprotoServer(
                     try {
                         session.output.write(context.toClient.update(plain))
                         session.output.flush()
+                        session.run.received.addAndGet(data.size.toLong());session.run.diagnostics.traffic(session.routeKey,received=data.size)
                     } finally { session.downstreamWriteDeadline = 0L }
                     session.touch()
                 }
             } catch (_: Exception) {
-                if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.SESSION))
+                if (!session.closed.get() && !session.remoteFailureReported) emit(session.run, ServerEvent.Diagnostic(ServerIssue.SESSION))
             } finally {
                 session.close()
             }
@@ -483,18 +569,19 @@ class MtprotoServer(
         try {
             while (!session.closed.get()) {
                 val data = session.input.readChunk() ?: break
+                session.run.sent.addAndGet(data.size.toLong());session.run.diagnostics.traffic(session.routeKey,sent=data.size)
                 val plain = context.fromClient.update(data)
                 val encrypted = context.toTelegram.update(plain)
                 // TCP carries the same framed stream: validate bounds before forwarding in both paths.
                 splitter.split(encrypted, plain).forEach { packet ->
                     session.upstreamWriteDeadline = writeDeadline()
-                    try { remote.send(packet) } finally { session.upstreamWriteDeadline = 0L }
+                    try { send(packet) } finally { session.upstreamWriteDeadline = 0L }
                 }
                 session.touch()
             }
-            splitter.flush().forEach(remote::send)
+            splitter.flush().forEach(::send)
         } catch (error: Exception) {
-            if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.SESSION))
+            if (!session.closed.get() && !session.remoteFailureReported) emit(session.run, ServerEvent.Diagnostic(ServerIssue.SESSION))
             throw error
         } finally {
             session.close()
@@ -506,14 +593,68 @@ class MtprotoServer(
     fun disconnectSessions() {
         synchronized(lifecycle) {
             current?.let { run ->
+                run.networkGeneration++
                 run.warm.invalidate()
+                run.probes.toList().forEach(Attempt::close)
                 run.retries.reset()
+                run.rotation.clear()
+                run.diagnostics.clear()
+                emit(run,ServerEvent.Routes(emptyList()))
                 run.sessions.toList().forEach(Session::close)
             }
         }
     }
 
     internal fun warmConnections(): Pair<Int, Int> = current?.warm?.size() ?: (0 to 0)
+
+    /** Explicit, rate-limited transport handshake probe. No MTProto payload or claimed Telegram RTT. */
+    fun probeRoutes():Boolean {
+        val run=current?:return false
+        val generation:Long
+        synchronized(lifecycle){
+            val now=System.nanoTime()
+            if(current!==run || run.stopping.get() || run.probing.get() ||
+                (run.lastProbe!=Long.MIN_VALUE && now-run.lastProbe<TimeUnit.SECONDS.toNanos(30)))return false
+            run.lastProbe=now;run.probing.set(true)
+            generation=run.networkGeneration
+        }
+        try{run.workers.execute{
+            try{
+                data class Probe(val key:String,val kind:TransportKind,val open:((Closeable)->Unit)->RemoteTransport)
+                val candidates=mutableListOf<Probe>()
+                when{
+                    relayEndpoint!=null->candidates+=Probe("relay:2",TransportKind.RELAY){own->transports.openRelay(relayEndpoint,2,own)}
+                    transportSettings.mode==TransportMode.AUTO_CLOUDFLARE->{
+                        transportSettings.workerUrls.take(2).forEachIndexed{index,url->candidates+=Probe("worker:$index:2",TransportKind.WORKER){own->transports.openRelay(requireNotNull(RelayEndpoint.parse(url)),2,own)}}
+                        transportSettings.cloudflareDomains.take(1).forEachIndexed{index,domain->
+                            if(transportSettings.http2Media)candidates+=Probe("h2:$index:2",TransportKind.HTTP2){own->transports.openHttpMedia("kws2.$domain",ByteArray(4){0xee.toByte()},own)}
+                            candidates+=Probe("cf:$index:2",TransportKind.CLOUDFLARE){own->transports.openWebSocket("kws2.$domain","kws2.$domain",own)}
+                        }
+                    }
+                    else->candidates+=Probe("wss:149.154.167.220:kws2.web.telegram.org",TransportKind.WSS){own->transports.openWebSocket("149.154.167.220","kws2.web.telegram.org",own)}
+                }
+                for(candidate in candidates.take(3)){
+                    val attempt=Attempt()
+                    synchronized(lifecycle){if(current!==run || run.stopping.get() || run.networkGeneration!=generation)return@execute;run.probes+=attempt}
+                    val timeout=run.watchdog.schedule({attempt.expire()},limits.wssAttemptTimeoutMillis.toLong(),TimeUnit.MILLISECONDS)
+                    try{
+                        synchronized(lifecycle){if(attempt.closed.get())return@execute;run.diagnostics.mark(candidate.key,2,false,candidate.kind,RouteStatus.CONNECTING)}
+                        emit(run,ServerEvent.Routes(run.diagnostics.snapshot()))
+                        val remote=candidate.open(attempt::own);attempt.own(remote)
+                        if(attempt.closed.get())throw java.net.SocketTimeoutException("Probe deadline")
+                        synchronized(lifecycle){if(!attempt.closed.get() && current===run && !run.stopping.get() && run.networkGeneration==generation){
+                            run.diagnostics.mark(candidate.key,2,false,candidate.kind,RouteStatus.AVAILABLE)
+                            emit(run,ServerEvent.Routes(run.diagnostics.snapshot()))}}
+                    }catch(error:Exception){synchronized(lifecycle){if(current===run && !run.stopping.get() && run.networkGeneration==generation){
+                        val issue=if(attempt.timedOut)ServerIssue.TIMEOUT else when(error){is SSLException->ServerIssue.TLS;is java.net.UnknownHostException->ServerIssue.DNS;is NetworkUnavailable->ServerIssue.NETWORK;else->if(candidate.kind==TransportKind.HTTP2)ServerIssue.HTTP2 else ServerIssue.WSS_HANDSHAKE}
+                        run.diagnostics.mark(candidate.key,2,false,candidate.kind,RouteStatus.UNAVAILABLE,issue)
+                        emit(run,ServerEvent.Routes(run.diagnostics.snapshot()))}}}
+                    finally{timeout.cancel(false);attempt.close();run.probes.remove(attempt)}
+                }
+            }finally{run.probing.set(false)}
+        }}catch(_:java.util.concurrent.RejectedExecutionException){run.probing.set(false);return false}
+        return true
+    }
 
     private fun writeDeadline() = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(limits.writeTimeoutMillis.toLong())
 
@@ -537,6 +678,7 @@ class MtprotoServer(
         }
         run.server?.let(::release)
         run.warm.close()
+        run.probes.toList().forEach(Attempt::close)
         run.sessions.toList().forEach(Session::close)
         run.watchdog.shutdownNow()
         run.workers.shutdownNow()

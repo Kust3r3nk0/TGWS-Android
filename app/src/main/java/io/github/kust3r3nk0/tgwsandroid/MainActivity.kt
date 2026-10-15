@@ -69,6 +69,8 @@ class MainActivity : ComponentActivity() {
                 // Secret/reveal state is deliberately absent from savedInstanceState.
                 var secretText by remember { mutableStateOf("") }
                 var relayUrl by remember { mutableStateOf("") }
+                var transportDraft by remember { mutableStateOf(TransportDraft()) }
+                var imported by remember { mutableStateOf("") }
                 var revealSecret by remember { mutableStateOf(false) }
                 var secretUnavailable by remember { mutableStateOf(false) }
                 var busy by remember { mutableStateOf(true) }
@@ -77,8 +79,10 @@ class MainActivity : ComponentActivity() {
                 val scope = rememberCoroutineScope()
                 val snapshot = ProxyState.snapshot
                 val editable = !snapshot.running && !busy
-                val validConfiguration = portText.toIntOrNull()?.let(SettingsValidation::validPort) == true &&
+                val advancedConfig=runCatching{transportDraft.settings()}.getOrNull()
+                val validConfiguration = advancedConfig!=null && portText.toIntOrNull()?.let(SettingsValidation::validPort) == true &&
                     SettingsValidation.validSecret(secretText) && !secretUnavailable &&
+                    (advancedConfig.mode!=io.github.kust3r3nk0.tgwsandroid.core.TransportMode.RELAY_ONLY || relayUrl.isNotEmpty()) &&
                     runCatching { RelayEndpoint.parse(relayUrl) }.isSuccess
 
                 LaunchedEffect(Unit) {
@@ -87,6 +91,7 @@ class MainActivity : ComponentActivity() {
                         portText = saved.port.toString()
                         secretText = saved.secret
                         relayUrl = saved.relayUrl
+                        transportDraft=TransportDraft.from(saved.transport)
                     } catch (error: SettingsException) {
                         secretUnavailable = error.issue == SettingsIssue.SECRET_UNAVAILABLE
                         errorResource = settingsError(error.issue)
@@ -124,7 +129,7 @@ class MainActivity : ComponentActivity() {
                     Text(stringResource(statusResource(snapshot.phase)), style = MaterialTheme.typography.bodyLarge)
                     Text(stringResource(R.string.local_address, SettingsValidation.LOOPBACK, portText))
                     Text(stringResource(R.string.session_counts, snapshot.sessions, snapshot.pending))
-                    Text(stringResource(R.string.transport_counts, snapshot.wssSessions, snapshot.tcpSessions, snapshot.relaySessions))
+                    Text(stringResource(R.string.transport_counts, snapshot.wssSessions, snapshot.tcpSessions, snapshot.relaySessions,snapshot.cfSessions,snapshot.h2Sessions))
                     Text(stringResource(when {
                         snapshot.sessions > 0 -> R.string.remote_transport_established
                         snapshot.pending > 0 -> R.string.remote_transport_connecting
@@ -173,8 +178,23 @@ class MainActivity : ComponentActivity() {
                         singleLine = true,
                         isError = runCatching { RelayEndpoint.parse(relayUrl) }.isFailure,
                     )
-                    Text(stringResource(if (relayUrl.isEmpty()) R.string.relay_direct_notice else R.string.relay_enabled_notice),
+                    if(transportDraft.mode!=io.github.kust3r3nk0.tgwsandroid.core.TransportMode.AUTO_CLOUDFLARE)Text(stringResource(if (transportDraft.mode!=io.github.kust3r3nk0.tgwsandroid.core.TransportMode.RELAY_ONLY) R.string.relay_direct_notice else R.string.relay_enabled_notice),
                         style = MaterialTheme.typography.bodySmall)
+                    TransportEditor(transportDraft,{transportDraft=it;feedbackResource=null},editable,revealSecret,relayUrl)
+                    OutlinedTextField(value=imported,onValueChange={imported=it.take(2048)},modifier=Modifier.fillMaxWidth(),
+                        label={Text(stringResource(R.string.import_label))},enabled=editable,singleLine=true,
+                        visualTransformation=if(revealSecret)VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Password))
+                    OutlinedButton(enabled=editable && imported.isNotEmpty(),onClick={
+                        try{
+                            val decoded=if(imported.startsWith("tg://") || imported.startsWith("https://")){
+                                val link=io.github.kust3r3nk0.tgwsandroid.core.TelegramSecret.import(imported)
+                                portText=link.port.toString();link.decoded
+                            }else io.github.kust3r3nk0.tgwsandroid.core.TelegramSecret.decode(imported)
+                            secretText=decoded.secret;transportDraft=transportDraft.copy(fakeDomain=decoded.domain)
+                            imported="";revealSecret=false;feedbackResource=R.string.import_success;errorResource=null
+                        }catch(_:IllegalArgumentException){errorResource=R.string.import_invalid}
+                    }){Text(stringResource(R.string.import_button))}
                     if (secretUnavailable) Text(stringResource(R.string.secret_recovery_notice), color = MaterialTheme.colorScheme.error)
                     OutlinedButton(onClick = {
                         val generated = SettingsValidation.generateSecret()
@@ -186,7 +206,7 @@ class MainActivity : ComponentActivity() {
                             else scope.launch {
                                 busy = true
                                 try {
-                                    withContext(Dispatchers.IO) { store.recover(port, generated, relayUrl) }
+                                    withContext(Dispatchers.IO) { store.recover(port, generated, relayUrl,advancedConfig) }
                                     secretText = generated
                                     secretUnavailable = false
                                     errorResource = null
@@ -223,7 +243,7 @@ class MainActivity : ComponentActivity() {
                                 scope.launch {
                                     busy = true
                                     try {
-                                        withContext(Dispatchers.IO) { store.save(port, secret, relayUrl) }
+                                        withContext(Dispatchers.IO) { store.save(port, secret, relayUrl,requireNotNull(advancedConfig)) }
                                         if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                                             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 10)
                                         }
@@ -242,7 +262,7 @@ class MainActivity : ComponentActivity() {
                         Text(stringResource(if (snapshot.running) R.string.stop else R.string.start_proxy))
                     }
                     OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = validConfiguration && !busy, onClick = {
-                        copySensitive(getString(R.string.clipboard_link), SettingsValidation.telegramLink(portText.toInt(), secretText))
+                        copySensitive(getString(R.string.clipboard_link), SettingsValidation.telegramLink(portText.toInt(), secretText,requireNotNull(advancedConfig).fakeTlsDomain))
                         feedbackResource = R.string.link_copied
                     }) { Text(stringResource(R.string.copy_link)) }
                     OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = SettingsValidation.validSecret(secretText) && !busy, onClick = {
@@ -251,7 +271,7 @@ class MainActivity : ComponentActivity() {
                     }) { Text(stringResource(R.string.copy_secret)) }
                     OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = validConfiguration && !busy, onClick = {
                         try {
-                            val link = SettingsValidation.telegramLink(portText.toInt(), secretText)
+                            val link = SettingsValidation.telegramLink(portText.toInt(), secretText,requireNotNull(advancedConfig).fakeTlsDomain)
                             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
                         } catch (_: ActivityNotFoundException) {
                             errorResource = R.string.error_telegram_missing
@@ -260,6 +280,10 @@ class MainActivity : ComponentActivity() {
                         }
                     }) { Text(stringResource(R.string.open_telegram)) }
                     HorizontalDivider()
+                    DiagnosticsPanel(snapshot,onProbe={
+                        try{startService(Intent(this@MainActivity,ProxyService::class.java).setAction(ProxyService.ACTION_PROBE));feedbackResource=R.string.probe_requested}
+                        catch(_:RuntimeException){errorResource=R.string.error_service_start}
+                    },onCopy={copySensitive(getString(R.string.diagnostics),it)})
                     Text(stringResource(R.string.alpha_notice))
                     Text(stringResource(R.string.local_notice))
                 }
@@ -305,6 +329,9 @@ private fun issueResource(issue: ProxyIssue): Int = when (issue) {
     ProxyIssue.TIMEOUT -> R.string.error_timeout
     ProxyIssue.NETWORK_CHANGED -> R.string.network_changed
     ProxyIssue.SERVICE_START -> R.string.error_service_start
+    ProxyIssue.HTTP2 -> R.string.error_http2
+    ProxyIssue.DNS -> R.string.error_dns
+    ProxyIssue.NETWORK -> R.string.error_network
 }
 
 private fun rejectionResource(reason: HandshakeRejection): Int = when (reason) {

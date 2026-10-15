@@ -407,7 +407,7 @@ class RawWebSocketTest {
     @Test(timeout = 5000) fun verifiesTrustedCertificateAndHostnameInRealTlsUpgrade() {
         tlsPeer { port, context ->
             val owned = mutableListOf<Socket>()
-            val ws = RawWebSocket.connectTls("127.0.0.1", "localhost", "/apiws", port, context, limits, owned::add)
+            val ws = RawWebSocket.connectTls("127.0.0.1", "localhost", "/apiws", port, context, limits, socketOwner = owned::add)
             assertTrue("TLS TCP socket must avoid Nagle delays", owned.first().tcpNoDelay)
             assertArrayEquals(byteArrayOf(1, 2), ws.receive())
             ws.abort()

@@ -25,6 +25,7 @@ class ProxyService : Service() {
     companion object {
         const val ACTION_START = "io.github.kust3r3nk0.tgwsandroid.START"
         const val ACTION_STOP = "io.github.kust3r3nk0.tgwsandroid.STOP"
+        const val ACTION_PROBE = "io.github.kust3r3nk0.tgwsandroid.PROBE"
         private const val CHANNEL_ID = "proxy_connection"
         private const val NOTIFICATION_ID = 1443
         private const val TAG = "TGWSProxy"
@@ -37,25 +38,9 @@ class ProxyService : Service() {
     private var destroyed = false
     private var stopping = false
     private var fatalError = false
-    private var callbackRegistered = false
-    private var currentNetwork: Network? = null
-    private var receivedNetwork = false
-    private val connectivity by lazy { getSystemService(ConnectivityManager::class.java) }
+    private var networkMonitor:AndroidNetworkMonitor?=null
+    private var transportFactory:io.github.kust3r3nk0.tgwsandroid.core.NetworkTransportFactory?=null
     private val notifications by lazy { getSystemService(NotificationManager::class.java) }
-
-    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
-        override fun onAvailable(network: Network) {
-            if (receivedNetwork && network != currentNetwork) disconnectForNetworkChange()
-            receivedNetwork = true
-            currentNetwork = network
-        }
-        override fun onLost(network: Network) {
-            if (network == currentNetwork) {
-                currentNetwork = null
-                disconnectForNetworkChange()
-            }
-        }
-    }
 
     override fun onCreate() {
         super.onCreate()
@@ -72,6 +57,7 @@ class ProxyService : Service() {
                 stopSelf()
             }
             ACTION_START -> startFromUserAction()
+            ACTION_PROBE -> {networkMonitor?.refresh();server?.probeRoutes()}
             else -> if (server == null && !loading) stopSelfResult(startId)
         }
         return START_NOT_STICKY
@@ -96,13 +82,23 @@ class ProxyService : Service() {
                     if (destroyed || stopping) return@post
                     loading = false
                     try {
+                        val monitor=AndroidNetworkMonitor(this,mainHandler){changed,view->
+                            if(!destroyed){
+                                ProxyState.snapshot=ProxyState.snapshot.copy(network=view)
+                                if(changed){transportFactory?.invalidate();disconnectForNetworkChange()}
+                            }
+                        }
+                        networkMonitor=monitor
+                        monitor.start()
+                        val factory=io.github.kust3r3nk0.tgwsandroid.core.NetworkTransportFactory{monitor.access}
+                        transportFactory=factory
                         server = MtprotoServer(settings.port, settings.secret,
                             onEvent = { event -> mainHandler.post { if (!destroyed) receive(event) } },
                             onFatalError = { mainHandler.post { if (!destroyed) fail(ProxyState.snapshot.issue ?: ProxyIssue.SESSION) } },
-                            relayEndpoint = RelayEndpoint.parse(settings.relayUrl)
+                            relayEndpoint = if(settings.transport.mode==io.github.kust3r3nk0.tgwsandroid.core.TransportMode.RELAY_ONLY)RelayEndpoint.parse(settings.relayUrl)else null,
+                            transports=factory,
+                            transportSettings=settings.transport
                         )
-                        connectivity.registerDefaultNetworkCallback(networkCallback, mainHandler)
-                        callbackRegistered = true
                         server?.start()
                     } catch (_: Exception) {
                         fail(ProxyIssue.CONFIGURATION)
@@ -124,6 +120,8 @@ class ProxyService : Service() {
 
     private fun receive(event: ServerEvent) {
         when (event) {
+            is ServerEvent.Routes -> { ProxyState.snapshot=ProxyState.snapshot.copy(routes=event.routes);return }
+            is ServerEvent.Traffic -> { ProxyState.snapshot=ProxyState.snapshot.copy(sent=event.sent,received=event.received);return }
             is ServerEvent.BackgroundIssue -> {
                 Log.i(TAG, "Warm WSS attempt failed: ${event.issue.name}")
                 return
@@ -145,7 +143,7 @@ class ProxyService : Service() {
                 if (event.established + event.pending < previous.sessions + previous.pending) {
                     Log.i(TAG, "Client session closed")
                 }
-                ProxyState.snapshot = previous.withSessions(event.established, event.pending, event.wss, event.tcp, event.relay)
+                ProxyState.snapshot = previous.withSessions(event.established, event.pending, event.wss, event.tcp, event.relay,event.cf,event.h2)
             }
             is ServerEvent.Diagnostic -> {
                 if (event.issue == ServerIssue.HANDSHAKE) {
@@ -166,6 +164,9 @@ class ProxyService : Service() {
                     ServerIssue.SESSION -> ProxyIssue.SESSION
                     ServerIssue.CAPACITY -> ProxyIssue.CAPACITY
                     ServerIssue.TIMEOUT -> ProxyIssue.TIMEOUT
+                    ServerIssue.HTTP2 -> ProxyIssue.HTTP2
+                    ServerIssue.DNS -> ProxyIssue.DNS
+                    ServerIssue.NETWORK -> ProxyIssue.NETWORK
                 }
                 ProxyState.snapshot = ProxyState.snapshot.copy(issue = issue)
                 Log.w(TAG, "Proxy diagnostic: ${event.issue.name}")
@@ -208,17 +209,15 @@ class ProxyService : Service() {
 
     override fun onDestroy() {
         destroyed = true
-        if (callbackRegistered) {
-            connectivity.unregisterNetworkCallback(networkCallback)
-            callbackRegistered = false
-        }
+        networkMonitor?.close();networkMonitor=null
         server?.stop()
         server = null
+        transportFactory?.close();transportFactory=null
         settingsExecutor.shutdownNow()
         mainHandler.removeCallbacksAndMessages(null)
         ProxyState.snapshot = ProxyState.snapshot.copy(
             phase = if (fatalError) ProxyPhase.ERROR else ProxyPhase.STOPPED,
-            sessions = 0, pending = 0, wssSessions = 0, tcpSessions = 0, relaySessions = 0
+            sessions = 0, pending = 0, wssSessions = 0, tcpSessions = 0, relaySessions = 0,cfSessions=0,h2Sessions=0,network=NetworkView(),routes=emptyList()
         )
         stopForeground(STOP_FOREGROUND_REMOVE)
         notifications.cancel(NOTIFICATION_ID)

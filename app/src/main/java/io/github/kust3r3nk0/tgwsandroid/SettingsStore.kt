@@ -6,10 +6,15 @@ import android.security.keystore.KeyProperties
 import java.security.KeyStore
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
+import io.github.kust3r3nk0.tgwsandroid.core.TransportSettings
+import io.github.kust3r3nk0.tgwsandroid.core.TransportMode
 
 enum class SettingsIssue { INVALID_CONFIGURATION, SECRET_UNAVAILABLE, WRITE_FAILED }
 class SettingsException(val issue: SettingsIssue) : Exception(issue.name)
-data class StoredSettings(val port: Int, val secret: String, val relayUrl: String = "")
+data class StoredSettings(val port: Int, val secret: String, val relayUrl: String = "",
+    val transport:TransportSettings=TransportSettings(mode=if(relayUrl.isEmpty())TransportMode.DIRECT else TransportMode.RELAY_ONLY)) {
+    override fun toString()="StoredSettings(redacted)"
+}
 
 /** Only an encrypted secret enters preferences. Reads never replace an unreadable record. */
 class SettingsStore(context: Context) {
@@ -64,11 +69,12 @@ class SettingsStore(context: Context) {
     fun load(): StoredSettings = synchronized(lock) {
         val localPort = port
         val relay = loadRelay()
+        val transport=loadTransport(relay)
         val saved = record()
-        if (saved != null) return@synchronized StoredSettings(localPort, decrypt(saved), relay)
+        if (saved != null) return@synchronized StoredSettings(localPort, decrypt(saved), relay,transport)
         val generated = SettingsValidation.generateSecret()
-        persist(localPort, generated, recovery = false, relayUrl = relay)
-        StoredSettings(localPort, generated, relay)
+        persist(localPort, generated, recovery = false, relayUrl = relay,transport=transport)
+        StoredSettings(localPort, generated, relay,transport)
     }
 
     private fun loadRelay(): String = try {
@@ -76,22 +82,35 @@ class SettingsStore(context: Context) {
         if (saved == null) "" else RelayRecordCodec.decrypt(existingKey() ?: error("Key unavailable"), saved)
     } catch (_: Exception) { throw SettingsException(SettingsIssue.SECRET_UNAVAILABLE) }
 
-    fun save(port: Int, secret: String, relayUrl: String? = null) = synchronized(lock) {
+    private fun loadTransport(relay:String):TransportSettings = try {
+        val record=prefs.getString("transport_encrypted",null)
+        if(record==null)TransportSettings(mode=if(relay.isEmpty())TransportMode.DIRECT else TransportMode.RELAY_ONLY)
+        else TransportRecordCodec.decrypt(existingKey()?:error("Key unavailable"),record)
+    }catch(_:Exception){throw SettingsException(SettingsIssue.SECRET_UNAVAILABLE)}
+
+    fun save(port: Int, secret: String, relayUrl: String? = null,transport:TransportSettings?=null) = synchronized(lock) {
         val relay = relayUrl ?: loadRelay()
+        val previous=loadTransport(loadRelay())
+        val config=transport?:if(relayUrl==null)previous else TransportSettings(
+            if(relay.isEmpty())TransportMode.DIRECT else TransportMode.RELAY_ONLY,previous.fakeTlsDomain,
+            previous.cloudflareDomains,previous.workerUrls,false)
         validate(port, secret, relay)
         // A UI edit cannot silently overwrite settings after loss of the Keystore key.
         record()?.let(::decrypt)
         loadRelay() // An unreadable relay must never silently switch to direct routes.
-        persist(port, secret, recovery = false, relayUrl = relay)
+        if(config.mode==TransportMode.RELAY_ONLY && relay.isEmpty())throw SettingsException(SettingsIssue.INVALID_CONFIGURATION)
+        persist(port, secret, recovery = false, relayUrl = relay,transport=config)
     }
 
     /** Called only after the user explicitly asks to replace the unavailable secret. */
-    fun recover(port: Int, secret: String, relayUrl: String = "") = synchronized(lock) {
+    fun recover(port: Int, secret: String, relayUrl: String = "",transport:TransportSettings?=null) = synchronized(lock) {
         validate(port, secret, relayUrl)
-        persist(port, secret, recovery = true, relayUrl = relayUrl)
+        val config=transport?:TransportSettings(mode=if(relayUrl.isEmpty())TransportMode.DIRECT else TransportMode.RELAY_ONLY)
+        if(config.mode==TransportMode.RELAY_ONLY && relayUrl.isEmpty())throw SettingsException(SettingsIssue.INVALID_CONFIGURATION)
+        persist(port, secret, recovery = true, relayUrl = relayUrl,transport=config)
     }
 
-    private fun persist(port: Int, secret: String, recovery: Boolean, relayUrl: String = "") {
+    private fun persist(port: Int, secret: String, recovery: Boolean, relayUrl: String = "",transport:TransportSettings=TransportSettings()) {
         val encrypted = try {
             val key = try {
                 existingKey() ?: if (recovery || !prefs.contains("secret_encrypted")) newKey()
@@ -114,8 +133,10 @@ class SettingsStore(context: Context) {
         val relayEncrypted = try {
             if (relayUrl.isEmpty()) null else RelayRecordCodec.encrypt(existingKey() ?: error("Key unavailable"), relayUrl)
         } catch (_: Exception) { throw SettingsException(SettingsIssue.WRITE_FAILED) }
+        val transportEncrypted=try{TransportRecordCodec.encrypt(existingKey()?:error("Key unavailable"),transport)}
+            catch(_:Exception){throw SettingsException(SettingsIssue.WRITE_FAILED)}
         if (!prefs.edit().putInt("port", port).putString("secret_encrypted", encrypted)
-                .putString("relay_encrypted", relayEncrypted).commit()) {
+                .putString("relay_encrypted", relayEncrypted).putString("transport_encrypted",transportEncrypted).commit()) {
             throw SettingsException(SettingsIssue.WRITE_FAILED)
         }
     }
