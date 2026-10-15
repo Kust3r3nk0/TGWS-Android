@@ -69,7 +69,10 @@ export function createHandler({ dial, pair, upgrade, limits = defaults }) {
     }
     try {
       socket = dial(target);
+      // closed may reject before opened; observe it even on setup failure.
+      socket.closed.catch(() => finish());
       await deadline(socket.opened, limits.connect);
+      if (ended) throw new Error('Closed during setup');
       const endpoints = pair();
       server = endpoints[1];
       server.accept();
@@ -115,7 +118,6 @@ export function createHandler({ dial, pair, upgrade, limits = defaults }) {
         } catch { finish(); }
         finally { try { reader.releaseLock(); } catch {} }
       })();
-      socket.closed.catch(() => finish());
       return upgrade(endpoints[0]);
     } catch { finish(); return new Response(null, { status: 502 }); }
   };

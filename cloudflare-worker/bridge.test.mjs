@@ -22,11 +22,11 @@ class WebSocketStub {
   close(code) { if (this.code === null) { this.code = code; this.emit('close'); } }
   send(data) { this.sent.push(Uint8Array.from(data)); }
 }
-function fixture({ opened = Promise.resolve(), write, read, limits = {} } = {}) {
+function fixture({ opened = Promise.resolve(), socketClosed = new Promise(() => {}), write, read, limits = {} } = {}) {
   const server = new WebSocketStub();
   const writes = []; let closed = 0, dials = 0, input;
   const socket = {
-    opened, closed: new Promise(() => {}),
+    opened, closed: socketClosed,
     readable: new ReadableStream({ start(controller) { input = controller; if (read) read(controller); } }),
     writable: new WritableStream({ write(data) { writes.push(Uint8Array.from(data)); return write?.(data); } }),
     close() { closed++; },
@@ -69,6 +69,13 @@ test('isolate capacity counts pending connect, not only accepted WebSockets', as
   assert.equal((await f.handler(request(), env)).status, 503);
   assert.equal(f.dials, 1);
   await first;
+});
+test('socket close rejection before opened is observed and cancels setup', async () => {
+  for (const opened of [new Promise(()=>{}),Promise.resolve()]) {
+    const f=fixture({opened,socketClosed:Promise.reject(new Error('Early close'))});
+    assert.equal((await f.handler(request(),env)).status,502);
+    assert.equal(f.closed,1);assert.equal(f.server.code,null);
+  }
 });
 test('serialized writes retain initialization and packet order', async () => {
   let release;
