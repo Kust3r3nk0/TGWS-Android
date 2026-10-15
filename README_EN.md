@@ -22,6 +22,10 @@ Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket p
 
 ## 0.2.0 reliability
 
+For a Cloudflare route without a VPS, see the [experimental Worker setup](docs/en/CLOUDFLARE_WORKER.md).
+Your account is required; Megafon reachability is unverified. It has a 16 MiB
+per-session budget and does not require a new APK or spoof `cloudflare.com`.
+
 Bounded unused direct-WSS pool, pre-init Ping/Pong, age rotation and per-route
 1–30 second backoff. Active MTProto sessions are never reused.
 [Policy, soak and limits](docs/en/RELIABILITY_0.2.md).

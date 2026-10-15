@@ -60,6 +60,8 @@ This is a plan, not a statement that a release has shipped.
 - [ ] Device and Telegram end-to-end smoke test
 
 ## v0.3.0 — Extended transports
+- [x] Experimental Worker server template for the existing relay client; local tests/bundling, 16 MiB/session budget
+- [ ] Worker deployment, cloud runtime and Telegram E2E on Megafon Moscow region; full media flow control
 
 - [ ] Fake TLS `ee-secret` and masking
 - [ ] Cloudflare proxy fallback and domain selection
