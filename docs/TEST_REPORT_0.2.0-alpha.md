@@ -43,9 +43,15 @@ actionlint прошли. Новый CI gate отклоняет короткий/
 
 ## GitHub CI
 
-Сборка, фактический 60-секундный soak и по 14 Android-тестов на API 35/36/37.0
-должны завершиться после push. Перед debug-публикацией результаты будут
-скачаны и проверены по реальным JUnit; source, checksum и подпись фиксируются.
+Проверяемый исходный commit: `8fb007701aa3c6deb086c681b44ee928738a1e91`.
+
+- [Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38789615746): **успешно**, 139 JVM-тестов, 0 failures/errors/skipped; Lint 0 errors / 3 прежних предупреждения; APK собран. Отдельно 22 теста CI-скриптов и 11 Node relay тестов.
+- Фактический CI soak **60 с**: 24 692 пакета, 6 727 завершённых сессий, 59 сбросов, 65 ожидаемых разрывов, 1 342 выдачи из пула. WSS/TCP attempts 1 980/5 008; peak sessions 4/8, pool 3/4, WSS/TCP 4/4. Проверен по скачанному JUnit.
+- [Android-матрица](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38789615736): **успешно**, API 35 — **14**, API 36 — **14**, API 37.0 — **14**. Все 42 записи проверены по скачанным JUnit, без ошибок и пропусков.
+- PR merge tree идентичен проверяемому исходному commit. ZIP-артефакты сверены с GitHub SHA-256; файлы внутри подписанного APK побайтово совпадают с CI APK. Сохранён debug-сертификат `26877620e16c5b2680023fc1fc6a285214b2e06dc998366731d9bcacd11c9fbe`.
+- SHA-256 APK: `319618191020cf1e3f089fa2d458e464be420d9791508f35e22aeac6e3aa17ec`.
+
+Debug Pre-release: [v0.2.0-alpha-debug](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.2.0-alpha-debug). Публикационный workflow повторно проверяет CI, JUnit, payload и подпись перед созданием релиза.
 
 ## Ограничения
 
