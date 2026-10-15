@@ -16,6 +16,12 @@ internal object TelegramRoutes {
 
     fun ip(dc: Int): String? = defaultIps[dc]
 
+    /** Only these DCs have a direct WSS redirect in upstream v1.11.2 defaults. */
+    fun webSocketIp(dc: Int): String? = when (dc) {
+        2, 4 -> "149.154.167.220"
+        else -> null
+    }
+
     fun webSocketDomains(dc: Int, isMedia: Boolean): List<String> {
         if (!defaultIps.containsKey(dc)) return emptyList()
         val hostnameDc = if (dc == 203) 2 else dc

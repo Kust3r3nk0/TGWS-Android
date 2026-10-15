@@ -1,5 +1,31 @@
 # TGWS-Android · Development roadmap
 
+Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 2026. Historical reports remain unchanged. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
+
+## 0.1.3-alpha — alternate route for IP-filtered networks
+
+- [x] Configurable Worker-compatible WSS relay, explicit relay-only mode
+- [x] Encrypted URL, strict TLS, relay session counts and bounded DNS
+- [x] Standalone relay with fixed DC routes, path access key and stream backpressure; local TLS/TCP tests
+- [ ] Reachable external deployment and physical cellular Telegram E2E
+
+Prioritized at the owner's request; not full Cloudflare support or a guaranteed bypass.
+[Setup and limits](MOBILE_NETWORKS.md).
+
+## 0.1.2-alpha — branding and diagnostics
+- [x] Owner logo, adaptive icon and app label without Alpha
+- [x] Android 15+ / minSdk 35; API 35–37 CI
+- [x] Safe handshake rejection categories and counter distinct from listener failures
+- [x] Instrumented check of installed icon, label and minSdk
+- Publish checked debug APKs as GitHub Pre-releases with checksums and commit; retain the stable release gate.
+
+## 0.1.1-alpha — WSS stability
+- [x] Ping/Pong and partial-message deadlines
+- [x] Buffered TLS writes and TCP_NODELAY
+- [x] WSS/TCP counts and recovery from obsolete fallback errors
+- [x] User reported Telegram working; 6–8 ms is client-reported, not independently measured
+- [ ] Complete repeated E2E and long-running network tests
+
 **Objective:** functional compatibility with the Flowseal TG-WS-Proxy baseline, with Android-native runtime, UI, and power/network lifecycle.
 
 This is a plan, not a statement that a release has shipped.
@@ -12,15 +38,20 @@ This is a plan, not a statement that a release has shipped.
 - [x] Local foreground service and Keystore-backed settings code
 - [x] JVM test sources for crypto and packet splitting
 - [x] Green CI: Android build, unit tests and lint (device validation still pending)
+- [x] Deterministic byte-level Flowseal v1.11.2 vectors
+- [x] Strict WebSocket/TLS/MTProto and malformed packet checks
+- [x] Bounded fallback, I/O deadlines, cancellation and safe diagnostic categories
+- [x] RU/EN resources, hidden secrets and explicit Keystore recovery
+- [x] Android instrumentation sources and API 34–37 CI matrix
+- [x] Execute all 10 instrumentation tests on each API 34–37 emulator (see test report)
+- [ ] Manual UI and network scenarios on a physical device
 - [ ] Device and Telegram end-to-end smoke test
 
 ## v0.2.0 — Reliability and protocol parity
 
-- [ ] Compare native packet vectors against upstream Python
-- [ ] Add malformed WebSocket/MTProto handshake tests
 - [ ] Connection-pool warmup, rotations, backoff and limits
-- [ ] Network timeout, cancellation and resource-leak tests
-- [ ] Protocol diagnostics without disclosing secrets
+- [ ] Extend protocol vectors when updating the upstream baseline
+- [ ] Long-running load and network testing
 
 ## v0.3.0 — Extended transports
 
@@ -39,7 +70,7 @@ This is a plan, not a statement that a release has shipped.
 ## v1.0.0 — First stable release gates
 
 - [ ] Upstream feature parity or explicitly documented intentional deviations
-- [ ] Android 14+ validation on emulators and physical ARM64 hardware
+- [ ] Android 15+ validation on emulators and physical ARM64 hardware
 - [ ] Security audit; CI unit and integration test coverage
 - [ ] Signed APK/AAB builds, update process, release notes and SBOM
 

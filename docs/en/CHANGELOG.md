@@ -2,6 +2,29 @@
 
 All notable changes will be documented in this file. Versions of this Android port do not correspond directly to upstream Flowseal releases.
 
+## [0.1.2-alpha] — 2026-10-15 (debug)
+
+- Owner logo in the app/README, adaptive launcher icon and monochrome notification icon.
+- Installed label TGWS-Android without Alpha; versionCode 3, alpha stage retained in version metadata.
+- Minimum Android 15 / API 35; current CI matrix API 35–37.
+- Safe handshake rejection categories and counter separate from service/network errors; validation and routes preserved.
+- Updated persistent instructions/specification baseline/roadmap; explicitly labelled debug Pre-releases are authorized.
+- User reports 0.1.1-alpha working and Telegram showing 6–8 ms; no independent latency or complete E2E claim.
+
+## [0.1.1-alpha] — 2026-10-15 (test build)
+
+### Fixed
+- Healthy WSS sessions no longer share one absolute 60-second receive budget. Control traffic renews the wait; an idle peer receives a Ping with a bounded Pong deadline.
+- Partial-message deadlines and memory bounds remain enforced; an unanswered heartbeat or wrong Pong cannot keep a dead peer open.
+- Buffer WebSocket headers/masks/payload before TLS writes and enable TCP_NODELAY.
+- Increase MTProto inactivity limit from 60 to 300 seconds; handshake/connect/write deadlines remain unchanged.
+- Clear obsolete fallback errors on a successful new connection. Show failures in other sessions as historical events when a transport is working; display separate WSS/TCP session counts.
+- Increment versionCode to 2 and derive CI artifact version from versionName.
+
+### Verification and limits
+- The user confirmed text send/receive and downloads in **0.1.0-alpha**, Android 16, Telegram 13.0.2, Wi-Fi, with brief disconnections. This does not verify the update.
+- Version 0.1.1-alpha requires a new physical-device test; all causes of real disconnections have not been established. See the [report](TEST_REPORT_0.1.1-alpha.md).
+
 ## [0.1.0-alpha] — 2026-10-14 (source snapshot, unreleased)
 
 ### Added
@@ -13,7 +36,18 @@ All notable changes will be documented in this file. Versions of this Android po
 
 ### Limitations
 
-- Debug APK builds in CI, but device testing, end-to-end Telegram connectivity, and full upstream feature parity are still pending.
+- Debug APK and automated API 34–37 tests passed CI; physical-device Telegram E2E and full upstream feature parity remain pending.
 - Fake TLS, Cloudflare transports, media HTTP/2 and robust mobile network support are pending.
+
+### Fixed during alpha preparation
+
+- Validated MTProto handshake/framing and independent AES-CTR streams; reproducible byte-level Flowseal v1.11.2 vectors added.
+- Strict RFC 6455 masked/RSV/continuation/length/Upgrade/Ping/Pong/Close checks with bounded I/O and preserved TLS verification.
+- Separate WSS redirects and TCP routes; bounded fallback, sessions and workers with owned sockets closed on stop/network loss.
+- Idempotent foreground service startup and distinct local/remote state.
+- Hidden secrets, explicit Keystore recovery, validated Telegram links and complete RU/EN Android string resources.
+- SHA-pinned CI actions, checksums/build metadata/reports, instrumentation sources and a separate API 34–37 device workflow.
+- CI rejects empty/incomplete Android reports and checks the actual emulator API; fixed dependent shell command execution and API 37.0 AVD metadata, with 16 CI script tests.
+- Version remains `0.1.0-alpha`; physical Telegram E2E is not run, so the release gate prevents a tag and Pre-release.
 
 [Русская версия](../../CHANGELOG.md)

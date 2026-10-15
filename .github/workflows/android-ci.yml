@@ -17,32 +17,87 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Set up Java 17
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           distribution: temurin
           java-version: '17'
       - name: Set up Gradle 9.8.1
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: '9.8.1'
-          cache-provider: basic
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
       - name: Install Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
       - name: Install Android API 37 platform
         run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
       - name: Run tests, lint and debug build
-        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
-      - name: Upload debug APK (not a stable release)
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Verify instrumentation report gate tests
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+      - name: Test WSS relay with real local TLS and TCP
+        working-directory: relay
+        run: |
+          npm ci --ignore-scripts
+          npm test -- --test-reporter=junit --test-reporter-destination=test-results.xml
+      - name: Collect debug APK, checksum and build information
         if: success()
-        uses: actions/upload-artifact@v7
-        with:
-          name: TGWS-Android-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-          retention-days: 7
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import shutil
 
+          output = Path('artifacts/debug')
+          output.mkdir(parents=True)
+          apks = sorted(Path('app/build/outputs/apk/debug').glob('*.apk'))
+          if not apks:
+              raise SystemExit('Debug APK is missing')
+          checksums = []
+          for apk in apks:
+              shutil.copy2(apk, output / apk.name)
+              checksums.append(f'{hashlib.sha256(apk.read_bytes()).hexdigest()}  {apk.name}')
+          (output / 'SHA256SUMS').write_text('\n'.join(checksums) + '\n')
+          version = re.search(r'versionName\s*=\s*"([^"]+)"', Path('app/build.gradle.kts').read_text()).group(1)
+          info = {
+              'version': version,
+              'commit': os.environ['GITHUB_SHA'],
+              'build_type': 'debug',
+              'signature': 'Android debug key; not a trusted distribution release',
+              'jdk': '17',
+              'kotlin': '2.4.21',
+              'agp': '9.4.1',
+              'gradle': '9.8.1',
+              'compile_sdk': '37.0',
+              'build_tools': '36.0.0',
+              'telegram_e2e': 'user reported direct routes working on Wi-Fi; current relay and cellular require physical retest',
+          }
+          with open(os.environ['GITHUB_ENV'], 'a') as env_file:
+              env_file.write(f'TGWS_VERSION={version}\n')
+          (output / 'build-info.json').write_text(json.dumps(info, indent=2) + '\n')
+          shutil.copy2('CHANGELOG.md', output / 'CHANGELOG.md')
+          PY
+      - name: Upload debug build (not a distribution release)
+        if: success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: TGWS-Android-${{ env.TGWS_VERSION }}-debug-${{ github.sha }}
+          path: artifacts/debug/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: Android-JVM-lint-reports-${{ github.sha }}
+          path: |
+            app/build/test-results/testDebugUnitTest/
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/reports/lint-results-debug.*
+            relay/test-results.xml
+          if-no-files-found: warn
+          retention-days: 14
       - name: Add build details to run summary
         if: success()
         run: |
@@ -50,8 +105,8 @@ jobs:
             echo '### TGWS-Android Debug APK'
             echo ''
             echo 'JVM tests, Android Lint and Debug APK build completed successfully.'
-            echo "Commit: \`$GITHUB_SHA\`"
+            echo "Commit: $GITHUB_SHA"
             echo ''
-            echo 'Download the TGWS-Android-debug-apk artifact (ZIP) from this run.'
+            echo 'Download the TGWS-Android debug artifact (ZIP) from this run.'
             echo 'This is a test/debug build, not a production release.'
           } >> "$GITHUB_STEP_SUMMARY"
