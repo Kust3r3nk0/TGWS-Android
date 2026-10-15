@@ -33,6 +33,11 @@ jobs:
         run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Verify instrumentation report gate tests
         run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+      - name: Test WSS relay with real local TLS and TCP
+        working-directory: relay
+        run: |
+          npm ci --ignore-scripts
+          npm test -- --test-reporter=junit --test-reporter-destination=test-results.xml
       - name: Collect debug APK, checksum and build information
         if: success()
         run: |
@@ -66,7 +71,7 @@ jobs:
               'gradle': '9.8.1',
               'compile_sdk': '37.0',
               'build_tools': '36.0.0',
-              'telegram_e2e': 'user reported 0.1.0/0.1.1 working on Android16; 0.1.2 requires retest',
+              'telegram_e2e': 'user reported direct routes working on Wi-Fi; current relay and cellular require physical retest',
           }
           with open(os.environ['GITHUB_ENV'], 'a') as env_file:
               env_file.write(f'TGWS_VERSION={version}\n')
@@ -90,6 +95,7 @@ jobs:
             app/build/test-results/testDebugUnitTest/
             app/build/reports/tests/testDebugUnitTest/
             app/build/reports/lint-results-debug.*
+            relay/test-results.xml
           if-no-files-found: warn
           retention-days: 14
       - name: Add build details to run summary

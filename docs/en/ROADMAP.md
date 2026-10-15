@@ -2,6 +2,16 @@
 
 Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 2026. Historical reports remain unchanged. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
+## 0.1.3-alpha — alternate route for IP-filtered networks
+
+- [x] Configurable Worker-compatible WSS relay, explicit relay-only mode
+- [x] Encrypted URL, strict TLS, relay session counts and bounded DNS
+- [x] Standalone relay with fixed DC routes, path access key and stream backpressure; local TLS/TCP tests
+- [ ] Reachable external deployment and physical cellular Telegram E2E
+
+Prioritized at the owner's request; not full Cloudflare support or a guaranteed bypass.
+[Setup and limits](MOBILE_NETWORKS.md).
+
 ## 0.1.2-alpha — branding and diagnostics
 - [x] Owner logo, adaptive icon and app label without Alpha
 - [x] Android 15+ / minSdk 35; API 35–37 CI
@@ -60,7 +70,7 @@ This is a plan, not a statement that a release has shipped.
 ## v1.0.0 — First stable release gates
 
 - [ ] Upstream feature parity or explicitly documented intentional deviations
-- [ ] Android 14+ validation on emulators and physical ARM64 hardware
+- [ ] Android 15+ validation on emulators and physical ARM64 hardware
 - [ ] Security audit; CI unit and integration test coverage
 - [ ] Signed APK/AAB builds, update process, release notes and SBOM
 
