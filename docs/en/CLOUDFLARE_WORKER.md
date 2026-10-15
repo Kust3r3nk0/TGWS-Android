@@ -16,6 +16,10 @@ Cloudflare account or endpoint is connected to this environment.
 Create your [Cloudflare account](https://dash.cloudflare.com/), verify email,
 and review current terms, quotas and pricing. With Node 22+:
 
+You can skip the local build by downloading `worker.js` from the
+[component Pre-release](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/worker-v0.1.0-alpha).
+This publishes a module, not an endpoint; deployment still needs your account.
+
 ```bash
 cd cloudflare-worker
 npm ci --ignore-scripts --no-audit --no-fund

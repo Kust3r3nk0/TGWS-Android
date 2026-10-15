@@ -7,8 +7,16 @@ on:
     branches: [main]
     paths: ['cloudflare-worker/**', 'relay/**', '.github/workflows/cloudflare-worker.yml']
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the checked experimental Worker module (not an APK or cloud deployment)
+        type: boolean
+        default: false
 permissions:
   contents: read
+concurrency:
+  group: worker-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
 jobs:
   test-and-bundle:
     runs-on: ubuntu-latest
@@ -37,3 +45,65 @@ jobs:
             cloudflare-worker/README.md
           if-no-files-found: error
           retention-days: 14
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    needs: test-and-bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Download the checked module from this exact run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "TGWS-Cloudflare-Worker-$GITHUB_SHA" --dir worker-release
+      - name: Check report and prepare checksums and build information
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import shutil
+          import xml.etree.ElementTree as ET
+
+          output = Path('worker-release')
+          root = ET.parse(output / 'test-results.xml').getroot()
+          cases = list(root.iter('testcase'))
+          if len(cases) != 15 or len({c.get('name') for c in cases}) != 15:
+              raise SystemExit('Expected all 15 distinct Worker tests')
+          if any(c.find(k) is not None for c in cases for k in ['failure', 'error', 'skipped']):
+              raise SystemExit('Worker tests did not all pass')
+          for suite in root.iter():
+              if suite.tag in ('testsuite', 'testsuites') and any(int(suite.get(k, '0')) for k in ['failures', 'errors', 'skipped']):
+                  raise SystemExit('Worker test report is not passing')
+          version = json.loads(Path('cloudflare-worker/package.json').read_text())['version']
+          if not re.fullmatch(r'\d+\.\d+\.\d+', version):
+              raise SystemExit('Invalid component version')
+          tag = f'worker-v{version}-alpha'
+          (output / 'dist/worker.js').rename(output / 'worker.js')
+          (output / 'dist').rmdir()
+          shutil.copy2('LICENSE', output / 'LICENSE')
+          info = dict(component='cloudflare-worker', version=f'{version}-alpha',
+              commit=os.environ['GITHUB_SHA'], tests=15,
+              worker_sha256=hashlib.sha256((output / 'worker.js').read_bytes()).hexdigest(),
+              run=f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+              deployed=False, telegram_e2e='unverified', cellular_e2e='unverified',
+              session_budget_bytes=16 * 1024 * 1024, apk_update_required=False)
+          (output / 'build-info.json').write_text(json.dumps(info, indent=2) + '\n')
+          (output / 'SHA256SUMS').write_text(''.join(
+              f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n'
+              for p in sorted(output.iterdir()) if p.is_file()))
+          with open(os.environ['GITHUB_ENV'], 'a') as file:
+              file.write(f'TGWS_WORKER_TAG={tag}\n')
+          PY
+      - name: Publish component Pre-release with the checked module
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TGWS_WORKER_TAG" worker-release/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false --title 'Cloudflare Worker 0.1.0-alpha — experimental relay' --notes-file docs/releases/worker-0.1.0-alpha.md

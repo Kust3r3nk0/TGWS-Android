@@ -21,6 +21,10 @@ TCP-прокси, не меняет заблокированный IP и мож�
 
 ## Создание узла
 
+Готовый модуль без установки Node.js: [Worker Pre-release](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/worker-v0.1.0-alpha).
+Скачайте `worker.js` и переходите к шагу 3. Это публикация файла, а не deploy
+в Cloudflare; узел появляется только после настройки вашего аккаунта.
+
 1. Создайте/откройте свой аккаунт [Cloudflare](https://dash.cloudflare.com/) и
    подтвердите почту. Прочитайте действующие условия, лимиты и стоимость Workers.
 2. На компьютере с Node.js 22+:
