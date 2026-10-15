@@ -6,7 +6,7 @@
 
 **Unofficial, open-source Android 15+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
-> **0.1.3-alpha test update:** The user confirmed text send/receive and downloads in 0.1.0-alpha on Android 16 / Telegram 13.0.2 / Wi-Fi, with brief disconnections. Version 0.1.3-alpha requires another device test; stability of every route is unverified.
+> **0.2.0-alpha test update:** The user confirmed text send/receive and downloads in 0.1.0-alpha on Android 16 / Telegram 13.0.2 / Wi-Fi, with brief disconnections. Version 0.2.0-alpha requires another device test; stability of every route is unverified.
 
 ## Architecture & roadmap
 
@@ -18,12 +18,18 @@
 
 Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 35+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
 
-[Download 0.1.3 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.1.3-alpha-debug/TGWS-Android-0.1.3-debug.apk)
+[Download 0.2.0 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.2.0-alpha-debug/TGWS-Android-0.2.0-debug.apk)
+
+## 0.2.0 reliability
+
+Bounded unused direct-WSS pool, pre-init Ping/Pong, age rotation and per-route
+1–30 second backoff. Active MTProto sessions are never reused.
+[Policy, soak and limits](docs/en/RELIABILITY_0.2.md).
 
 ## Mobile networks
 
 If a carrier blocks Telegram IPs, direct WSS → TCP fallback can fail on both paths.
-Version 0.1.3-alpha supports an optional **relay-only** route through your reachable
+The app supports an optional **relay-only** route through your reachable
 WSS endpoint. No external relay has been deployed or validated on a carrier yet.
 [Setup, standalone server and limits](docs/en/MOBILE_NETWORKS.md).
 
@@ -60,9 +66,9 @@ Run `:app:connectedDebugAndroidTest` with a device or emulator. CI checks pushes
 `main`, Pull Requests and manual runs; successful builds publish the debug APK,
 checksum, build version/commit and changelog, with JVM/Lint reports separately.
 Action versions are pinned to verified commit SHAs. A separate PR/manual workflow
-executes all 13 instrumentation tests on each API 35, 36 and 37.0.
+executes all 14 instrumentation tests on each API 35, 36 and 37.0.
 JVM tests, Lint and APK assembly are required checks. See [testing](docs/en/TESTING.md) and the
-[update test report](docs/en/TEST_REPORT_0.1.3-alpha.md).
+[update test report](docs/en/TEST_REPORT_0.2.0-alpha.md).
 
 ## Versions
 

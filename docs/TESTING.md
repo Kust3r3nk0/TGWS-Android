@@ -1,4 +1,4 @@
-# Проверка 0.1.3-alpha
+# Проверка 0.2.0-alpha
 
 Эталон: Flowseal/tg-ws-proxy **v1.11.2**, commit
 `307a384ab7f522e34bb1a045884d0bd90f40bee5`. [English](en/TESTING.md).
@@ -32,7 +32,7 @@ fallback и локальный WebSocket-сервер. Они не подтве�
 ```
 
 CI дополнительно запускает `python3 .github/scripts/verify_android_tests.py`:
-проверяются записи всех 13 тестов, а не только exit code Gradle. Пустые отчёты,
+проверяются записи всех 14 тестов, а не только exit code Gradle. Пустые отчёты,
 пропуски, повторяющиеся записи и любой failed/error не засчитываются. Саму
 проверку и настройку эмулятора проверяет
 `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
@@ -74,7 +74,7 @@ CI дополнительно запускает `python3 .github/scripts/verify
 ```text
 Дата UTC:
 Git commit:
-TGWS-Android version: 0.1.3-alpha
+TGWS-Android version: 0.2.0-alpha
 APK SHA-256:
 Устройство / Android / API:
 Официальный Telegram version:
@@ -104,3 +104,5 @@ APK SHA-256:
 Убедитесь, что недоступное реле завершается по deadline без прямого fallback,
 а потеря ключа Keystore требует явного восстановления URL.
 [Настройка внешнего узла](MOBILE_NETWORKS.md).
+
+Нагрузочный прогон 0.2: добавьте `-PsoakSeconds=180` к Wrapper-команде (1–3600 с; CI 60 с). [Политика и стенд](RELIABILITY_0.2.md).

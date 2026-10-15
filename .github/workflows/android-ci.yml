@@ -30,9 +30,11 @@ jobs:
       - name: Install Android API 37 platform
         run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
       - name: Run tests, lint and debug build
-        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+        run: ./gradlew --no-daemon -PsoakSeconds=60 :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Verify instrumentation report gate tests
         run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+      - name: Verify actual 60-second soak execution and resource limits
+        run: python3 .github/scripts/verify_soak.py --seconds 60 --output app/build/reports/soak-summary.json
       - name: Test WSS relay with real local TLS and TCP
         working-directory: relay
         run: |
@@ -71,7 +73,8 @@ jobs:
               'gradle': '9.8.1',
               'compile_sdk': '37.0',
               'build_tools': '36.0.0',
-              'telegram_e2e': 'user reported direct routes working on Wi-Fi; current relay and cellular require physical retest',
+              'telegram_e2e': '0.2.0 requires physical retest; cellular/external relay remain unverified',
+              'local_soak': json.loads(Path('app/build/reports/soak-summary.json').read_text()),
           }
           with open(os.environ['GITHUB_ENV'], 'a') as env_file:
               env_file.write(f'TGWS_VERSION={version}\n')
@@ -95,6 +98,7 @@ jobs:
             app/build/test-results/testDebugUnitTest/
             app/build/reports/tests/testDebugUnitTest/
             app/build/reports/lint-results-debug.*
+            app/build/reports/soak-summary.json
             relay/test-results.xml
           if-no-files-found: warn
           retention-days: 14
