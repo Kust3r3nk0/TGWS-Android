@@ -2,6 +2,20 @@
 
 All notable changes will be documented in this file. Versions of this Android port do not correspond directly to upstream Flowseal releases.
 
+## [0.1.1-alpha] — 2026-10-15 (test build)
+
+### Fixed
+- Healthy WSS sessions no longer share one absolute 60-second receive budget. Control traffic renews the wait; an idle peer receives a Ping with a bounded Pong deadline.
+- Partial-message deadlines and memory bounds remain enforced; an unanswered heartbeat or wrong Pong cannot keep a dead peer open.
+- Buffer WebSocket headers/masks/payload before TLS writes and enable TCP_NODELAY.
+- Increase MTProto inactivity limit from 60 to 300 seconds; handshake/connect/write deadlines remain unchanged.
+- Clear obsolete fallback errors on a successful new connection. Show failures in other sessions as historical events when a transport is working; display separate WSS/TCP session counts.
+- Increment versionCode to 2 and derive CI artifact version from versionName.
+
+### Verification and limits
+- The user confirmed text send/receive and downloads in **0.1.0-alpha**, Android 16, Telegram 13.0.2, Wi-Fi, with brief disconnections. This does not verify the update.
+- Version 0.1.1-alpha requires a new physical-device test; all causes of real disconnections have not been established. See the [report](TEST_REPORT_0.1.1-alpha.md).
+
 ## [0.1.0-alpha] — 2026-10-14 (source snapshot, unreleased)
 
 ### Added

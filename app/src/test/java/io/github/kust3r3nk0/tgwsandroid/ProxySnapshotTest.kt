@@ -4,6 +4,40 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ProxySnapshotTest {
+    @Test fun successfulConnectionClearsObsoleteFallbackError() {
+        val failed = ProxySnapshot(phase = ProxyPhase.LISTENING, pending = 1, issue = ProxyIssue.WSS_HANDSHAKE)
+        val recovered = failed.withSessions(1, 0)
+        assertNull(recovered.issue)
+        assertEquals(ProxyPhase.ACTIVE, recovered.phase)
+    }
+
+    @Test fun anotherPendingSessionCannotClearLastFailure() {
+        val failed = ProxySnapshot(phase = ProxyPhase.LISTENING, issue = ProxyIssue.TCP)
+        assertEquals(ProxyIssue.TCP, failed.withSessions(0, 1).issue)
+    }
+
+    @Test fun lateConnectionCannotClearFatalLocalError() {
+        val failed = ProxySnapshot(phase = ProxyPhase.ERROR, issue = ProxyIssue.PORT)
+        assertEquals(ProxyIssue.PORT, failed.withSessions(1, 0).issue)
+        assertEquals(ProxyPhase.ERROR, failed.withSessions(1, 0).phase)
+    }
+
+    @Test fun failureInOneSessionIsWarningWhenAnotherTransportIsEstablished() {
+        val state = ProxySnapshot(phase = ProxyPhase.ACTIVE, sessions = 1, issue = ProxyIssue.TCP)
+        assertTrue(state.issueIsWarning)
+        assertFalse(state.copy(sessions = 0).issueIsWarning)
+        assertFalse(state.copy(issue = ProxyIssue.PORT).issueIsWarning)
+        assertFalse(state.copy(phase = ProxyPhase.ERROR).issueIsWarning)
+    }
+
+    @Test fun transportCountsTrackCurrentSessionsAndClearOnClose() {
+        val state = ProxySnapshot(phase = ProxyPhase.LISTENING).withSessions(2, 1, wss = 1, tcp = 1)
+        assertEquals(1, state.wssSessions)
+        assertEquals(1, state.tcpSessions)
+        val stopped = state.withSessions(0, 0)
+        assertEquals(0, stopped.wssSessions + stopped.tcpSessions)
+        assertThrows(IllegalArgumentException::class.java) { state.withSessions(1, 0, wss = 1, tcp = 1) }
+    }
     @Test fun listeningStateDoesNotImplyEstablishedRemoteTransport() {
         val state = ProxySnapshot(phase = ProxyPhase.LISTENING)
         assertTrue(state.localAvailable)

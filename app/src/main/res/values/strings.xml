@@ -5,7 +5,9 @@
     <string name="version_label">Android 14+ · %1$s</string>
     <string name="local_address">Локальный адрес: %1$s:%2$s</string>
     <string name="session_counts">Активные сессии: %1$d · подключаются: %2$d</string>
-    <string name="remote_transport_established">Удалённый транспорт установлен. Обмен сообщениями в Telegram ещё не проверен.</string>
+    <string name="transport_counts">Транспорт активных сессий: WSS %1$d · TCP %2$d</string>
+    <string name="session_event">Последнее событие отдельной сессии: %1$s</string>
+    <string name="remote_transport_established">Удалённый транспорт установлен. Счётчик сессий не подтверждает доставку сообщений Telegram.</string>
     <string name="remote_transport_unconfirmed">Подключение к удалённым серверам не подтверждено.</string>
     <string name="settings_loading">Обработка защищённых настроек…</string>
     <string name="local_port">Локальный порт</string>
@@ -25,7 +27,7 @@
     <string name="clipboard_secret">Секрет прокси Telegram</string>
     <string name="link_copied">Ссылка скопирована.</string>
     <string name="secret_copied">Секрет скопирован.</string>
-    <string name="alpha_notice">0.1.0-alpha: прямой WSS и резервный TCP реализованы и требуют проверки с официальным Telegram на физическом устройстве. Fake TLS, Cloudflare, HTTP/2 и полноценный IPv6-only не поддерживаются.</string>
+    <string name="alpha_notice">Экспериментальный прокси: прямой WSS и резервный TCP. Возможны переподключения. Fake TLS, Cloudflare, HTTP/2 и полноценный IPv6-only не поддерживаются.</string>
     <string name="local_notice">Прокси доступен только на этом устройстве, через 127.0.0.1. Это не VPN. Открытие порта не подтверждает доступность Telegram.</string>
     <string name="status_stopped">Остановлен</string>
     <string name="status_starting">Запускается</string>
@@ -41,8 +43,8 @@
     <string name="error_secret_unavailable">Не удалось расшифровать сохранённый секрет. Создайте новый секрет явно.</string>
     <string name="error_storage">Не удалось сохранить защищённые настройки. Сервис не запущен.</string>
     <string name="error_handshake">Отклонено некорректное MTProto-подключение.</string>
-    <string name="error_wss_handshake">Ошибка WSS handshake. Для этой сессии проверяется резервный TCP-путь.</string>
-    <string name="error_tls">Не удалось подтвердить TLS-соединение. Для этой сессии проверяется резервный TCP-путь.</string>
+    <string name="error_wss_handshake">Не удалась попытка WSS handshake. Сервер использует доступные резервные маршруты.</string>
+    <string name="error_tls">Не удалось подтвердить TLS для одной из попыток. Проверка сертификатов остаётся обязательной.</string>
     <string name="error_tcp">Не удалось открыть удалённое TCP-соединение.</string>
     <string name="error_session">Клиентская сессия завершена из-за сетевой или протокольной ошибки.</string>
     <string name="error_capacity">Достигнут предел одновременно обслуживаемых клиентов.</string>

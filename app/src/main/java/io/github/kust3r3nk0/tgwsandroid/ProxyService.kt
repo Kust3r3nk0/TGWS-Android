@@ -138,7 +138,7 @@ class ProxyService : Service() {
                 if (event.established + event.pending < previous.sessions + previous.pending) {
                     Log.i(TAG, "Client session closed")
                 }
-                ProxyState.snapshot = previous.withSessions(event.established, event.pending)
+                ProxyState.snapshot = previous.withSessions(event.established, event.pending, event.wss, event.tcp)
             }
             is ServerEvent.Diagnostic -> {
                 val issue = when (event.issue) {
@@ -203,7 +203,7 @@ class ProxyService : Service() {
         mainHandler.removeCallbacksAndMessages(null)
         ProxyState.snapshot = ProxyState.snapshot.copy(
             phase = if (fatalError) ProxyPhase.ERROR else ProxyPhase.STOPPED,
-            sessions = 0, pending = 0
+            sessions = 0, pending = 0, wssSessions = 0, tcpSessions = 0
         )
         stopForeground(STOP_FOREGROUND_REMOVE)
         notifications.cancel(NOTIFICATION_ID)

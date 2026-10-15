@@ -26,7 +26,10 @@ class MtprotoServerTest {
     private class Events {
         val all = CopyOnWriteArrayList<ServerEvent>()
         fun phase(phase: ServerPhase) = all.any { it == ServerEvent.State(phase) }
-        fun sessions(established: Int, pending: Int) = all.lastOrNull { it is ServerEvent.Sessions } == ServerEvent.Sessions(established, pending)
+        fun sessions(established: Int, pending: Int): Boolean {
+            val event = all.lastOrNull { it is ServerEvent.Sessions } as? ServerEvent.Sessions
+            return event?.established == established && event.pending == pending
+        }
         fun issue(issue: ServerIssue) = all.contains(ServerEvent.Diagnostic(issue))
     }
 
@@ -246,6 +249,7 @@ class MtprotoServerTest {
                 assertEquals(listOf("149.154.167.220" to "kws2.web.telegram.org"), factory.wss.toList())
                 assertEquals(listOf("149.154.167.51"), factory.tcp.toList())
                 assertTrue(events.sessions(1, 0))
+                assertEquals(ServerEvent.Sessions(1, 0, tcp = 1), events.all.last { it is ServerEvent.Sessions })
                 server.stop()
                 assertClosed(client)
                 assertEquals(0L, factory.channels.single().closed.count)
@@ -462,6 +466,7 @@ class MtprotoServerTest {
             connect(port).use { client ->
                 client.getOutputStream().write(hello.bytes)
                 await("WSS did not establish") { events.sessions(1, 0) }
+                assertEquals(ServerEvent.Sessions(1, 0, wss = 1), events.all.last { it is ServerEvent.Sessions })
                 val encrypted = hello.encrypt.update(first + second)
                 client.getOutputStream().write(encrypted, 0, 3)
                 // An incomplete length must not become a WS message.

@@ -1,6 +1,7 @@
 package io.github.kust3r3nk0.tgwsandroid.core
 
 import java.io.ByteArrayOutputStream
+import java.io.BufferedOutputStream
 import java.io.Closeable
 import java.io.EOFException
 import java.io.IOException
@@ -33,17 +34,20 @@ internal class RawWebSocket private constructor(
         val connectMillis: Int = 8_000,
         val handshakeMillis: Int = 10_000,
         val readMillis: Int = 60_000,
+        val pongMillis: Int = 10_000,
         val writeMillis: Int = 10_000,
         val closeMillis: Int = 1_000,
     ) {
         init {
             require(messageBytes > 0)
-            require(listOf(connectMillis, handshakeMillis, readMillis, writeMillis, closeMillis).all { it > 0 })
+            require(listOf(connectMillis, handshakeMillis, readMillis, pongMillis, writeMillis, closeMillis).all { it > 0 })
         }
     }
 
     private val input = socket.getInputStream()
-    private val output = socket.getOutputStream()
+    // Assemble small headers/masks with payload before TLS writes. Otherwise each
+    // one-byte write can become a separate TLS record and trigger delayed ACKs.
+    private val output = BufferedOutputStream(socket.getOutputStream(), 16 * 1024)
     private val rng = SecureRandom()
     private val sendLock = ReentrantLock()
     private val readLock = ReentrantLock()
@@ -82,6 +86,7 @@ internal class RawWebSocket private constructor(
         ): RawWebSocket {
             validateRequest(domain, path)
             val tcp = Socket()
+            tcp.tcpNoDelay = true
             var tls: SSLSocket? = null
             try {
                 socketOwner(tcp)
@@ -257,9 +262,26 @@ internal class RawWebSocket private constructor(
     }
 
     private fun readMessage(deadline: Long, discardMessages: Boolean = false): ByteArray? {
+        var nextFrameDeadline = deadline
+        var messageDeadline: Long? = null
+        var pendingPing: ByteArray? = null
+        var pongDeadline = 0L
         while (!closed.get()) {
-            val first = readByte(deadline)
-            val second = readByte(deadline)
+            // Healthy control traffic must not consume one absolute receive()
+            // budget. Only a partial data message keeps its original deadline.
+            val first = try {
+                readByte(if (discardMessages) deadline else messageDeadline ?: nextFrameDeadline)
+            } catch (error: SocketTimeoutException) {
+                if (discardMessages || fragmented || pendingPing != null || closing.get()) throw error
+                val ping = ByteArray(8).also(rng::nextBytes)
+                writeFrame(9, ping)
+                pendingPing = ping
+                pongDeadline = deadlineAfter(minOf(limits.pongMillis, limits.readMillis))
+                nextFrameDeadline = pongDeadline
+                continue
+            }
+            val frameDeadline = if (discardMessages) deadline else messageDeadline ?: deadlineAfter(limits.readMillis)
+            val second = readByte(frameDeadline)
             val fin = first and 0x80 != 0
             val opcode = first and 15
             if (first and 0x70 != 0) protocolError("Unnegotiated WebSocket RSV bits")
@@ -269,18 +291,18 @@ internal class RawWebSocket private constructor(
             var size = (second and 127).toLong()
             if (opcode >= 8 && (!fin || size > 125)) protocolError("Invalid WebSocket control frame")
             if (size == 126L) {
-                val bytes = exactly(2, deadline)
+                val bytes = exactly(2, frameDeadline)
                 size = ((bytes[0].toInt() and 255) shl 8 or (bytes[1].toInt() and 255)).toLong()
                 if (size < 126) protocolError("Noncanonical WebSocket length")
             } else if (size == 127L) {
-                val bytes = exactly(8, deadline)
+                val bytes = exactly(8, frameDeadline)
                 if (bytes[0].toInt() and 0x80 != 0) protocolError("Invalid 64-bit WebSocket length")
                 size = 0
                 for (b in bytes) size = (size shl 8) or (b.toLong() and 255)
                 if (size < 65536) protocolError("Noncanonical WebSocket length")
             }
             if (size > limits.messageBytes || opcode < 8 && size > limits.messageBytes - fragmentBytes) protocolError("WebSocket message exceeds limit", 1009)
-            val body = exactly(size.toInt(), deadline)
+            val body = exactly(size.toInt(), frameDeadline)
             when (opcode) {
                 8 -> {
                     validateClose(body)
@@ -290,11 +312,12 @@ internal class RawWebSocket private constructor(
                     return null
                 }
                 9 -> writeFrame(10, body, allowClosing = true)
-                10 -> Unit
+                10 -> if (pendingPing?.contentEquals(body) == true) pendingPing = null
                 2, 0 -> {
                     if (opcode == 2 && fin) {
                         if (!discardMessages) return body
                     } else {
+                        if (messageDeadline == null) messageDeadline = frameDeadline
                         val needed = fragmentBytes + body.size
                         if (needed > fragmentBuffer.size) {
                             fragmentBuffer = fragmentBuffer.copyOf(minOf(limits.messageBytes, maxOf(needed, maxOf(256, fragmentBuffer.size * 2))))
@@ -311,6 +334,7 @@ internal class RawWebSocket private constructor(
                     }
                 }
             }
+            nextFrameDeadline = if (pendingPing != null) pongDeadline else deadlineAfter(limits.readMillis)
         }
         return null
     }

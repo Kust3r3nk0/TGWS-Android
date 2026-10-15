@@ -5,6 +5,7 @@ import org.junit.Test
 import java.io.ByteArrayOutputStream
 import java.io.EOFException
 import java.io.InputStream
+import java.io.PushbackInputStream
 import java.net.InetAddress
 import java.net.ProtocolException
 import java.net.ServerSocket
@@ -24,6 +25,75 @@ import javax.net.ssl.TrustManagerFactory
 
 class RawWebSocketTest {
     private val limits = RawWebSocket.Limits(readMillis = 750, handshakeMillis = 750, writeMillis = 750, closeMillis = 200)
+
+    @Test(timeout = 5000) fun controlFramesKeepHealthyConnectionAliveBeyondOneReadWindow() {
+        peer(server = { socket ->
+            repeat(6) {
+                Thread.sleep(40)
+                socket.getOutputStream().write(frame(9, byteArrayOf(it.toByte())))
+                val pong = readClientFrame(socket.getInputStream())
+                assertEquals(10, pong.opcode)
+            }
+            socket.getOutputStream().write(frame(2, byteArrayOf(42)))
+        }) { socket ->
+            val ws = RawWebSocket.upgrade(socket, "localhost", limits = limits.copy(readMillis = 120))
+            assertArrayEquals(byteArrayOf(42), ws.receive())
+            ws.abort()
+        }
+    }
+
+    @Test(timeout = 5000) fun idlePeerCanAnswerHeartbeatWithoutReconnecting() {
+        peer(server = { socket ->
+            repeat(3) {
+                val ping = readClientFrame(socket.getInputStream())
+                assertEquals(9, ping.opcode)
+                assertEquals(8, ping.body.size)
+                socket.getOutputStream().write(frame(10, ping.body))
+            }
+            socket.getOutputStream().write(frame(2, byteArrayOf(42)))
+        }) { socket ->
+            val ws = RawWebSocket.upgrade(socket, "localhost", limits = limits.copy(readMillis = 80))
+            assertArrayEquals(byteArrayOf(42), ws.receive())
+            assertFalse(socket.isClosed)
+            ws.abort()
+        }
+    }
+
+    @Test(timeout = 5000) fun wrongPongCannotKeepUnansweredHeartbeatAlive() {
+        peer(server = { socket ->
+            val ping = readClientFrame(socket.getInputStream())
+            assertEquals(9, ping.opcode)
+            socket.getOutputStream().write(frame(10, byteArrayOf(0)))
+            assertEquals(-1, socket.getInputStream().read())
+        }) { socket ->
+            val ws = RawWebSocket.upgrade(socket, "localhost", limits = limits.copy(readMillis = 100))
+            expect<SocketTimeoutException> { ws.receive() }
+            assertTrue(socket.isClosed)
+        }
+    }
+
+    @Test(timeout = 5000) fun controlTrafficCannotExtendFragmentedMessageDeadline() {
+        peer(server = { socket ->
+            socket.getOutputStream().write(frame(2, byteArrayOf(1), fin = false))
+            val input = PushbackInputStream(socket.getInputStream())
+            try {
+                repeat(10) {
+                    Thread.sleep(30)
+                    socket.getOutputStream().write(frame(9, byteArrayOf(2)))
+                    val first = input.read()
+                    if (first < 0) return@peer
+                    input.unread(first)
+                    val answer = readClientFrame(input)
+                    assertEquals(10, answer.opcode)
+                }
+                fail("Incomplete fragmented message did not expire")
+            } catch (_: java.io.IOException) { /* Receiver must close before all pings. */ }
+        }) { socket ->
+            val ws = RawWebSocket.upgrade(socket, "localhost", limits = limits.copy(readMillis = 150))
+            expect<SocketTimeoutException> { ws.receive() }
+            assertTrue(socket.isClosed)
+        }
+    }
 
     @Test(timeout = 5000) fun acceptsUpgradeTokensAndMasksClientBinaryFrames() {
         peer(response = { key -> response(key).replace("Connection: Upgrade", "Connection: keep-alive, uPgRaDe") }, server = { socket ->
@@ -181,7 +251,10 @@ class RawWebSocketTest {
     }
 
     @Test(timeout = 5000) fun silentPeerReadTimesOutAndClosesSocket() {
-        peer(server = { socket -> assertEquals(-1, socket.getInputStream().read()) }) { socket ->
+        peer(server = { socket ->
+            assertEquals(9, readClientFrame(socket.getInputStream()).opcode)
+            assertEquals(-1, socket.getInputStream().read())
+        }) { socket ->
             val ws = RawWebSocket.upgrade(socket, "localhost", limits = limits.copy(readMillis = 100))
             expect<SocketTimeoutException> { ws.receive() }
             assertTrue(socket.isClosed)
@@ -290,7 +363,9 @@ class RawWebSocketTest {
 
     @Test(timeout = 5000) fun verifiesTrustedCertificateAndHostnameInRealTlsUpgrade() {
         tlsPeer { port, context ->
-            val ws = RawWebSocket.connectTls("127.0.0.1", "localhost", "/apiws", port, context, limits)
+            val owned = mutableListOf<Socket>()
+            val ws = RawWebSocket.connectTls("127.0.0.1", "localhost", "/apiws", port, context, limits, owned::add)
+            assertTrue("TLS TCP socket must avoid Nagle delays", owned.first().tcpNoDelay)
             assertArrayEquals(byteArrayOf(1, 2), ws.receive())
             ws.abort()
         }

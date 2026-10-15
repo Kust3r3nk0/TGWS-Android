@@ -66,8 +66,10 @@ jobs:
               'gradle': '9.8.1',
               'compile_sdk': '37.0',
               'build_tools': '36.0.0',
-              'telegram_e2e': 'unverified; physical-device test required',
+              'telegram_e2e': 'user confirmed 0.1.0-alpha on Android 16 / Telegram 13.0.2 / Wi-Fi; 0.1.1-alpha requires device retest',
           }
+          with open(os.environ['GITHUB_ENV'], 'a') as env_file:
+              env_file.write(f'TGWS_VERSION={version}\n')
           (output / 'build-info.json').write_text(json.dumps(info, indent=2) + '\n')
           shutil.copy2('CHANGELOG.md', output / 'CHANGELOG.md')
           PY
@@ -75,7 +77,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: TGWS-Android-0.1.0-alpha-debug-${{ github.sha }}
+          name: TGWS-Android-${{ env.TGWS_VERSION }}-debug-${{ github.sha }}
           path: artifacts/debug/
           if-no-files-found: error
           retention-days: 14

@@ -110,6 +110,7 @@ class MainActivity : ComponentActivity() {
                     Text(stringResource(statusResource(snapshot.phase)), style = MaterialTheme.typography.bodyLarge)
                     Text(stringResource(R.string.local_address, SettingsValidation.LOOPBACK, portText))
                     Text(stringResource(R.string.session_counts, snapshot.sessions, snapshot.pending))
+                    Text(stringResource(R.string.transport_counts, snapshot.wssSessions, snapshot.tcpSessions))
                     Text(stringResource(if (snapshot.sessions > 0) R.string.remote_transport_established else R.string.remote_transport_unconfirmed))
                     if (busy) Text(stringResource(R.string.settings_loading))
                     OutlinedTextField(
@@ -164,7 +165,12 @@ class MainActivity : ComponentActivity() {
                         Text(stringResource(if (secretUnavailable) R.string.secret_replace else R.string.secret_generate))
                     }
                     val error = errorResource ?: snapshot.issue?.let(::issueResource)
-                    error?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
+                    error?.let {
+                        val warning = errorResource == null && snapshot.issueIsWarning
+                        val message = stringResource(it)
+                        Text(if (warning) stringResource(R.string.session_event, message) else message,
+                            color = if (warning) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error)
+                    }
                     feedbackResource?.let { Text(stringResource(it)) }
                     Button(modifier = Modifier.fillMaxWidth(), enabled = !busy && snapshot.phase != ProxyPhase.STOPPING,
                         onClick = {

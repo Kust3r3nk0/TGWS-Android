@@ -23,7 +23,7 @@ enum class ServerIssue { CONFIGURATION, PORT, HANDSHAKE, WSS_HANDSHAKE, TLS, TCP
 /** Safe diagnostics never carry peer data, cryptographic material or exception messages. */
 sealed interface ServerEvent {
     data class State(val phase: ServerPhase) : ServerEvent
-    data class Sessions(val established: Int, val pending: Int) : ServerEvent
+    data class Sessions(val established: Int, val pending: Int, val wss: Int = 0, val tcp: Int = 0) : ServerEvent
     data class Diagnostic(val issue: ServerIssue) : ServerEvent
 }
 
@@ -85,7 +85,7 @@ data class ServerLimits(
     val maxSessions: Int = 8,
     val handshakeTimeoutMillis: Int = 10_000,
     val connectTimeoutMillis: Int = 25_000,
-    val idleTimeoutMillis: Int = 60_000,
+    val idleTimeoutMillis: Int = 300_000,
     val wssAttemptTimeoutMillis: Int = 8_000,
     val writeTimeoutMillis: Int = 10_000,
 ) {
@@ -144,6 +144,7 @@ class MtprotoServer(
         private val resources = mutableSetOf<Closeable>(client)
         val closed = AtomicBoolean(false)
         @Volatile var established = false
+        @Volatile var transportKind: TransportKind? = null
         @Volatile var deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(limits.handshakeTimeoutMillis.toLong())
         @Volatile var lastActivity = System.nanoTime()
         @Volatile var upstreamWriteDeadline = 0L
@@ -206,7 +207,9 @@ class MtprotoServer(
 
     private fun counts(run: Run) {
         val sessions = run.sessions.toList()
-        emit(run, ServerEvent.Sessions(sessions.count { it.established }, sessions.count { !it.established }))
+        emit(run, ServerEvent.Sessions(sessions.count { it.established }, sessions.count { !it.established },
+            sessions.count { it.established && it.transportKind == TransportKind.WSS },
+            sessions.count { it.established && it.transportKind == TransportKind.TCP }))
     }
 
     fun start() {
@@ -321,6 +324,7 @@ class MtprotoServer(
         session.checkOpen()
         synchronized(lifecycle) {
             if (session.closed.get()) return
+            session.transportKind = remote.kind
             session.established = true
             session.touch()
             counts(session.run)
