@@ -24,7 +24,7 @@ enum class ServerIssue { CONFIGURATION, PORT, HANDSHAKE, WSS_HANDSHAKE, TLS, TCP
 sealed interface ServerEvent {
     data class State(val phase: ServerPhase) : ServerEvent
     data class Sessions(val established: Int, val pending: Int, val wss: Int = 0, val tcp: Int = 0) : ServerEvent
-    data class Diagnostic(val issue: ServerIssue) : ServerEvent
+    data class Diagnostic(val issue: ServerIssue, val rejection: HandshakeRejection? = null) : ServerEvent
 }
 
 enum class TransportKind { WSS, TCP }
@@ -312,11 +312,12 @@ class MtprotoServer(
 
     private fun serve(session: Session) {
         session.client.tcpNoDelay = true
-        val handshake = MtprotoCrypto.parseClientInit(readInit(session), secret)
-        if (handshake == null) {
-            emit(session.run, ServerEvent.Diagnostic(ServerIssue.HANDSHAKE))
+        val result = MtprotoCrypto.inspectClientInit(readInit(session), secret)
+        if (result is ClientInitResult.Rejected) {
+            emit(session.run, ServerEvent.Diagnostic(ServerIssue.HANDSHAKE, result.reason))
             return
         }
+        val handshake = (result as ClientInitResult.Accepted).handshake
         val relay = MtprotoCrypto.createRelayInit(handshake)
         val context = MtprotoCrypto.buildContext(handshake, secret, relay)
         session.deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(limits.connectTimeoutMillis.toLong())

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TGWS-Android</string>
-    <string name="app_label">TGWS-Android (Alpha)</string>
-    <string name="version_label">Android 14+ · %1$s</string>
+    <string name="app_label">TGWS-Android</string>
+    <string name="version_label">Android 15+ · %1$s</string>
     <string name="local_address">Локальный адрес: %1$s:%2$s</string>
     <string name="session_counts">Активные сессии: %1$d · подключаются: %2$d</string>
     <string name="transport_counts">Транспорт активных сессий: WSS %1$d · TCP %2$d</string>
@@ -52,4 +52,10 @@
     <string name="network_changed">Сеть изменилась. Текущие сессии закрыты; Telegram может подключиться повторно.</string>
     <string name="error_service_start">Android не разрешил запустить сервис. Вернитесь в приложение и повторите запуск.</string>
     <string name="error_telegram_missing">Не найдено приложение, которое может открыть ссылку Telegram.</string>
+    <string name="handshake_rejections">Отклонено клиентских заголовков: %1$d. Это не ошибка локального сервера.</string>
+    <string name="remote_transport_connecting">Клиент устанавливает удалённый транспорт. Активных сессий пока нет.</string>
+    <string name="rejection_length">Последний отказ: недопустимая длина заголовка.</string>
+    <string name="rejection_prefix">Последний отказ: заголовок не соответствует поддерживаемому Obfuscated2.</string>
+    <string name="rejection_secret_or_transport">Последний отказ: секрет или формат MTProto не прошёл проверку. Сверьте секрет и ссылку прокси в Telegram.</string>
+    <string name="rejection_dc">Последний отказ: неподдерживаемый DC. Основные DC 1–5 поддерживаются; тестовые DC не включены.</string>
 </resources>

@@ -2,9 +2,11 @@
 
 [![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml)
 
-**Unofficial, open-source Android 14+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
+<img src="docs/images/tgws-logo.jpg" width="240" alt="TGWS-Android" />
 
-> **0.1.1-alpha test update:** The user confirmed text send/receive and downloads in 0.1.0-alpha on Android 16 / Telegram 13.0.2 / Wi-Fi, with brief disconnections. Version 0.1.1-alpha requires another device test; stability of every route is unverified.
+**Unofficial, open-source Android 15+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
+
+> **0.1.2-alpha test update:** The user confirmed text send/receive and downloads in 0.1.0-alpha on Android 16 / Telegram 13.0.2 / Wi-Fi, with brief disconnections. Version 0.1.2-alpha requires another device test; stability of every route is unverified.
 
 ## Architecture & roadmap
 
@@ -14,7 +16,7 @@
 
 ## Goal
 
-Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 34+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
+Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 35+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
 
 ## Current source snapshot
 
@@ -24,12 +26,13 @@ Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket p
 | Abridged / Intermediate / Padded Intermediate | Implemented and tested: JVM, 4 MiB packet bound and malformed length rejection |
 | Loopback listener and WSS → TCP fallback | Implemented and tested locally; live Telegram network validation required |
 | WebSocket framing, Upgrade and TLS | Implemented and tested with local RFC 6455 / TLS peers; live WSS validation required |
-| Foreground Service and network loss | Basic lifecycle tested on API 34–37 emulators; real Wi-Fi/LTE requires validation |
+| Foreground Service and network loss | Basic lifecycle tested on API 35–37 emulators; real Wi-Fi/LTE requires validation |
 | Compose / Material 3, Russian and English UI | Implemented; device validation required |
-| Keystore AES-256-GCM | Implemented and tested on API 34–37 emulators; lost keys require explicit recovery |
+| Keystore AES-256-GCM | Implemented and tested on API 35–37 emulators; lost keys require explicit recovery |
 | Official Telegram physical-device E2E | Partial user verification of 0.1.0-alpha on Android 16 / Wi-Fi; update and network recovery require retesting |
 | Debug APK | Debug-signed test artifact, not a distribution release |
-| Trusted signed APK / GitHub Pre-release | Planned; release gate not passed |
+| GitHub debug Pre-releases | Owner-authorized after CI, with debug signing and stated limitations |
+| Trusted signed stable APK | Planned; full release gate not passed |
 
 Not yet ported: Fake TLS, Cloudflare routes and worker pool, HTTP/2 media multiplexing,
 IPv6-only, seamless network migration and test datacenters. Future features have no active UI toggles.
@@ -48,13 +51,13 @@ Run `:app:connectedDebugAndroidTest` with a device or emulator. CI checks pushes
 `main`, Pull Requests and manual runs; successful builds publish the debug APK,
 checksum, build version/commit and changelog, with JVM/Lint reports separately.
 Action versions are pinned to verified commit SHAs. A separate PR/manual workflow
-passed all 10 instrumentation tests on each API 34, 35, 36 and 37.0.
-113 JVM tests, Lint and APK assembly passed locally. See [testing](docs/en/TESTING.md) and the
-[update test report](docs/en/TEST_REPORT_0.1.1-alpha.md).
+executes all 11 instrumentation tests on each API 35, 36 and 37.0.
+JVM tests, Lint and APK assembly are required checks. See [testing](docs/en/TESTING.md) and the
+[update test report](docs/en/TEST_REPORT_0.1.2-alpha.md).
 
 ## Versions
 
-Kotlin 2.4.21, AGP 9.4.1, Gradle 9.8.1, minimum Android 14 / API 34,
+Kotlin 2.4.21, AGP 9.4.1, Gradle 9.8.1, minimum Android 15 / API 35,
 compile SDK 37.0, target SDK 37, JDK/bytecode target 17. Python is used only
 as an upstream test reference and is not included in the APK.
 

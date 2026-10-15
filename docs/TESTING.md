@@ -1,4 +1,4 @@
-# Проверка 0.1.0-alpha
+# Проверка 0.1.2-alpha
 
 Эталон: Flowseal/tg-ws-proxy **v1.11.2**, commit
 `307a384ab7f522e34bb1a045884d0bd90f40bee5`. [English](en/TESTING.md).
@@ -24,7 +24,7 @@ fallback и локальный WebSocket-сервер. Они не подтве�
 
 ## Android
 
-Проверьте API 34, 35, 36 и 37 при наличии стабильного system image.
+Проверьте API 35, 36 и 37 при наличии стабильного system image.
 Инструментальные тесты требуют подключённого устройства или эмулятора:
 
 ```bash
@@ -32,7 +32,7 @@ fallback и локальный WebSocket-сервер. Они не подтве�
 ```
 
 CI дополнительно запускает `python3 .github/scripts/verify_android_tests.py`:
-проверяются записи всех 10 тестов, а не только exit code Gradle. Пустые отчёты,
+проверяются записи всех 11 тестов, а не только exit code Gradle. Пустые отчёты,
 пропуски, повторяющиеся записи и любой failed/error не засчитываются. Саму
 проверку и настройку эмулятора проверяет
 `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
@@ -59,7 +59,7 @@ CI дополнительно запускает `python3 .github/scripts/verify
 
 ## Реальный Telegram E2E — release gate
 
-Нужно физическое устройство Android 14+ с официальным Telegram.
+Нужно физическое устройство Android 15+ с официальным Telegram.
 
 1. Установить APK; записать его SHA-256 и commit сборки.
 2. Запустить прокси; передать локальную `tg://proxy` ссылку кнопкой приложения.
@@ -74,7 +74,7 @@ CI дополнительно запускает `python3 .github/scripts/verify
 ```text
 Дата UTC:
 Git commit:
-TGWS-Android version: 0.1.0-alpha
+TGWS-Android version: 0.1.2-alpha
 APK SHA-256:
 Устройство / Android / API:
 Официальный Telegram version:

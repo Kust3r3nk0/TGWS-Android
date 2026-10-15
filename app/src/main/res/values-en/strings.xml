@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TGWS-Android</string>
-    <string name="app_label">TGWS-Android (Alpha)</string>
-    <string name="version_label">Android 14+ · %1$s</string>
+    <string name="app_label">TGWS-Android</string>
+    <string name="version_label">Android 15+ · %1$s</string>
     <string name="local_address">Local address: %1$s:%2$s</string>
     <string name="session_counts">Active sessions: %1$d · connecting: %2$d</string>
     <string name="transport_counts">Active transports: WSS %1$d · TCP %2$d</string>
@@ -52,4 +52,10 @@
     <string name="network_changed">The network changed. Current sessions were closed; Telegram can reconnect.</string>
     <string name="error_service_start">Android did not allow the service to start. Return to the app and try again.</string>
     <string name="error_telegram_missing">No application was found to open the Telegram link.</string>
+    <string name="handshake_rejections">Rejected client headers: %1$d. This is not a local server failure.</string>
+    <string name="remote_transport_connecting">A client is establishing a remote transport. No sessions are active yet.</string>
+    <string name="rejection_length">Last rejection: invalid header length.</string>
+    <string name="rejection_prefix">Last rejection: the header does not match supported Obfuscated2.</string>
+    <string name="rejection_secret_or_transport">Last rejection: secret or MTProto format validation failed. Check the secret and proxy link in Telegram.</string>
+    <string name="rejection_dc">Last rejection: unsupported DC. Main DCs 1–5 are supported; test DCs are not enabled.</string>
 </resources>

@@ -7,6 +7,14 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.math.abs
 
+/** Categories only; no header bytes, secret, key material or decrypted packet. */
+enum class HandshakeRejection { INVALID_LENGTH, RESERVED_PREFIX, SECRET_OR_TRANSPORT, UNSUPPORTED_DC }
+
+internal sealed interface ClientInitResult {
+    data class Accepted(val handshake: Handshake) : ClientInitResult
+    data class Rejected(val reason: HandshakeRejection) : ClientInitResult
+}
+
 internal data class Handshake(val dc: Int, val media: Boolean, val tag: ByteArray,
     val originalSignedDc: Int, val clientKeyMaterial: ByteArray)
 
@@ -35,18 +43,23 @@ internal object MtprotoCrypto {
             (bytes[4] == 0.toByte() && bytes[5] == 0.toByte() &&
              bytes[6] == 0.toByte() && bytes[7] == 0.toByte())
     }
-    fun parseClientInit(header: ByteArray, secret: ByteArray): Handshake? {
-        if (header.size != 64 || secret.size != 16 || forbidden(header)) return null
+    fun parseClientInit(header: ByteArray, secret: ByteArray): Handshake? =
+        (inspectClientInit(header, secret) as? ClientInitResult.Accepted)?.handshake
+
+    fun inspectClientInit(header: ByteArray, secret: ByteArray): ClientInitResult {
+        if (header.size != 64 || secret.size != 16) return ClientInitResult.Rejected(HandshakeRejection.INVALID_LENGTH)
+        if (forbidden(header)) return ClientInitResult.Rejected(HandshakeRejection.RESERVED_PREFIX)
         val keyMaterial = header.part(8, 56)
         val dec = ctr(digest(keyMaterial.part(0, 32), secret), keyMaterial.part(32, 48))
         val plain = dec.update(header)
         val tag = plain.part(56, 60)
         val prefix = tag[0].toInt() and 255
-        if (prefix !in tags || !tag.all { (it.toInt() and 255) == prefix }) return null
+        if (prefix !in tags || !tag.all { (it.toInt() and 255) == prefix })
+            return ClientInitResult.Rejected(HandshakeRejection.SECRET_OR_TRANSPORT)
         val signed = ((plain[61].toInt() shl 8) or (plain[60].toInt() and 255)).toShort().toInt()
         val dc = abs(signed)
-        if (dc !in 1..5 && dc != 203) return null
-        return Handshake(dc, signed < 0, tag, signed, keyMaterial)
+        if (dc !in 1..5 && dc != 203) return ClientInitResult.Rejected(HandshakeRejection.UNSUPPORTED_DC)
+        return ClientInitResult.Accepted(Handshake(dc, signed < 0, tag, signed, keyMaterial))
     }
     private fun validateHandshake(handshake: Handshake) {
         require(handshake.dc in 1..5 || handshake.dc == 203) { "Unsupported Telegram DC" }

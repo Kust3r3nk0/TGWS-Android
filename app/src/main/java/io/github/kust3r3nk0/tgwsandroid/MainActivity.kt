@@ -16,6 +16,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -38,6 +41,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
+import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -105,13 +111,28 @@ class MainActivity : ComponentActivity() {
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(painterResource(R.drawable.tgws_symbol), contentDescription = null,
+                            modifier = Modifier.size(56.dp))
+                        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
+                    }
                     Text(stringResource(R.string.version_label, version), style = MaterialTheme.typography.labelMedium)
                     Text(stringResource(statusResource(snapshot.phase)), style = MaterialTheme.typography.bodyLarge)
                     Text(stringResource(R.string.local_address, SettingsValidation.LOOPBACK, portText))
                     Text(stringResource(R.string.session_counts, snapshot.sessions, snapshot.pending))
                     Text(stringResource(R.string.transport_counts, snapshot.wssSessions, snapshot.tcpSessions))
-                    Text(stringResource(if (snapshot.sessions > 0) R.string.remote_transport_established else R.string.remote_transport_unconfirmed))
+                    Text(stringResource(when {
+                        snapshot.sessions > 0 -> R.string.remote_transport_established
+                        snapshot.pending > 0 -> R.string.remote_transport_connecting
+                        else -> R.string.remote_transport_unconfirmed
+                    }))
+                    if (snapshot.rejectedHandshakes > 0) {
+                        Text(stringResource(R.string.handshake_rejections, snapshot.rejectedHandshakes),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        snapshot.lastHandshakeRejection?.let {
+                            Text(stringResource(rejectionResource(it)), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                     if (busy) Text(stringResource(R.string.settings_loading))
                     OutlinedTextField(
                         value = portText,
@@ -265,4 +286,11 @@ private fun issueResource(issue: ProxyIssue): Int = when (issue) {
     ProxyIssue.TIMEOUT -> R.string.error_timeout
     ProxyIssue.NETWORK_CHANGED -> R.string.network_changed
     ProxyIssue.SERVICE_START -> R.string.error_service_start
+}
+
+private fun rejectionResource(reason: HandshakeRejection): Int = when (reason) {
+    HandshakeRejection.INVALID_LENGTH -> R.string.rejection_length
+    HandshakeRejection.RESERVED_PREFIX -> R.string.rejection_prefix
+    HandshakeRejection.SECRET_OR_TRANSPORT -> R.string.rejection_secret_or_transport
+    HandshakeRejection.UNSUPPORTED_DC -> R.string.rejection_dc
 }

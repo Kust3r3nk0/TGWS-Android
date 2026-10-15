@@ -1,5 +1,21 @@
 # TGWS-Android · Development roadmap
 
+Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 2026. Historical reports remain unchanged. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
+
+## 0.1.2-alpha — branding and diagnostics
+- [x] Owner logo, adaptive icon and app label without Alpha
+- [x] Android 15+ / minSdk 35; API 35–37 CI
+- [x] Safe handshake rejection categories and counter distinct from listener failures
+- [x] Instrumented check of installed icon, label and minSdk
+- Publish checked debug APKs as GitHub Pre-releases with checksums and commit; retain the stable release gate.
+
+## 0.1.1-alpha — WSS stability
+- [x] Ping/Pong and partial-message deadlines
+- [x] Buffered TLS writes and TCP_NODELAY
+- [x] WSS/TCP counts and recovery from obsolete fallback errors
+- [x] User reported Telegram working; 6–8 ms is client-reported, not independently measured
+- [ ] Complete repeated E2E and long-running network tests
+
 **Objective:** functional compatibility with the Flowseal TG-WS-Proxy baseline, with Android-native runtime, UI, and power/network lifecycle.
 
 This is a plan, not a statement that a release has shipped.

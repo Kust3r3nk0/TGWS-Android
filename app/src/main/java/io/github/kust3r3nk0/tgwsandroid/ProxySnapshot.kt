@@ -1,5 +1,7 @@
 package io.github.kust3r3nk0.tgwsandroid
 
+import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
+
 enum class ProxyPhase { STOPPED, STARTING, LISTENING, ACTIVE, ERROR, STOPPING }
 enum class ProxyIssue {
     CONFIGURATION, PORT, SECRET_UNAVAILABLE, STORAGE, HANDSHAKE, WSS_HANDSHAKE,
@@ -13,6 +15,8 @@ data class ProxySnapshot(
     val issue: ProxyIssue? = null,
     val wssSessions: Int = 0,
     val tcpSessions: Int = 0,
+    val rejectedHandshakes: Int = 0,
+    val lastHandshakeRejection: HandshakeRejection? = null,
 ) {
     val running: Boolean get() = phase in setOf(
         ProxyPhase.STARTING, ProxyPhase.LISTENING, ProxyPhase.ACTIVE, ProxyPhase.STOPPING
@@ -20,6 +24,12 @@ data class ProxySnapshot(
     val localAvailable: Boolean get() = phase == ProxyPhase.LISTENING || phase == ProxyPhase.ACTIVE
 
     val issueIsWarning: Boolean get() = localAvailable && sessions > 0 && issue != null && issue !in localIssues
+
+    /** Rejecting a client is not a failure of the listener or of other sessions. */
+    fun withRejectedHandshake(reason: HandshakeRejection): ProxySnapshot = copy(
+        rejectedHandshakes = if (rejectedHandshakes == Int.MAX_VALUE) Int.MAX_VALUE else rejectedHandshakes + 1,
+        lastHandshakeRejection = reason,
+    )
 
     fun withSessions(established: Int, connecting: Int, wss: Int = 0, tcp: Int = 0): ProxySnapshot {
         require(established >= 0 && connecting >= 0 && wss >= 0 && tcp >= 0 && wss + tcp <= established)

@@ -8,6 +8,33 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 class MtprotoCryptoTest {
+    @Test fun rejectedHeadersHaveSafeDistinctReasonsWithoutRelaxingValidation() {
+        fun reason(header: ByteArray, secret: ByteArray) =
+            (MtprotoCrypto.inspectClientInit(header, secret) as ClientInitResult.Rejected).reason
+        val header = vector(0, "header")
+        val secret = vector(0, "secret")
+        assertEquals(HandshakeRejection.INVALID_LENGTH, reason(header.copyOf(63), secret))
+        assertEquals(HandshakeRejection.INVALID_LENGTH, reason(header, secret.copyOf(15)))
+        assertEquals(HandshakeRejection.RESERVED_PREFIX, reason(ByteArray(64), secret))
+        val wrongSecret = secret.copyOf().apply { this[0] = (this[0].toInt() xor 1).toByte() }
+        assertEquals(HandshakeRejection.SECRET_OR_TRANSPORT, reason(header, wrongSecret))
+        assertNull(MtprotoCrypto.parseClientInit(header, wrongSecret))
+        val unknownDc = header.copyOf()
+        // Preserve the encrypted transport marker while replacing the signed DC.
+        val dc = parsed(0).originalSignedDc
+        unknownDc[60] = (header[60].toInt() xor (dc and 255) xor (10001 and 255)).toByte()
+        unknownDc[61] = (header[61].toInt() xor ((dc ushr 8) and 255) xor (10001 ushr 8)).toByte()
+        assertEquals(HandshakeRejection.UNSUPPORTED_DC, reason(unknownDc, secret))
+        assertNull(MtprotoCrypto.parseClientInit(unknownDc, secret))
+    }
+
+    @Test fun acceptedDiagnosticResultMatchesAllReferenceHandshakeVectors() {
+        for (index in 0 until 36) {
+            val result = MtprotoCrypto.inspectClientInit(vector(index, "header"), vector(index, "secret")) as ClientInitResult.Accepted
+            assertEquals(FlowsealVectors.value("handshake.$index.dc").toInt(), result.handshake.dc)
+            assertArrayEquals(vector(index, "tag"), result.handshake.tag)
+        }
+    }
     private fun vector(index: Int, name: String) = FlowsealVectors.bytes("handshake.$index.$name")
     private fun parsed(index: Int = 0) = checkNotNull(MtprotoCrypto.parseClientInit(
         vector(index, "header"), vector(index, "secret")))

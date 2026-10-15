@@ -2,6 +2,15 @@
 
 All notable changes will be documented in this file. Versions of this Android port do not correspond directly to upstream Flowseal releases.
 
+## [0.1.2-alpha] — 2026-10-15 (debug)
+
+- Owner logo in the app/README, adaptive launcher icon and monochrome notification icon.
+- Installed label TGWS-Android without Alpha; versionCode 3, alpha stage retained in version metadata.
+- Minimum Android 15 / API 35; current CI matrix API 35–37.
+- Safe handshake rejection categories and counter separate from service/network errors; validation and routes preserved.
+- Updated persistent instructions/specification baseline/roadmap; explicitly labelled debug Pre-releases are authorized.
+- User reports 0.1.1-alpha working and Telegram showing 6–8 ms; no independent latency or complete E2E claim.
+
 ## [0.1.1-alpha] — 2026-10-15 (test build)
 
 ### Fixed

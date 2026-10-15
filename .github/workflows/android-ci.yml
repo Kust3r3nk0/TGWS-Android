@@ -66,7 +66,7 @@ jobs:
               'gradle': '9.8.1',
               'compile_sdk': '37.0',
               'build_tools': '36.0.0',
-              'telegram_e2e': 'user confirmed 0.1.0-alpha on Android 16 / Telegram 13.0.2 / Wi-Fi; 0.1.1-alpha requires device retest',
+              'telegram_e2e': 'user reported 0.1.0/0.1.1 working on Android16; 0.1.2 requires retest',
           }
           with open(os.environ['GITHUB_ENV'], 'a') as env_file:
               env_file.write(f'TGWS_VERSION={version}\n')

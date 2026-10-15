@@ -10,6 +10,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ConnectException
@@ -154,6 +155,9 @@ class ProxyServiceInstrumentedTest {
                 assertEquals(-1, client.getInputStream().read())
             }
             eventually { snapshot().pending == 0 }
+            eventually { snapshot().rejectedHandshakes == 1 }
+            assertEquals(HandshakeRejection.RESERVED_PREFIX, snapshot().lastHandshakeRejection)
+            assertNull(snapshot().issue)
             assertTrue(snapshot().localAvailable)
             assertEquals(0, snapshot().sessions)
         }

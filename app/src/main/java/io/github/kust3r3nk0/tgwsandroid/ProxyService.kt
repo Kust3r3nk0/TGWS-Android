@@ -13,6 +13,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import io.github.kust3r3nk0.tgwsandroid.core.MtprotoServer
+import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
 import io.github.kust3r3nk0.tgwsandroid.core.ServerEvent
 import io.github.kust3r3nk0.tgwsandroid.core.ServerIssue
 import io.github.kust3r3nk0.tgwsandroid.core.ServerPhase
@@ -141,6 +142,12 @@ class ProxyService : Service() {
                 ProxyState.snapshot = previous.withSessions(event.established, event.pending, event.wss, event.tcp)
             }
             is ServerEvent.Diagnostic -> {
+                if (event.issue == ServerIssue.HANDSHAKE) {
+                    val reason = event.rejection ?: HandshakeRejection.SECRET_OR_TRANSPORT
+                    ProxyState.snapshot = ProxyState.snapshot.withRejectedHandshake(reason)
+                    Log.i(TAG, "Client handshake rejected: ${reason.name}")
+                    return
+                }
                 val issue = when (event.issue) {
                     ServerIssue.CONFIGURATION -> ProxyIssue.CONFIGURATION
                     ServerIssue.PORT -> ProxyIssue.PORT
@@ -185,7 +192,7 @@ class ProxyService : Service() {
             .setContentTitle(getString(R.string.app_name))
             .setContentText(getString(message))
             .setContentIntent(open)
-            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setSmallIcon(R.drawable.ic_stat_tgws)
             .setOngoing(true)
             .addAction(Notification.Action.Builder(null, getString(R.string.stop), stop).build())
             .build()

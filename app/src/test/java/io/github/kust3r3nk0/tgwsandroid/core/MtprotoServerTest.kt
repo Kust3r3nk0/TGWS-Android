@@ -30,7 +30,7 @@ class MtprotoServerTest {
             val event = all.lastOrNull { it is ServerEvent.Sessions } as? ServerEvent.Sessions
             return event?.established == established && event.pending == pending
         }
-        fun issue(issue: ServerIssue) = all.contains(ServerEvent.Diagnostic(issue))
+        fun issue(issue: ServerIssue) = all.filterIsInstance<ServerEvent.Diagnostic>().any { it.issue == issue }
     }
 
     private class Channel(override val kind: TransportKind, private val failSend: Boolean = false) : RemoteTransport {

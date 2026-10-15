@@ -2,8 +2,31 @@ package io.github.kust3r3nk0.tgwsandroid
 
 import org.junit.Assert.*
 import org.junit.Test
+import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
 
 class ProxySnapshotTest {
+    @Test fun rejectionIsCountedWithoutClaimingThatListenerOrOtherSessionsFailed() {
+        for (sessions in 0..1) {
+            val original = ProxySnapshot(phase = if (sessions == 0) ProxyPhase.LISTENING else ProxyPhase.ACTIVE,
+                sessions = sessions, pending = 1)
+            val rejected = original.withRejectedHandshake(HandshakeRejection.SECRET_OR_TRANSPORT)
+            assertEquals(original.phase, rejected.phase)
+            assertEquals(sessions, rejected.sessions)
+            assertTrue(rejected.localAvailable)
+            assertNull(rejected.issue)
+            assertEquals(1, rejected.rejectedHandshakes)
+            assertEquals(HandshakeRejection.SECRET_OR_TRANSPORT, rejected.lastHandshakeRejection)
+        }
+    }
+
+    @Test fun rejectionCannotHideNetworkOrLocalErrorsAndCounterIsBounded() {
+        for (issue in listOf(ProxyIssue.PORT, ProxyIssue.TCP)) {
+            val original = ProxySnapshot(phase = ProxyPhase.LISTENING, issue = issue, rejectedHandshakes = Int.MAX_VALUE)
+            val rejected = original.withRejectedHandshake(HandshakeRejection.RESERVED_PREFIX)
+            assertEquals(issue, rejected.issue)
+            assertEquals(Int.MAX_VALUE, rejected.rejectedHandshakes)
+        }
+    }
     @Test fun successfulConnectionClearsObsoleteFallbackError() {
         val failed = ProxySnapshot(phase = ProxyPhase.LISTENING, pending = 1, issue = ProxyIssue.WSS_HANDSHAKE)
         val recovered = failed.withSessions(1, 0)
