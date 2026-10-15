@@ -33,9 +33,14 @@ class MtprotoServerTest {
         fun issue(issue: ServerIssue) = all.filterIsInstance<ServerEvent.Diagnostic>().any { it.issue == issue }
     }
 
-    private class Channel(override val kind: TransportKind, private val failSend: Boolean = false) : RemoteTransport {
+    private class Channel(override val kind: TransportKind, private val failSend: Boolean = false, private val failProbe: Boolean = false) : RemoteTransport {
         val sent = CopyOnWriteArrayList<ByteArray>()
         val closed = CountDownLatch(1)
+        val probes = AtomicInteger()
+        override fun verifyIdle() {
+            probes.incrementAndGet()
+            if (failProbe) throw EOFException("Deliberate stale pool entry")
+        }
         override fun send(data: ByteArray) {
             sent += data.copyOf()
             if (failSend) throw IOException("Deliberate relay failure")
@@ -111,6 +116,100 @@ class MtprotoServerTest {
     }
     private fun server(port: Int, events: Events, factory: TransportFactory = FakeFactory(), customLimits: ServerLimits = limits) =
         MtprotoServer(port, secretHex, events.all::add, transports = factory, limits = customLimits)
+
+    @Test fun warmupFailureIsDiagnosedWithoutDeclaringHealthyClientSessionFailed() {
+        val events = Events()
+        val calls = AtomicInteger()
+        val channel = Channel(TransportKind.WSS)
+        val factory = object : TransportFactory {
+            override val supportsWarmWebSockets = true
+            override fun openWebSocket(address: String, domain: String, own: (Closeable) -> Unit): RemoteTransport {
+                if (calls.incrementAndGet() > 1) throw IOException("Deliberate background setup failure")
+                own(channel)
+                return channel
+            }
+            override fun openTcp(address: String, own: (Closeable) -> Unit): RemoteTransport = throw AssertionError("Unexpected TCP")
+        }
+        val port = freePort()
+        server(port, events, factory).use { server ->
+            server.start()
+            await("Listener not ready") { events.phase(ServerPhase.LISTENING) }
+            connect(port).use { client ->
+                client.getOutputStream().write(init().bytes)
+                await("Missing background diagnostic") { events.all.any { it is ServerEvent.BackgroundIssue } }
+                assertTrue(events.sessions(1, 0))
+                assertFalse(events.issue(ServerIssue.WSS_HANDSHAKE))
+                assertEquals(1L, channel.closed.count)
+                server.stop()
+                assertClosed(client)
+            }
+        }
+    }
+
+    @Test fun freshPooledSocketGetsOneClientsInitAndCipherStateAndStaleProbeRetriesFresh() {
+        for (stale in listOf(false, true)) {
+            val channels = CopyOnWriteArrayList<Channel>()
+            val factory = object : TransportFactory {
+                override val supportsWarmWebSockets = true
+                override fun openWebSocket(address: String, domain: String, own: (Closeable) -> Unit): RemoteTransport =
+                    Channel(TransportKind.WSS, failProbe = stale && channels.size == 1).also { channels += it; own(it) }
+                override fun openTcp(address: String, own: (Closeable) -> Unit): RemoteTransport = throw AssertionError("Unexpected TCP")
+            }
+            val port = freePort()
+            val events = Events()
+            server(port, events, factory).use { server ->
+                server.start()
+                await("Listener not ready") { events.phase(ServerPhase.LISTENING) }
+                connect(port).use { first ->
+                    val hello = init()
+                    val packet = byteArrayOf(4, 0, 0, 0, 11, 12, 13, 14)
+                    first.getOutputStream().write(hello.bytes + hello.encrypt.update(packet))
+                    await("No warm connection prepared") { server.warmConnections() == (1 to 0) && channels.first().sent.size == 2 }
+                    assertTrue(channels[1].sent.isEmpty())
+                    connect(port).use { second ->
+                        val next = init()
+                        second.getOutputStream().write(next.bytes + next.encrypt.update(packet))
+                        val used = if (stale) 2 else 1
+                        await("Warm connection did not forward") { channels.size > used && channels[used].sent.size == 2 }
+                        assertEquals(1, channels[1].probes.get())
+                        for (index in listOf(0, used)) {
+                            val sent = channels[index].sent
+                            val expected = MtprotoCrypto.buildContext(MtprotoCrypto.parseClientInit(next.bytes, secret)!!, secret, sent[0]).toTelegram.update(packet)
+                            assertArrayEquals(expected, sent[1])
+                        }
+                        if (stale) {
+                            assertTrue(channels[1].sent.isEmpty())
+                            assertEquals(0L, channels[1].closed.count)
+                        }
+                        server.stop()
+                        assertClosed(first); assertClosed(second)
+                        assertTrue(channels.all { it.closed.count == 0L })
+                    }
+                }
+            }
+        }
+    }
+
+    @Test fun repeatedFailedClientsDoNotRedialCoolingRoutesAndNetworkResetAllowsRetry() {
+        val port = freePort()
+        val events = Events()
+        val factory = FakeFactory(failTcp = true)
+        server(port, events, factory).use { server ->
+            server.start()
+            await("Listener not ready") { events.phase(ServerPhase.LISTENING) }
+            repeat(3) {
+                connect(port).use { client -> client.getOutputStream().write(init().bytes); assertClosed(client) }
+                await("Pending session leaked") { events.sessions(0, 0) }
+            }
+            assertEquals(1, factory.wss.size)
+            assertEquals(1, factory.tcp.size)
+            assertTrue(events.issue(ServerIssue.RETRY_LATER))
+            server.disconnectSessions()
+            connect(port).use { client -> client.getOutputStream().write(init().bytes); assertClosed(client) }
+            assertEquals(2, factory.wss.size)
+            assertEquals(2, factory.tcp.size)
+        }
+    }
 
     @Test fun relayOnlyCarriesIdenticalCryptoForAllDcAndMediaWithoutDirectAttempts() {
         for (dc in listOf(1, 2, 3, 4, 5, 203, -2, -4)) {

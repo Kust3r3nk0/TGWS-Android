@@ -262,7 +262,20 @@ internal class RawWebSocket private constructor(
         finally { readLock.unlock() }
     }
 
-    private fun readMessage(deadline: Long, discardMessages: Boolean = false): ByteArray? {
+    /** Validate a never-used pooled connection before consuming any MTProto initialization. */
+    fun probeIdle(timeoutMillis: Int = 1_500) {
+        check(readLock.tryLock()) { "WebSocket supports one reader" }
+        try {
+            if (closed.get() || closing.get() || fragmented) throw EOFException("Unused WebSocket closed")
+            val nonce = ByteArray(8).also(rng::nextBytes)
+            val deadline = deadlineAfter(timeoutMillis)
+            writeFrame(9, nonce, timeoutMillis = timeoutMillis)
+            if (readMessage(deadline, probeNonce = nonce) == null) throw EOFException("Unused WebSocket closed")
+        } catch (error: Exception) { abort(); throw error }
+        finally { readLock.unlock() }
+    }
+
+    private fun readMessage(deadline: Long, discardMessages: Boolean = false, probeNonce: ByteArray? = null): ByteArray? {
         var nextFrameDeadline = deadline
         var messageDeadline: Long? = null
         var pendingPing: ByteArray? = null
@@ -271,9 +284,9 @@ internal class RawWebSocket private constructor(
             // Healthy control traffic must not consume one absolute receive()
             // budget. Only a partial data message keeps its original deadline.
             val first = try {
-                readByte(if (discardMessages) deadline else messageDeadline ?: nextFrameDeadline)
+                readByte(if (discardMessages || probeNonce != null) deadline else messageDeadline ?: nextFrameDeadline)
             } catch (error: SocketTimeoutException) {
-                if (discardMessages || fragmented || pendingPing != null || closing.get()) throw error
+                if (discardMessages || probeNonce != null || fragmented || pendingPing != null || closing.get()) throw error
                 val ping = ByteArray(8).also(rng::nextBytes)
                 writeFrame(9, ping)
                 pendingPing = ping
@@ -281,13 +294,14 @@ internal class RawWebSocket private constructor(
                 nextFrameDeadline = pongDeadline
                 continue
             }
-            val frameDeadline = if (discardMessages) deadline else messageDeadline ?: deadlineAfter(limits.readMillis)
+            val frameDeadline = if (discardMessages || probeNonce != null) deadline else messageDeadline ?: deadlineAfter(limits.readMillis)
             val second = readByte(frameDeadline)
             val fin = first and 0x80 != 0
             val opcode = first and 15
             if (first and 0x70 != 0) protocolError("Unnegotiated WebSocket RSV bits")
             if (second and 0x80 != 0) protocolError("Masked server WebSocket frame")
             if (opcode !in listOf(0, 2, 8, 9, 10)) protocolError("Unsupported WebSocket opcode", if (opcode == 1) 1003 else 1002)
+            if (probeNonce != null && opcode < 8) protocolError("Data on unused WebSocket")
             if (opcode == 0 && !fragmented || opcode == 2 && fragmented) protocolError("Invalid WebSocket continuation sequence")
             var size = (second and 127).toLong()
             if (opcode >= 8 && (!fin || size > 125)) protocolError("Invalid WebSocket control frame")
@@ -312,8 +326,12 @@ internal class RawWebSocket private constructor(
                     abort()
                     return null
                 }
-                9 -> writeFrame(10, body, allowClosing = true)
-                10 -> if (pendingPing?.contentEquals(body) == true) pendingPing = null
+                9 -> writeFrame(10, body, allowClosing = true,
+                    timeoutMillis = if (probeNonce != null) remaining(deadline) else limits.writeMillis)
+                10 -> {
+                    if (probeNonce?.contentEquals(body) == true) return ByteArray(0)
+                    if (pendingPing?.contentEquals(body) == true) pendingPing = null
+                }
                 2, 0 -> {
                     if (opcode == 2 && fin) {
                         if (!discardMessages) return body

@@ -18,13 +18,14 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.net.ssl.SSLException
 
 enum class ServerPhase { STARTING, LISTENING, STOPPING, STOPPED, ERROR }
-enum class ServerIssue { CONFIGURATION, PORT, HANDSHAKE, WSS_HANDSHAKE, TLS, TCP, RELAY, SESSION, CAPACITY, TIMEOUT }
+enum class ServerIssue { CONFIGURATION, PORT, HANDSHAKE, WSS_HANDSHAKE, TLS, TCP, RELAY, RETRY_LATER, SESSION, CAPACITY, TIMEOUT }
 
 /** Safe diagnostics never carry peer data, cryptographic material or exception messages. */
 sealed interface ServerEvent {
     data class State(val phase: ServerPhase) : ServerEvent
     data class Sessions(val established: Int, val pending: Int, val wss: Int = 0, val tcp: Int = 0, val relay: Int = 0) : ServerEvent
     data class Diagnostic(val issue: ServerIssue, val rejection: HandshakeRejection? = null) : ServerEvent
+    data class BackgroundIssue(val issue: ServerIssue) : ServerEvent
 }
 
 enum class TransportKind { WSS, TCP, RELAY }
@@ -34,11 +35,14 @@ interface RemoteTransport : Closeable {
     val kind: TransportKind
     fun send(data: ByteArray)
     fun receive(): ByteArray?
+    /** Only transports advertising warm support must implement a bounded idle probe. */
+    fun verifyIdle() { throw java.io.IOException("Idle verification unsupported") }
     /** Immediately release blocking IO during stop, network loss and deadlines. */
     fun abort() = close()
 }
 
 interface TransportFactory {
+    val supportsWarmWebSockets: Boolean get() = false
     /** Register every socket before connect/TLS/upgrade can block. */
     fun openWebSocket(address: String, domain: String, own: (Closeable) -> Unit): RemoteTransport
     fun openRelay(endpoint: RelayEndpoint, dc: Int, own: (Closeable) -> Unit): RemoteTransport =
@@ -47,6 +51,7 @@ interface TransportFactory {
 }
 
 private object DirectTransportFactory : TransportFactory {
+    override val supportsWarmWebSockets = true
     override fun openRelay(endpoint: RelayEndpoint, dc: Int, own: (Closeable) -> Unit): RemoteTransport =
         wrap(RawWebSocket.connect(endpoint.domain, endpoint.domain, endpoint.requestPath(dc), socketOwner = { own(it) }), TransportKind.RELAY)
 
@@ -59,6 +64,7 @@ private object DirectTransportFactory : TransportFactory {
             override val kind = transportKind
             override fun send(data: ByteArray) = websocket.send(data)
             override fun receive() = websocket.receive()
+            override fun verifyIdle() = websocket.probeIdle()
             override fun close() = websocket.close()
             override fun abort() = websocket.abort()
     }
@@ -95,9 +101,12 @@ data class ServerLimits(
     val idleTimeoutMillis: Int = 300_000,
     val wssAttemptTimeoutMillis: Int = 8_000,
     val writeTimeoutMillis: Int = 10_000,
+    val warmPoolCapacity: Int = 4,
+    val warmMaxAgeMillis: Int = 30_000,
 ) {
     init {
         require(maxSessions in 1..64)
+        require(warmPoolCapacity in 0..8 && warmMaxAgeMillis > 0)
         require(handshakeTimeoutMillis > 0 && connectTimeoutMillis > 0 && idleTimeoutMillis > 0 &&
             wssAttemptTimeoutMillis > 0 && writeTimeoutMillis > 0)
     }
@@ -143,6 +152,20 @@ class MtprotoServer(
             // A canceled WSS timer must not accumulate under high client turnover.
             removeOnCancelPolicy = true
         }
+        val retries = RouteBackoff<String>()
+        val warm = WarmConnectionPool<WssRoute>(
+            if (transports.supportsWarmWebSockets && relayEndpoint == null) limits.warmPoolCapacity else 0,
+            limits.warmMaxAgeMillis, limits.wssAttemptTimeoutMillis, watchdog,
+            opener = { route, own ->
+                val permit = retries.acquire(routeKey(route))
+                if (permit == null) null else try {
+                    transports.openWebSocket(route.address, route.domain, own).also { retries.success(permit) }
+                } catch (error: Exception) {
+                    retries.failure(permit)
+                    emit(this, ServerEvent.BackgroundIssue(if (error is SSLException) ServerIssue.TLS else ServerIssue.WSS_HANDSHAKE))
+                    throw error
+                }
+            })
         @Volatile var server: ServerSocket? = null
         lateinit var listener: Thread
     }
@@ -286,6 +309,7 @@ class MtprotoServer(
     }
 
     private fun expire(run: Run) {
+        run.warm.rotate()
         val now = System.nanoTime()
         for (session in run.sessions) {
             val upstreamDeadline = session.upstreamWriteDeadline
@@ -342,73 +366,74 @@ class MtprotoServer(
         bridge(session, remote, context, handshake.tag)
     }
 
+    private fun routeKey(route: WssRoute) = "wss:${route.address}:${route.domain}"
+
     private fun establish(session: Session, handshake: Handshake, relay: ByteArray): RemoteTransport? {
-        relayEndpoint?.let { endpoint ->
+        var attempted = false
+        fun connect(key: String, issue: ServerIssue, open: ((Closeable) -> Unit) -> RemoteTransport): RemoteTransport? {
+            session.checkOpen()
+            val permit = session.run.retries.acquire(key) ?: return null
+            attempted = true
             val attempt = Attempt()
             session.own(attempt)
             val timeout = session.run.watchdog.schedule(
                 { attempt.expire() }, limits.wssAttemptTimeoutMillis.toLong(), TimeUnit.MILLISECONDS,
             )
             try {
-                session.checkOpen()
-                val candidate = transports.openRelay(endpoint, handshake.dc, attempt::own)
+                val candidate = open(attempt::own)
                 attempt.own(candidate)
                 session.checkOpen()
-                if (attempt.closed.get()) throw java.net.SocketTimeoutException("Relay route deadline")
+                if (attempt.closed.get()) throw java.net.SocketTimeoutException("Route deadline")
+                // Client payload is untouched: route retries never replay consumed AES-CTR state.
                 candidate.send(relay)
-                if (!attempt.retain()) throw java.net.SocketTimeoutException("Relay route deadline")
+                if (!attempt.retain()) throw java.net.SocketTimeoutException("Route deadline")
+                session.run.retries.success(permit)
                 return candidate
             } catch (error: Exception) {
                 attempt.close()
-                if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(
-                    if (error is SSLException) ServerIssue.TLS else ServerIssue.RELAY))
+                if (session.closed.get()) session.run.retries.cancel(permit)
+                else {
+                    session.run.retries.failure(permit)
+                    emit(session.run, ServerEvent.Diagnostic(if (error is SSLException) ServerIssue.TLS else issue))
+                }
                 return null
             } finally { timeout.cancel(false) }
         }
-        val wssIp = TelegramRoutes.webSocketIp(handshake.dc)
-        if (wssIp != null) {
+        val endpoint = relayEndpoint
+        if (endpoint != null) {
+            val result = connect("relay:${handshake.dc}", ServerIssue.RELAY) { own ->
+                transports.openRelay(endpoint, handshake.dc, own)
+            }
+            if (result == null && !attempted && !session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.RETRY_LATER))
+            return result
+        }
+        TelegramRoutes.webSocketIp(handshake.dc)?.let { ip ->
             for (domain in TelegramRoutes.webSocketDomains(handshake.dc, handshake.media)) {
-                session.checkOpen()
-                val attempt = Attempt()
-                session.own(attempt)
-                val timeout = session.run.watchdog.schedule(
-                    { attempt.expire() }, limits.wssAttemptTimeoutMillis.toLong(), TimeUnit.MILLISECONDS,
-                )
-                var candidate: RemoteTransport? = null
-                try {
-                    candidate = transports.openWebSocket(wssIp, domain, attempt::own)
-                    attempt.own(candidate)
-                    session.checkOpen()
-                    if (attempt.closed.get()) throw java.net.SocketTimeoutException("WSS route deadline")
-                    candidate.send(relay)
-                    if (!attempt.retain()) throw java.net.SocketTimeoutException("WSS route deadline")
-                    timeout.cancel(false)
-                    return candidate
-                } catch (error: Exception) {
-                    candidate?.let(::release)
-                    attempt.close()
-                    if (session.closed.get()) return null
-                    emit(session.run, ServerEvent.Diagnostic(if (error is SSLException) ServerIssue.TLS else ServerIssue.WSS_HANDSHAKE))
-                } finally {
-                    timeout.cancel(false)
+                val route = WssRoute(ip, domain)
+                val remote = connect(routeKey(route), ServerIssue.WSS_HANDSHAKE) { own ->
+                    val cached = session.run.warm.take(route)
+                    if (cached != null) {
+                        own(cached)
+                        try {
+                            cached.verifyIdle()
+                            session.checkOpen()
+                            return@connect cached
+                        } catch (_: Exception) { cached.abort(); session.checkOpen() }
+                    }
+                    transports.openWebSocket(ip, domain, own)
+                }
+                if (remote != null) {
+                    synchronized(lifecycle) {
+                        if (!session.closed.get() && !session.run.stopping.get()) session.run.warm.refill(route)
+                    }
+                    return remote
                 }
             }
         }
-        session.checkOpen()
-        val tcpIp = TelegramRoutes.ip(handshake.dc) ?: return null
-        var candidate: RemoteTransport? = null
-        try {
-            candidate = transports.openTcp(tcpIp, session::own)
-            session.own(candidate)
-            session.checkOpen()
-            // No client payload has been consumed: a failed WSS relay send can safely retry here.
-            candidate.send(relay)
-            return candidate
-        } catch (_: Exception) {
-            candidate?.let(::release)
-            if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.TCP))
-            return null
-        }
+        val ip = TelegramRoutes.ip(handshake.dc) ?: return null
+        val remote = connect("tcp:${handshake.dc}", ServerIssue.TCP) { own -> transports.openTcp(ip, own) }
+        if (remote == null && !attempted && !session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.RETRY_LATER))
+        return remote
     }
 
     private fun bridge(session: Session, remote: RemoteTransport, context: CryptoContext, tag: ByteArray) {
@@ -456,7 +481,17 @@ class MtprotoServer(
     }
 
     /** Network changes abort sessions, allowing Telegram to reconnect through the same listener. */
-    fun disconnectSessions() { current?.sessions?.toList()?.forEach(Session::close) }
+    fun disconnectSessions() {
+        synchronized(lifecycle) {
+            current?.let { run ->
+                run.warm.invalidate()
+                run.retries.reset()
+                run.sessions.toList().forEach(Session::close)
+            }
+        }
+    }
+
+    internal fun warmConnections(): Pair<Int, Int> = current?.warm?.size() ?: (0 to 0)
 
     private fun writeDeadline() = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(limits.writeTimeoutMillis.toLong())
 
@@ -479,6 +514,7 @@ class MtprotoServer(
             return false
         }
         run.server?.let(::release)
+        run.warm.close()
         run.sessions.toList().forEach(Session::close)
         run.watchdog.shutdownNow()
         run.workers.shutdownNow()

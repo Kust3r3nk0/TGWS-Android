@@ -14,11 +14,14 @@ android {
         applicationId = "io.github.kust3r3nk0.tgwsandroid"
         minSdk = 35
         targetSdk = 37
-        versionCode = 4
-        versionName = "0.1.3-alpha"
+        versionCode = 5
+        versionName = "0.2.0-alpha"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }
+    testOptions.unitTests.all { test ->
+        test.systemProperty("tgws.soak.seconds", providers.gradleProperty("soakSeconds").orElse("2").get())
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
