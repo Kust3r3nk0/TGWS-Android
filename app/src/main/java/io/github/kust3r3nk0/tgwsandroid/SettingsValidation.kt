@@ -22,9 +22,9 @@ object SettingsValidation {
     fun generateSecret(): String = ByteArray(16).also(SecureRandom()::nextBytes)
         .joinToString("") { "%02x".format(it.toInt() and 255) }
 
-    fun telegramLink(port: Int, secret: String): String {
+    fun telegramLink(port: Int, secret: String, fakeTlsDomain: String = ""): String {
         require(validPort(port)) { "Invalid local port" }
-        return "tg://proxy?server=$LOOPBACK&port=$port&secret=dd${normalizeSecret(secret)}"
+        return "tg://proxy?server=$LOOPBACK&port=$port&secret=${io.github.kust3r3nk0.tgwsandroid.core.TelegramSecret.encode(normalizeSecret(secret),fakeTlsDomain)}"
     }
 }
 

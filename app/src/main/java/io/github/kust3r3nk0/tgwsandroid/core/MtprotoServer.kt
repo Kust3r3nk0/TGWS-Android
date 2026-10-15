@@ -121,12 +121,14 @@ class MtprotoServer(
     private val transports: TransportFactory = DirectTransportFactory,
     private val limits: ServerLimits = ServerLimits(),
     private val relayEndpoint: RelayEndpoint? = null,
+    private val fakeTlsDomain: String = "",
 ) : Closeable {
     private val secret: ByteArray
     private val lifecycle = Any()
     @Volatile private var current: Run? = null
 
     init {
+        require(fakeTlsDomain.isEmpty() || TelegramSecret.validDomain(fakeTlsDomain))
         require(port in 1..65535) { "Invalid local port" }
         require(secretHex.matches(Regex("[0-9a-fA-F]{32}"))) { "Invalid MTProto secret format" }
         secret = secretHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
@@ -171,6 +173,8 @@ class MtprotoServer(
     }
 
     private inner class Session(val run: Run, val client: Socket) : Closeable {
+        var input: InputStream = client.getInputStream()
+        var output: java.io.OutputStream = client.getOutputStream()
         private val resourcesLock = Any()
         private val resources = mutableSetOf<Closeable>(client)
         val closed = AtomicBoolean(false)
@@ -327,6 +331,19 @@ class MtprotoServer(
     }
 
     private fun readInit(session: Session): ByteArray {
+        if (fakeTlsDomain.isNotEmpty()) {
+            session.client.soTimeout = limits.handshakeTimeoutMillis
+            val input = java.io.DataInputStream(session.input)
+            val header = ByteArray(5).also(input::readFully)
+            val size = ((header[3].toInt() and 255) shl 8) or (header[4].toInt() and 255)
+            if (header[0] != 0x16.toByte() || size !in 38..4096) throw java.net.ProtocolException("Invalid Fake TLS hello")
+            val body = ByteArray(size).also(input::readFully)
+            val hello = FakeTls.verify(header + body, secret) ?: throw java.net.ProtocolException("Fake TLS verification failed")
+            session.output.write(FakeTls.response(secret, hello))
+            session.output.flush()
+            session.input = FakeTls.Reader(session.input)
+            session.output = FakeTls.Writer(session.output)
+        }
         val buffer = ByteArray(64)
         var read = 0
         while (read < buffer.size) {
@@ -334,7 +351,7 @@ class MtprotoServer(
             val remaining = session.deadline - System.nanoTime()
             if (remaining <= 0) throw java.net.SocketTimeoutException("Handshake deadline")
             session.client.soTimeout = TimeUnit.NANOSECONDS.toMillis(remaining).coerceAtLeast(1).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-            val count = session.client.getInputStream().read(buffer, read, buffer.size - read)
+            val count = session.input.read(buffer, read, buffer.size - read)
             if (count < 0) throw EOFException("Client closed during handshake")
             read += count
         }
@@ -345,7 +362,12 @@ class MtprotoServer(
 
     private fun serve(session: Session) {
         session.client.tcpNoDelay = true
-        val result = MtprotoCrypto.inspectClientInit(readInit(session), secret)
+        val initial = try { readInit(session) } catch (error: java.io.IOException) {
+            if (fakeTlsDomain.isEmpty()) throw error
+            if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.HANDSHAKE, HandshakeRejection.SECRET_OR_TRANSPORT))
+            return
+        }
+        val result = MtprotoCrypto.inspectClientInit(initial, secret)
         if (result is ClientInitResult.Rejected) {
             emit(session.run, ServerEvent.Diagnostic(ServerIssue.HANDSHAKE, result.reason))
             return
@@ -447,8 +469,8 @@ class MtprotoServer(
                     val plain = context.fromTelegram.update(data)
                     session.downstreamWriteDeadline = writeDeadline()
                     try {
-                        session.client.getOutputStream().write(context.toClient.update(plain))
-                        session.client.getOutputStream().flush()
+                        session.output.write(context.toClient.update(plain))
+                        session.output.flush()
                     } finally { session.downstreamWriteDeadline = 0L }
                     session.touch()
                 }
@@ -460,7 +482,7 @@ class MtprotoServer(
         }
         try {
             while (!session.closed.get()) {
-                val data = session.client.getInputStream().readChunk() ?: break
+                val data = session.input.readChunk() ?: break
                 val plain = context.fromClient.update(data)
                 val encrypted = context.toTelegram.update(plain)
                 // TCP carries the same framed stream: validate bounds before forwarding in both paths.
