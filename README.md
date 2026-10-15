@@ -60,6 +60,7 @@ TGWS-Android — нативное Android-приложение на Kotlin и Je
 3. Для сборки в терминале используйте комплектный Gradle Wrapper: `./gradlew :app:assembleDebug` (Linux/macOS) или `gradlew.bat :app:assembleDebug` (Windows).
 4. Основная проверка: `./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`.
 5. Сборка инструментальных тестов: `./gradlew --no-daemon :app:assembleDebugAndroidTest`; выполнение на устройстве: `./gradlew --no-daemon :app:connectedDebugAndroidTest`.
+6. Debug APK доступен в **Actions → Android CI → запуск → Artifacts**. [Инструкции Codex](AGENTS.md).
 
 > [!NOTE]
 > Подтверждены 104 JVM-теста, Lint, сборка APK и по 10 инструментальных тестов на эмуляторах API 34–37. [Результаты и CI](docs/TEST_REPORT.md). Реальное подключение официального Telegram не проверено.
