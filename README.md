@@ -4,48 +4,52 @@
   <img src="docs/images/tgws-github-cover-ru.svg" width="100%" alt="TGWS-Android — нативный MTProto-прокси для Android, русский баннер" />
 </p>
 
-<p align="center">
-  <img src="docs/images/tgws-logo.jpg" width="176" alt="Официальный логотип TGWS-Android" />
-</p>
-
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml)
-
-[![Android](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/15)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Status](https://img.shields.io/badge/Status-0.3.3--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/15) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.3--alpha-orange)
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 15+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[English README](README_EN.md) · [План разработки](ROADMAP.md) · [Проверки и Telegram E2E](docs/TESTING.md) · [Отчёт обновления](docs/TEST_REPORT_0.3.3-alpha.md) · [Разработка с Codex](docs/CODEX_WORKFLOW.md)**
+**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.3-alpha-debug/TGWS-Android-0.3.3-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Результаты тестов](docs/TEST_REPORT_0.3.3-alpha.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.3.3-alpha — тестовое обновление. Проверка владельцем на физическом устройстве: ожидается.** Автоматические проверки не подтверждают доступность у оператора. Владелец ранее сообщил о рабочем Telegram на Android 16 / Wi-Fi и стабильных 6 мс в 0.2.0 на порту 8443; это показание Telegram, а не независимый замер или проверка новой версии.
+> **0.3.3-alpha — тестовая сборка с debug-подписью.** Автотесты проходят на Android 15–17. Проверка этой версии с Telegram и мобильным оператором на физическом устройстве ожидается.
 
-## Языки программирования и технологии
+## Языки и технологии
 
-**Языки, фактически используемые в исходниках проекта:**
+![Языки и инструменты TGWS-Android: Kotlin, JavaScript, Python, Bash, AGSL, Android, Compose, Gradle и GitHub Actions](docs/images/tgws-stack.svg)
 
-| Язык | Где применяется |
+| Язык | Для чего используется |
 | --- | --- |
-| ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white) **Kotlin** | Нативное Android-приложение, MTProto-ядро, UI на Jetpack Compose и тесты |
-| ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=222222) **JavaScript (ES modules)** | WSS-relay и Cloudflare Worker, файлы `.mjs` |
-| ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) **Python 3** | Генераторы эталонных тестовых векторов, CI и вспомогательные скрипты; **не входит в APK** |
-| **Shell** | Скрипты запуска Android-инструментальных тестов в CI |
-| **XML** | AndroidManifest, интерфейсные ресурсы, иконки и локализация |
-| **Kotlin DSL** | Gradle-конфигурация сборки (`.gradle.kts`) |
+| **Kotlin** | Нативное Android-приложение, MTProto-ядро, интерфейс Jetpack Compose и тесты |
+| **JavaScript · ES modules** | Собственное WSS-реле и Cloudflare Worker: каталоги `relay/` и `cloudflare-worker/` |
+| **Python 3** | Эталонные протокольные векторы, проверки и публикация CI; **в APK не входит** |
+| **Bash** | Запуск Android-инструментальных тестов и подготовка эмулятора в CI |
+| **AGSL** | Встроенный Android RuntimeShader для Liquid Glass и эффекта прозрачности в `LiquidGlass.kt` |
 
-**Основной стек:** Android SDK, Jetpack Compose, Material 3, Kotlin Coroutines, OkHttp, Android Keystore, Gradle и GitHub Actions. Файлы YAML/JSON также используются для конфигурации CI и серверных инструментов.
+**Ресурсы и конфигурация:** XML — AndroidManifest, иконки и локализация; Kotlin DSL —
+Gradle-сборка; YAML/JSON — workflows и серверные настройки. Java используется как JDK 17,
+отдельных Java-исходников в текущем проекте нет.
 
-## Скриншоты приложения
+**Платформа:** Android 15+, Jetpack Compose / Material 3, Kotlin Coroutines, OkHttp,
+Android Keystore, Gradle и GitHub Actions. [Источники изображений и лицензии](docs/images/ASSETS.md).
 
-<p align="center">
-  <img src="docs/images/0.3.1/home-light.png" width="31%" alt="Главная страница — светлая тема" />
-  <img src="docs/images/0.3.1/home-dark.png" width="31%" alt="Главная страница — тёмная тема" />
-  <img src="docs/images/0.3.1/settings-dark.png" width="31%" alt="Настройки приложения — тёмная тема" />
-</p>
+## Приложение в кадре
 
-<p align="center"><sub>Скриншоты сборки 0.3.1-alpha: светлая главная страница, тёмная главная страница и настройки. В 0.3.3-alpha оформление может отличаться.</sub></p>
+<table>
+  <tr>
+    <td align="center" width="33%"><strong>Светлая тема</strong></td>
+    <td align="center" width="33%"><strong>Тёмная тема</strong></td>
+    <td align="center" width="33%"><strong>Оформление</strong></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/0.3.3/home-light.png" alt="TGWS-Android 0.3.3: главная страница, светлая тема и прозрачность" width="260" /></td>
+    <td><img src="docs/images/0.3.3/home-dark.png" alt="TGWS-Android 0.3.3: главная страница, тёмная тема и прозрачность" width="260" /></td>
+    <td><img src="docs/images/0.3.3/settings-glass.png" alt="TGWS-Android 0.3.3: настройки с включёнными Liquid Glass и прозрачностью" width="260" /></td>
+  </tr>
+</table>
+
+Реальные снимки **0.3.3-alpha** из CI: Android API 35/36/37, английская локализация,
+программный GPU. Для демонстрации включены бета-эффекты; по умолчанию они выключены.
+Снимки не подтверждают соединение Telegram. [Источник и проверенные SHA-256](docs/images/ASSETS.md).
 
 ## Интерфейс и DNS 0.3.3
 
@@ -115,7 +119,7 @@ TGWS-Android — нативное Android-приложение на Kotlin и Je
 6. Debug APK доступен в **Actions → Android CI → запуск → Artifacts**. [Инструкции Codex](AGENTS.md).
 
 > [!NOTE]
-> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет также по 23 инструментальных тестов на API 35–37. [Результаты и ограничения обновления](docs/TEST_REPORT_0.3.3-alpha.md).
+> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет также по 25 инструментальных тестов на API 35–37. [Результаты и ограничения обновления](docs/TEST_REPORT_0.3.3-alpha.md).
 
 CI запускается при push в `main`, Pull Request и вручную. Успешная проверка
 публикует debug APK, `SHA256SUMS`, версию и commit, changelog; отчёты JVM/Lint
