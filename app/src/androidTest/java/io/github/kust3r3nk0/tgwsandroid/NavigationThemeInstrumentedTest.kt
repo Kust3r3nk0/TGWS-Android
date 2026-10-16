@@ -65,32 +65,39 @@ class NavigationThemeInstrumentedTest {
         device.waitForIdle(1000)
         val automation=instrumentation.uiAutomation
         // Preference writes and accessibility idle can precede the compositor frame.
-        // Verify the real page margin has switched luminance before retaining a PNG.
+        // Verify the page and both system-bar margins before retaining a PNG.
         val deadline=SystemClock.elapsedRealtime()+5000
         var image=requireNotNull(automation.takeScreenshot())
         fun matchesTheme()=listOf(0,image.height/2,image.height-1).all{y->
             (android.graphics.Color.luminance(image.getPixel(0,y))<0.5f)==dark
         }
         var stableSince:Long?=null
-        while(true){
+        try{while(true){
             if(matchesTheme()){
                 val now=SystemClock.elapsedRealtime()
                 if(stableSince==null)stableSince=now
                 // Allow Material component colour transitions to finish as well.
                 if(now-requireNotNull(stableSince)>=300)break
             }else stableSince=null
+            if(SystemClock.elapsedRealtime()>=deadline){
+                writeScreenshot("failure-$name",image)
+                error("Expected theme was not rendered: $name; pixels="+
+                    listOf(0,image.height/2,image.height-1).joinToString{y->Integer.toHexString(image.getPixel(0,y))})
+            }
             image.recycle()
-            check(SystemClock.elapsedRealtime()<deadline){"Expected theme was not rendered: $name"}
             SystemClock.sleep(16)
             image=requireNotNull(automation.takeScreenshot())
         }
-        try{
-            shell("mkdir -p /sdcard/Download/tgws-ui")
-            val pipes=automation.executeShellCommandRw("dd of=/sdcard/Download/tgws-ui/$name.png")
-            ParcelFileDescriptor.AutoCloseOutputStream(pipes[1]).use{check(image.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it))}
-            ParcelFileDescriptor.AutoCloseInputStream(pipes[0]).use{it.readBytes()}
-            check((shell("stat -c %s /sdcard/Download/tgws-ui/$name.png").trim().toLongOrNull()?:0)>0)
+            writeScreenshot(name,image)
         }finally{image.recycle()}
+    }
+    private fun writeScreenshot(name:String,image:android.graphics.Bitmap){
+        require(name.matches(Regex("[a-z-]+")))
+        shell("mkdir -p /sdcard/Download/tgws-ui")
+        val pipes=instrumentation.uiAutomation.executeShellCommandRw("dd of=/sdcard/Download/tgws-ui/$name.png")
+        ParcelFileDescriptor.AutoCloseOutputStream(pipes[1]).use{check(image.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it))}
+        ParcelFileDescriptor.AutoCloseInputStream(pipes[0]).use{it.readBytes()}
+        check((shell("stat -c %s /sdcard/Download/tgws-ui/$name.png").trim().toLongOrNull()?:0)>0)
     }
     @Test fun navigationKeepsDraftAndSaveSurvivesActivityRecreation(){
         ActivityScenario.launch(MainActivity::class.java).use{activity->

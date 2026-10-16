@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.testTag
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
 import io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint
 import androidx.compose.ui.res.stringResource
@@ -64,7 +65,10 @@ class MainActivity : ComponentActivity() {
             var dnsMode by remember{mutableStateOf(preferences.dns)}
             TgwsTheme(themeMode) {
                 val isDark=darkTheme(themeMode)
+                val windowBackground=MaterialTheme.colorScheme.background.toArgb()
                 SideEffect{
+                    // Android 15 can expose the native window beneath transparent system bars.
+                    window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(windowBackground))
                     val bars=if(isDark)SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                         else SystemBarStyle.light(android.graphics.Color.TRANSPARENT,android.graphics.Color.TRANSPARENT)
                     enableEdgeToEdge(statusBarStyle=bars,navigationBarStyle=bars)

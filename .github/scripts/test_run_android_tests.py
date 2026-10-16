@@ -32,7 +32,12 @@ class AndroidEntryPointTest(unittest.TestCase):
     def test_gradle_failure_stops_before_report_gate(self):
         status, steps = self.run_script(gradle_status=1)
         self.assertNotEqual(0, status)
-        self.assertEqual(['gradle'], steps)
+        self.assertEqual(['gradle', 'screenshots'], steps)
+
+    def test_failed_screenshot_pull_cannot_mask_gradle_failure(self):
+        status, steps = self.run_script(gradle_status=9, pull_status=7)
+        self.assertEqual(9, status)
+        self.assertEqual(['gradle', 'screenshots'], steps)
 
     def test_success_checks_actual_reports(self):
         status, steps = self.run_script()
