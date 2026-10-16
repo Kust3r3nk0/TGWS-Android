@@ -36,6 +36,23 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class Http2InstrumentedTest {
     private fun ctr(key:ByteArray,iv:ByteArray)=Cipher.getInstance("AES/CTR/NoPadding").apply{init(Cipher.ENCRYPT_MODE,SecretKeySpec(key,"AES"),IvParameterSpec(iv))}
+    @Test fun androidCloudflareCompatibleDohDecodesBothFamiliesUsingStrictLocalTls(){fixture{peer,client->
+        peer.dispatcher=object:Dispatcher(){override fun dispatch(request:RecordedRequest):MockResponse{
+            assertEquals("/dns-query",request.url.encodedPath);assertEquals("POST",request.method)
+            val query=requireNotNull(request.body).toByteArray();var end=12
+            while(query[end]!=0.toByte())end+=(query[end].toInt() and 255)+1
+            end++;val type=((query[end].toInt() and 255) shl 8) or (query[end+1].toInt() and 255);end+=4
+            val address=java.net.InetAddress.getByName(if(type==1)"192.0.2.42" else "2001:db8::42").address
+            val reply=query.copyOf(2)+byteArrayOf(0x81.toByte(),0x80.toByte(),0,1,0,1,0,0,0,0)+query.copyOfRange(12,end)+
+                byteArrayOf(0xc0.toByte(),12,0,type.toByte(),0,1,0,0,0,1,0,address.size.toByte())+address
+            return MockResponse.Builder().setHeader("Content-Type","application/dns-message").body(okio.Buffer().write(reply)).build()
+        }}
+        CloudflareDns.using(client,peer.url("/dns-query").newBuilder().host("localhost").build().toString(),listOf(java.net.InetAddress.getByName("127.0.0.1"))).use{dns->
+            val answers=dns.lookup("example.com");assertEquals(2,answers.size)
+            assertTrue(answers.any{it is java.net.Inet4Address});assertTrue(answers.any{it is java.net.Inet6Address})
+        }
+        assertEquals(2,peer.requestCount)
+    }}
     private fun fixture(action:(MockWebServer,OkHttpClient)->Unit){
         val store=KeyStore.getInstance("PKCS12")
         InstrumentationRegistry.getInstrumentation().context.assets.open("localhost.p12").use{store.load(it,"test-only-password".toCharArray())}

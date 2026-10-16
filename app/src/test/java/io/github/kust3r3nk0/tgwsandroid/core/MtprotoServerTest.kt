@@ -481,6 +481,8 @@ class MtprotoServerTest {
                 await("Missing invalid packet diagnostic") { events.issue(ServerIssue.SESSION) }
             }
             assertEquals(1, factory.channels.single().sent.size)
+            // Local EOF/diagnostic can reach the peer before the session's finally block closes remote.
+            assertTrue("Malformed session did not release its remote",factory.channels.single().closed.await(1,TimeUnit.SECONDS))
             assertEquals(0L, factory.channels.single().closed.count)
         }
     }

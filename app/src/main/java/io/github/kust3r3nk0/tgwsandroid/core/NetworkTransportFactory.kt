@@ -13,8 +13,25 @@ import okhttp3.OkHttpClient
 import okhttp3.Protocol
 
 /** One service-owned factory; network changes close HTTP pools and invalidate bounded DNS. */
-internal class NetworkTransportFactory(private val current:()->NetworkAccess?):TransportFactory,Closeable {
-    val connector=NetworkConnector(current)
+internal class NetworkTransportFactory(private val dnsMode:DnsMode=DnsMode.SYSTEM,private val current:()->NetworkAccess?):TransportFactory,Closeable {
+    val connector=NetworkConnector{networkAccess()}
+    private var dnsNetwork:NetworkAccess?=null
+    private var dnsAccess:NetworkAccess?=null
+    private var cloudflare:CloudflareDns?=null
+    @Synchronized private fun networkAccess():NetworkAccess? {
+        val network=current()?:return null
+        if(dnsMode==DnsMode.SYSTEM)return network
+        if(dnsNetwork!==network){
+            disposeDns()
+            val resolver=CloudflareDns.create(network){!closed && current()===network}
+            cloudflare=resolver;dnsNetwork=network
+            dnsAccess=object:NetworkAccess by network {
+                override fun addresses(host:String):List<InetAddress> =
+                    if(host.matches(Regex("[0-9.]+")) || host.contains(':'))network.addresses(host) else resolver.lookup(host)
+            }
+        }
+        return dnsAccess
+    }
     override val supportsWarmWebSockets=true
     private var clientNetwork:NetworkAccess?=null
     private var client:OkHttpClient?=null
@@ -76,6 +93,7 @@ internal class NetworkTransportFactory(private val current:()->NetworkAccess?):T
         client?.let{it.dispatcher.cancelAll();it.connectionPool.evictAll();it.dispatcher.executorService.shutdownNow()}
         client=null;clientNetwork=null
     }
-    fun invalidate(){connector.invalidate();disposeClient()}
-    override fun close(){closed=true;connector.close();disposeClient()}
+    @Synchronized private fun disposeDns(){cloudflare?.close();cloudflare=null;dnsNetwork=null;dnsAccess=null}
+    fun invalidate(){connector.invalidate();disposeClient();disposeDns()}
+    override fun close(){closed=true;connector.close();disposeClient();disposeDns()}
 }
