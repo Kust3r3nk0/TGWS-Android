@@ -62,7 +62,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             val preferences=remember{AppPreferences(this@MainActivity)}
             var themeMode by remember{mutableStateOf(preferences.theme)}
-            var dnsMode by remember{mutableStateOf(preferences.dns)}
             var liquidGlass by remember{mutableStateOf(preferences.liquidGlass)}
             var transparency by remember{mutableStateOf(preferences.transparency)}
             TgwsTheme(themeMode,liquidGlass,transparency) {
@@ -206,7 +205,7 @@ class MainActivity : ComponentActivity() {
                         Text(stringResource(if (snapshot.running) R.string.stop else R.string.start_proxy))
                     }
                         }
-                        NetworkCard(observedNetwork,dnsMode)
+                        NetworkCard(observedNetwork)
                         SectionCard(stringResource(R.string.telegram_actions)){
                     OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = validConfiguration && !busy, onClick = {
                         copySensitive(getString(R.string.clipboard_link), SettingsValidation.telegramLink(portText.toInt(), secretText,requireNotNull(advancedConfig).fakeTlsDomain))
@@ -232,7 +231,7 @@ class MainActivity : ComponentActivity() {
                         }
                         Text(stringResource(R.string.local_notice),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     }else{
-                        AppearanceSettings(themeMode,{themeMode=it;preferences.theme=it},dnsMode,{dnsMode=it;preferences.dns=it},editable,
+                        AppearanceSettings(themeMode,{themeMode=it;preferences.theme=it},
                             liquidGlass,{liquidGlass=it;preferences.liquidGlass=it},
                             transparency,{transparency=it;preferences.transparency=it})
                         SectionCard(stringResource(R.string.mtproxy_settings)){

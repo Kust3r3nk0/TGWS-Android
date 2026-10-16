@@ -21,7 +21,8 @@ Continue through authorized steps without unnecessary confirmation pauses.
 Add relevant tests, fix discovered issues, and run:
 ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 Keep the work on a separate branch and open a PR if possible.
-Do not create a release, merge to main, or claim device testing unless it actually happened.
+Publish authorized debug artifacts/prereleases after automatic gates; do not merge to main.
+Physical testing belongs to the owner: do not seek personal phones/ADB or claim unreported results.
 Report implemented requirements, actual verification results, APK/CI location, and remaining issues.
 [Paste specification below]
 ```
@@ -30,14 +31,14 @@ A five-hour Codex quota window **does not guarantee five hours of uninterrupted 
 
 ## 3. CI and APK artifacts
 
-The existing [Android CI](../../.github/workflows/android-ci.yml) runs for pull requests targeting `main`, pushes to `main`, and manual dispatch. On success it runs JVM tests, Android Lint, builds `:app:assembleDebug`, and uploads the **`TGWS-Android-debug-apk`** artifact.
+The existing [Android CI](../../.github/workflows/android-ci.yml) runs for pull requests targeting `main`, pushes to `main`, and manual dispatch. On success it runs JVM tests, Android Lint, builds `:app:assembleDebug`, and uploads the **`TGWS-Android-<version>-debug-<SHA>`** artifact.
 
 To download:
 
 1. Open a PR containing the Codex changes and wait for Android CI.
 2. Open the workflow's [Actions page](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml).
 3. Select the correct run and check its conclusion.
-4. Under **Artifacts**, download **TGWS-Android-debug-apk** and extract its ZIP.
+4. Under **Artifacts**, download `TGWS-Android-<version>-debug-<SHA>` and extract its ZIP.
 5. The archive contains the debug APK if the build and upload succeeded.
 
 A debug APK is **not a production-signed release**, and passing CI does **not** prove real Telegram connectivity. Run separate integration and on-device tests.
@@ -50,3 +51,12 @@ A debug APK is **not a production-signed release**, and passing CI does **not** 
 - Fully unattended initiation requires a separately configured agent trigger and permissions; this workflow does not run a language model.
 
 [Русская инструкция](../CODEX_WORKFLOW.md).
+
+
+## TGWS-16-016 / 017
+
+Follow the [WebView applicability contract](WEBVIEW_COMPATIBILITY.md) and
+[owner physical-testing process](PHYSICAL_TESTING.md). Current app is native, no WebView.
+CI ZIP includes a populated `OWNER_HANDOFF.md`: version, source/tree SHA and Actions URL.
+Only actual owner reports confirm phone/One UI/Stable-Beta/carrier results; never seek phone access.
+Debug publication remains allowed after automated gates while owner testing is pending.

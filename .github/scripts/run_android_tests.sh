@@ -8,8 +8,11 @@ if [[ "$actual_api" != "${requested_api%%.*}" ]]; then
   echo "Wrong emulator API: expected ${requested_api%%.*}, received $actual_api" >&2
   exit 1
 fi
+python3 .github/scripts/collect_android_environment.py --output app/build/reports/android-environment/before.json
 test_status=0
 ./gradlew --no-daemon :app:connectedDebugAndroidTest || test_status=$?
+environment_status=0
+python3 .github/scripts/collect_android_environment.py --output app/build/reports/android-environment/after.json || environment_status=$?
 if [[ "$test_status" != 0 ]]; then
   # Retain diagnostic frames without changing or masking the test failure.
   mkdir -p app/build/reports/androidTests/connected/screenshots
@@ -17,6 +20,9 @@ if [[ "$test_status" != 0 ]]; then
     echo 'Failed test screenshot collection unavailable; preserving test exit status' >&2
   fi
   exit "$test_status"
+fi
+if [[ "$environment_status" != 0 ]]; then
+  exit "$environment_status"
 fi
 python3 .github/scripts/verify_android_tests.py
 mkdir -p app/build/reports/androidTests/connected/screenshots

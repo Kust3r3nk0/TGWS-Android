@@ -18,7 +18,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
 
 @Composable internal fun AppScaffold(page:Int,onPage:(Int)->Unit,version:String,isDark:Boolean,onToggleTheme:()->Unit,
     content:@Composable ColumnScope.()->Unit){
@@ -62,18 +61,18 @@ import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
     }
 }
 
-@Composable internal fun NetworkCard(network:NetworkView,dns:DnsMode){
+@Composable internal fun NetworkCard(network:NetworkView){
     SectionCard(stringResource(R.string.network_card),Modifier.testTag("home.network")){
         Text(stringResource(when(network.kind){AccessKind.NONE->R.string.access_none;AccessKind.WIFI->R.string.access_wifi;AccessKind.CELLULAR->R.string.access_cell;AccessKind.OTHER->R.string.access_other}),
             style=MaterialTheme.typography.headlineSmall)
         Text(stringResource(when(network.ipSupport){IpSupport.UNKNOWN->R.string.ip_unknown;IpSupport.IPV4->R.string.ip_v4;IpSupport.IPV6->R.string.ip_v6;IpSupport.DUAL->R.string.ip_dual}),style=MaterialTheme.typography.titleMedium)
         Text(stringResource(if(network.captivePortal)R.string.network_portal else if(network.validated)R.string.network_validated else R.string.network_unvalidated),color=MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(stringResource(R.string.dns_active,stringResource(if(dns==DnsMode.CLOUDFLARE)R.string.dns_cloudflare else R.string.dns_system)),style=MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.dns_active,stringResource(R.string.dns_system)),style=MaterialTheme.typography.bodyMedium)
         Text(stringResource(R.string.ip_notice),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
-@Composable internal fun AppearanceSettings(theme:ThemeMode,onTheme:(ThemeMode)->Unit,dns:DnsMode,onDns:(DnsMode)->Unit,editable:Boolean,
+@Composable internal fun AppearanceSettings(theme:ThemeMode,onTheme:(ThemeMode)->Unit,
     liquidGlass:Boolean,onLiquidGlass:(Boolean)->Unit,transparency:Boolean,onTransparency:(Boolean)->Unit){
     SectionCard(stringResource(R.string.appearance_title)){
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
@@ -98,12 +97,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
         }
     }
     SectionCard(stringResource(R.string.dns_title)){
-        for(mode in DnsMode.entries)Row(verticalAlignment=Alignment.CenterVertically){
-            RadioButton(selected=dns==mode,onClick={onDns(mode)},enabled=editable,modifier=Modifier.testTag("dns.${mode.name}"))
-            Text(stringResource(if(mode==DnsMode.CLOUDFLARE)R.string.dns_cloudflare else R.string.dns_system))
-        }
-        Text(stringResource(R.string.cloudflare_addresses),style=MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.dns_system),Modifier.testTag("dns.system"))
         Text(stringResource(R.string.dns_notice),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-        if(!editable)Text(stringResource(R.string.stop_to_edit),style=MaterialTheme.typography.bodySmall)
     }
 }

@@ -4,14 +4,14 @@
   <img src="docs/images/tgws-github-cover-ru.svg" width="100%" alt="TGWS-Android — нативный MTProto-прокси для Android, русский баннер" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/15) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.3--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/15) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.4--alpha-orange)
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 15+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.3-alpha-debug/TGWS-Android-0.3.3-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Результаты тестов](docs/TEST_REPORT_0.3.3-alpha.md) · [Участие](CONTRIBUTING.md)**
+**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.4-alpha-debug/TGWS-Android-0.3.4-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Результаты тестов](docs/TEST_REPORT_0.3.4-alpha.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.3.3-alpha — тестовая сборка с debug-подписью.** Автотесты проходят на Android 15–17. Проверка этой версии с Telegram и мобильным оператором на физическом устройстве ожидается.
+> **0.3.4-alpha — тестовая сборка с debug-подписью.** Автотесты проходят на Android 15–17. Проверка этой версии с Telegram и мобильным оператором на физическом устройстве ожидается.
 
 ## Языки и технологии
 
@@ -51,7 +51,7 @@ Android Keystore, Gradle и GitHub Actions. [Источники изображе
 программный GPU. Для демонстрации включены бета-эффекты; по умолчанию они выключены.
 Снимки не подтверждают соединение Telegram. [Источник и проверенные SHA-256](docs/images/ASSETS.md).
 
-## Интерфейс и DNS 0.3.3
+## Интерфейс и DNS 0.3.4
 
 В нижнем меню две вкладки: **Главная страница** (запуск, Telegram, сеть) и
 **Настройки приложения и MTProxy**. Светлая/тёмная/системная тема сохраняется;
@@ -61,11 +61,11 @@ Android Keystore, Gradle и GitHub Actions. [Источники изображе
 Рядом добавлен отдельный **«Эффект прозрачности»**: фон приложения действительно виден
 сквозь карточки и панели. Можно включить без Liquid Glass или вместе с ним; по умолчанию выключен.
 
-В настройках можно выбрать **Cloudflare DNS over HTTPS**: 1.1.1.1 / 1.0.0.1 и IPv6
-2606:4700:4700::1111 / ::1001. Выбор применяется при следующем запуске прокси.
-Прежний системный DNS остаётся по умолчанию. Настройки DNS самой Android не меняются.
-На главной автоматически видны Wi-Fi/мобильная сеть и IPv4/IPv6/оба семейства по данным Android,
-включая состояние при остановленном прокси. [Поведение DNS и ограничения](docs/DNS_AND_APPEARANCE.md).
+Встроенный **Cloudflare DNS удалён**. Используется DNS активной сети Android, включая
+системный Private DNS и операторские DNS64-ответы; остальные настройки сохраняются.
+Добавлен ограниченный параллельный выбор IPv4/IPv6 с шагом 250 мс. Главная автоматически
+показывает Wi-Fi/мобильную сеть и семейства адресов, даже когда прокси остановлен.
+[DNS и ограничения](docs/DNS_AND_APPEARANCE.md) · [Почему сеть может не работать и варианты](docs/NETWORK_COMPATIBILITY_0.3.4.md).
 
 ## Как работает TGWS-Android
 
@@ -77,7 +77,7 @@ Android Keystore, Gradle и GitHub Actions. [Источники изображе
 
 TGWS-Android — нативное Android-приложение на Kotlin и Jetpack Compose для запуска локального MTProto WebSocket-прокси. Планируется функциональная совместимость с сетевым ядром Flowseal TG-WS-Proxy, включая WebSocket, TCP fallback, Fake TLS, Cloudflare-маршруты и HTTP/2. Приложение **не является VPN** и не перехватывает системный трафик.
 
-## Текущее состояние (0.3.3-alpha)
+## Текущее состояние (0.3.4-alpha)
 
 | Возможность | Статус |
 |---|---|
@@ -119,14 +119,14 @@ TGWS-Android — нативное Android-приложение на Kotlin и Je
 6. Debug APK доступен в **Actions → Android CI → запуск → Artifacts**. [Инструкции Codex](AGENTS.md).
 
 > [!NOTE]
-> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет также по 25 инструментальных тестов на API 35–37. [Результаты и ограничения обновления](docs/TEST_REPORT_0.3.3-alpha.md).
+> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет также по 25 инструментальных тестов на API 35–37. [Результаты и ограничения обновления](docs/TEST_REPORT_0.3.4-alpha.md).
 
 CI запускается при push в `main`, Pull Request и вручную. Успешная проверка
 публикует debug APK, `SHA256SUMS`, версию и commit, changelog; отчёты JVM/Lint
 сохраняются отдельно. Actions и Wrapper закреплены по проверенным SHA.
 Отдельный workflow при PR и вручную проверяет Android API 35, 36, 37.0.
 
-[Скачать 0.3.3 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.3-alpha-debug/TGWS-Android-0.3.3-debug.apk)
+[Скачать 0.3.3 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.4-alpha-debug/TGWS-Android-0.3.4-debug.apk)
 
 ## Транспорты 0.3.0
 
@@ -177,7 +177,7 @@ WSS использует обычную проверку доверия TLS и �
 
 При смене сети существующие сессии закрываются; Telegram должен создать новые.
 Бесшовной миграции нет. Полные критерии, ограничения и фактически выполненные
-проверки приведены в [отчёте обновления](docs/TEST_REPORT_0.3.3-alpha.md).
+проверки приведены в [отчёте обновления](docs/TEST_REPORT_0.3.4-alpha.md).
 
 ## Архитектура исходников
 
@@ -207,3 +207,12 @@ app/src/main/java/io/github/kust3r3nk0/tgwsandroid/
 
 **Разработчик / инициатор проекта:** Makarov Lab's 3.0™.  
 **Репозиторий:** `Kust3r3nk0/TGWS-Android`.
+
+
+## WebView и проверки владельцем
+
+Интерфейс нативный Compose: встроенного WebView и зависимости WebKit нет. Инвентаризация
+провайдера в CI не подтверждает latest Stable/Beta. [WebView-контракт](docs/TGWS-16-016_WEBVIEW.md)
+и [порядок физических проверок](docs/TGWS-16-017_PHYSICAL_TESTING.md) закрепляют обязанности.
+Успешные CI-артефакты содержат версию, source/tree SHA и `OWNER_HANDOFF.md`; результаты
+на смартфоне, One UI, у оператора, в Telegram и Stable/Beta подтверждает владелец.

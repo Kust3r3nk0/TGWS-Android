@@ -18,9 +18,9 @@ import okio.Buffer
 import okio.ForwardingSource
 import okio.buffer
 
-enum class DnsMode { SYSTEM, CLOUDFLARE }
 
-/** RFC 8484 provider for this app only. No plaintext/system fallback in Cloudflare mode. */
+
+/** Historical RFC 8484 fixture retained for local JVM/Android regressions. Never packaged in the app. */
 internal class CloudflareDns private constructor(private val client:OkHttpClient,private val dns:Dns,
     private val valid:()->Boolean):Closeable {
     @Volatile private var closed=false

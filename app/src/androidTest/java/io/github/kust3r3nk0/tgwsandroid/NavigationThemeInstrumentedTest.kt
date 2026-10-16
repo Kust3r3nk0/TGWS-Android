@@ -27,7 +27,6 @@ import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
-import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -45,10 +44,10 @@ class NavigationThemeInstrumentedTest {
     @Before fun setup(){
         // Only the unrelated emulator launcher is stopped. TGWS errors/ANRs remain visible.
         shell("am force-stop com.google.android.apps.nexuslauncher")
-        AppPreferences(context).apply{theme=ThemeMode.SYSTEM;dns=DnsMode.SYSTEM;liquidGlass=false;transparency=false}
+        AppPreferences(context).apply{theme=ThemeMode.SYSTEM;liquidGlass=false;transparency=false}
         SettingsStore(context).recover(8443,"00112233445566778899aabbccddeeff")
     }
-    @After fun cleanup(){AppPreferences(context).apply{dns=DnsMode.SYSTEM;theme=ThemeMode.SYSTEM;liquidGlass=false;transparency=false}}
+    @After fun cleanup(){AppPreferences(context).apply{theme=ThemeMode.SYSTEM;liquidGlass=false;transparency=false}}
     private fun selector(tag:String)=By.pkg(context.packageName).res(tag)
     private fun node(tag:String,direction:Direction?=null):UiObject2 {
         device.wait(Until.findObject(selector(tag)),1000)?.let{return it}
@@ -144,16 +143,30 @@ class NavigationThemeInstrumentedTest {
             assertFalse(ProxyState.snapshot.running)
         }
     }
-    @Test fun themeAndExplicitCloudflareChoicePersistWithoutChangingProtectedConfiguration(){
+    @Test fun retiredDnsMigrationHandlesEveryLegacyValueAndPreservesAllOtherPreferences(){
+        val legacy=context.getSharedPreferences("app_preferences",Context.MODE_PRIVATE)
+        val protected=context.getSharedPreferences("settings",Context.MODE_PRIVATE).all.toMap()
+        for(value in listOf<Any>("CLOUDFLARE","SYSTEM","unknown",42)){
+            val update=legacy.edit().putString("theme","DARK").putBoolean("liquid_glass",true).putBoolean("transparency",true)
+            if(value is Int)update.putInt("dns",value)else update.putString("dns",value as String)
+            assertTrue(update.commit())
+            AppPreferences(context).let{assertEquals(ThemeMode.DARK,it.theme);assertTrue(it.liquidGlass);assertTrue(it.transparency)}
+            assertFalse(legacy.contains("dns"));assertEquals(protected,context.getSharedPreferences("settings",Context.MODE_PRIVATE).all)
+        }
+    }
+    @Test fun themeAndRetiredCloudflareChoiceMigrateWithoutChangingProtectedConfiguration(){
         val prefs=context.getSharedPreferences("settings",Context.MODE_PRIVATE)
         val before=prefs.getString("secret_encrypted",null)
+        val legacy=context.getSharedPreferences("app_preferences",Context.MODE_PRIVATE)
+        assertTrue(legacy.edit().putString("dns","CLOUDFLARE").commit())
         ActivityScenario.launch(MainActivity::class.java).use{activity->
-            settled();node("nav.settings").click();selected("dns.SYSTEM")
-            node("dns.CLOUDFLARE",Direction.DOWN).click()
+            settled();node("nav.settings").click()
+            assertNotNull(node("dns.system",Direction.DOWN))
+            assertNull(device.findObject(selector("dns.CLOUDFLARE")))
             node("theme.DARK",Direction.UP).click()
-            eventually{AppPreferences(context).dns==DnsMode.CLOUDFLARE && AppPreferences(context).theme==ThemeMode.DARK}
+            eventually{!legacy.contains("dns") && AppPreferences(context).theme==ThemeMode.DARK}
             activity.recreate();settled()
-            selected("theme.DARK");selected("dns.CLOUDFLARE")
+            selected("theme.DARK");assertFalse(legacy.contains("dns"))
             node("theme.DARK",Direction.UP);screenshot("settings-dark",dark=true)
             node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.LIGHT}
             node("nav.home").click();screenshot("home-light",dark=false)
@@ -196,7 +209,7 @@ class NavigationThemeInstrumentedTest {
             node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.LIGHT}
             node("nav.home").click();eventually{margin()==normal}
             assertEquals(before,protectedPrefs.all)
-            assertEquals(DnsMode.SYSTEM,AppPreferences(context).dns)
+            assertFalse(context.getSharedPreferences("app_preferences",Context.MODE_PRIVATE).contains("dns"))
             assertFalse(ProxyState.snapshot.running)
         }
     }
@@ -234,7 +247,7 @@ class NavigationThemeInstrumentedTest {
             assertFalse(node("appearance.transparency",Direction.UP).isChecked)
             assertFalse(AppPreferences(context).liquidGlass)
             assertEquals(before,protectedPrefs.all)
-            assertEquals(DnsMode.SYSTEM,AppPreferences(context).dns)
+            assertFalse(context.getSharedPreferences("app_preferences",Context.MODE_PRIVATE).contains("dns"))
         }
     }
     @Test fun transparentPanelsActuallyCompositeTheParentBackdropInBothThemesAndGlassModes(){

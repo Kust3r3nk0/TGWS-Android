@@ -14,11 +14,13 @@ android {
         applicationId = "io.github.kust3r3nk0.tgwsandroid"
         minSdk = 35
         targetSdk = 37
-        versionCode = 9
-        versionName = "0.3.3-alpha"
+        versionCode = 10
+        versionName = "0.3.4-alpha"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }
+    sourceSets["test"].kotlin.directories.add("src/sharedTest/java")
+    sourceSets["androidTest"].kotlin.directories.add("src/sharedTest/java")
     testOptions.unitTests.all { test ->
         test.systemProperty("tgws.soak.seconds", providers.gradleProperty("soakSeconds").orElse("2").get())
     }
@@ -34,7 +36,9 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("com.squareup.okhttp3:okhttp:5.5.0")
-    implementation("com.squareup.okhttp3:okhttp-dnsoverhttps:5.5.0")
+    // Historical DoH regressions remain test-only; no DoH provider is shipped in the APK.
+    testImplementation("com.squareup.okhttp3:okhttp-dnsoverhttps:5.5.0")
+    androidTestImplementation("com.squareup.okhttp3:okhttp-dnsoverhttps:5.5.0")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")

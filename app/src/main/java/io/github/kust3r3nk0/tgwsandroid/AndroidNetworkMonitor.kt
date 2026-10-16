@@ -31,7 +31,7 @@ internal class AndroidNetworkMonitor(private val context:Context,private val han
             if(closed || state.current!=network)return
             val next=connectivity.activeNetwork
             if(next!=null && next!=network)refresh(next)
-            else if(state.lost(network)){access=null;changed(true,NetworkView())}
+            else if(state.lost(network)){access=null;queries.forEach{it.cancel()};changed(true,NetworkView())}
         }
     }
     fun start(){
@@ -43,7 +43,7 @@ internal class AndroidNetworkMonitor(private val context:Context,private val han
         if(closed)return
         val actual=connectivity.activeNetwork
         if(network==null){
-            state.current?.let{if(state.lost(it)){access=null;changed(true,NetworkView())}}
+            state.current?.let{if(state.lost(it)){access=null;queries.forEach{it.cancel()};changed(true,NetworkView())}}
             if(state.current==null)changed(false,NetworkView())
             return
         }
@@ -69,7 +69,9 @@ internal class AndroidNetworkMonitor(private val context:Context,private val han
                 override fun addresses(host:String):List<java.net.InetAddress>{
                     if(android.net.InetAddresses.isNumericAddress(host))return listOf(android.net.InetAddresses.parseNumericAddress(host))
                     val result=java.util.concurrent.CompletableFuture<List<java.net.InetAddress>>()
-                    val cancel=CancellationSignal();queries+=cancel
+                    val cancel=CancellationSignal().apply{setOnCancelListener{
+                        result.completeExceptionally(io.github.kust3r3nk0.tgwsandroid.core.NetworkUnavailable())
+                    }};queries+=cancel
                     try{
                         if(closed)throw java.net.UnknownHostException("Network closed")
                         DnsResolver.getInstance().query(network,host,DnsResolver.FLAG_EMPTY,

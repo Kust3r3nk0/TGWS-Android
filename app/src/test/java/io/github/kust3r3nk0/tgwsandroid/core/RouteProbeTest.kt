@@ -11,6 +11,20 @@ import org.junit.Test
 
 class RouteProbeTest {
     private fun await(condition:()->Boolean){val end=System.nanoTime()+TimeUnit.SECONDS.toNanos(3);while(!condition()){assertTrue(System.nanoTime()<end);Thread.sleep(2)}}
+    @Test fun refusedTcpDuringWssProbeIsReportedAsTcpNotHttpUpgradeFailure(){
+        val events=CopyOnWriteArrayList<ServerEvent>()
+        val factory=object:TransportFactory{
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport=
+                throw java.net.ConnectException("private endpoint")
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport=throw AssertionError("Unexpected probe")
+        }
+        MtprotoServer(ServerSocket(0).use{it.localPort},"00112233445566778899aabbccddeeff",{events+=it},transports=factory).use{server->
+            server.start();await{events.contains(ServerEvent.State(ServerPhase.LISTENING))};assertTrue(server.probeRoutes())
+            await{events.filterIsInstance<ServerEvent.Routes>().any{it.routes.any{it.issue==ServerIssue.TCP}}}
+            assertFalse(events.toString().contains("private endpoint"))
+            assertFalse(events.filterIsInstance<ServerEvent.Routes>().any{it.routes.any{it.issue==ServerIssue.WSS_HANDSHAKE}})
+        }
+    }
     @Test fun explicitProbeIsBoundedRateLimitedAndSendsNoMtprotoInitialization(){
         val opens=AtomicInteger();val sends=AtomicInteger();val closes=AtomicInteger();val events=CopyOnWriteArrayList<ServerEvent>()
         val factory=object:TransportFactory{

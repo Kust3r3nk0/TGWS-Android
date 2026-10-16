@@ -2,6 +2,22 @@
 
 All notable changes will be documented in this file. Versions of this Android port do not correspond directly to upstream Flowseal releases.
 
+## 0.3.4-alpha — 2026-10-16
+
+- Removed built-in Cloudflare DNS, its selector and production DoH dependency. Migrate the obsolete preference to system DNS without changing other settings.
+- Bounded TCP Happy Eyeballs: IPv4/IPv6, 250 ms stagger, two in-flight attempts, total deadline and loser cleanup.
+- Android DNS cancellation releases the waiting worker; network loss cancels queries.
+- Retained historical DoH regressions as test-only fixtures; added connection/migration regressions and an APK DEX gate.
+- Preserved configured Worker/CF/H2 routes and strict TLS; documented DNS/IP/SNI/captive portal/IPv6/allowlist options with primary sources.
+- TGWS-16-016/017: native UI without WebView, CI provider inventory and owner handoff workflow.
+- Physical carrier/Wi-Fi/Telegram validation pending; no universal bypass claim.
+
+## Infrastructure — 2026-10-16 (no application version change)
+
+- TGWS-16-016: recorded native/no-WebView applicability, future Stable/Beta feature/security/recovery requirements and pending physical matrix. No unnecessary WebKit dependency or hidden engine.
+- TGWS-16-017: permanent owner-only phone testing, no ADB/device requests; source/tree SHA, CI URL and report template in successful APK artifacts.
+- CI native declaration guard and allowlisted emulator provider/device/OS metadata before/after tests. Absence/unknown/AOSP differ; inventory does not certify latest Stable/Beta. Original test failures cannot be masked by metadata failures.
+
 ## [0.3.3-alpha] — 2026-10-16 (debug)
 
 - Separate Transparency effect switch: actually translucent cards/navigation over the app backdrop, independently or alongside Liquid Glass.
