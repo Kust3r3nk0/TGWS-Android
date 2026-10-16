@@ -3,6 +3,7 @@ package io.github.kust3r3nk0.tgwsandroid
 import android.content.Context
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
+import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -37,10 +38,12 @@ class NavigationThemeInstrumentedTest {
     private fun node(tag:String,direction:Direction?=null):UiObject2 {
         device.wait(Until.findObject(selector(tag)),1000)?.let{return it}
         if(direction!=null)repeat(12){
-            // Settings also contain independently scrollable text fields. Target the page,
-            // not the first accessibility node advertising scrollable=true.
+            // Use the page's public Android accessibility scroll action. Gesture-driver
+            // scroll completion events are unreliable for Compose's virtual scroll node.
             val area=device.findObject(selector("page.scroll"))?:error("No page scroller for $tag")
-            val more=area.scroll(direction,0.65f)
+            val action=if(direction==Direction.DOWN)AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+                else AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
+            val more=area.accessibilityNodeInfo.performAction(action)
             device.wait(Until.findObject(selector(tag)),1000)?.let{return it}
             if(!more)error("Control not found: $tag")
         }
