@@ -168,4 +168,6 @@
     <string name="settings_saved">Настройки прокси сохранены.</string>
     <string name="liquid_glass_title">Liquid Glass · бета</string>
     <string name="liquid_glass_description">Стеклянные панели с мягким фоном и бликами. Экспериментальное оформление; по умолчанию выключено.</string>
+    <string name="transparency_title">Эффект прозрачности</string>
+    <string name="transparency_description">Бета: фон приложения виден сквозь карточки и панели. Работает отдельно и вместе с Liquid Glass; по умолчанию выключен.</string>
 </resources>

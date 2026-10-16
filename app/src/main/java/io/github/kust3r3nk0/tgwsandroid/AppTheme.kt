@@ -20,8 +20,9 @@ private val DarkColors=darkColorScheme(primary=Color(0xFF9FCAFF),onPrimary=Color
 
 @Composable internal fun darkTheme(mode:ThemeMode)=when(mode){ThemeMode.SYSTEM->isSystemInDarkTheme();ThemeMode.DARK->true;ThemeMode.LIGHT->false}
 internal val LocalLiquidGlass=staticCompositionLocalOf{false}
-@Composable internal fun TgwsTheme(mode:ThemeMode,liquidGlass:Boolean=false,content:@Composable ()->Unit){
-    CompositionLocalProvider(LocalLiquidGlass provides liquidGlass){
+internal val LocalTransparency=staticCompositionLocalOf{false}
+@Composable internal fun TgwsTheme(mode:ThemeMode,liquidGlass:Boolean=false,transparency:Boolean=false,content:@Composable ()->Unit){
+    CompositionLocalProvider(LocalLiquidGlass provides liquidGlass,LocalTransparency provides transparency){
         MaterialTheme(colorScheme=if(darkTheme(mode))DarkColors else LightColors,content=content)
     }
 }

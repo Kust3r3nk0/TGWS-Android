@@ -46,3 +46,15 @@ opaque Material 3 surfaces. Android RuntimeShader renders a static blue/teal pro
 frosted tint, edge refraction and highlights. Text and controls remain crisp in both themes.
 It does not capture/refract arbitrary underlying UI or feed secrets into shaders. No animation loop,
 network calls, extra permissions or proxy/DNS changes. Physical performance/battery validation pending.
+
+## Transparency effect (0.3.3)
+
+Settings → Appearance → Transparency effect. Independent, persistent and off by default;
+works while the proxy runs. Enable alone or with Liquid Glass; toggling one leaves the other
+unchanged. Existing themes/effect choices survive upgrades.
+
+Native premultiplied alpha composites panel fills over the real app backdrop; text/buttons stay
+opaque. The root window remains opaque: no capture of wallpaper, other apps or secrets.
+This is an Android beta appearance inspired by Liquid Glass, not Apple's system technology
+or arbitrary underlying-content refraction. No continuous animation/network changes/new
+permissions/dependencies. Real GPU appearance/performance/battery validation pending.

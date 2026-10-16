@@ -5,24 +5,26 @@
 [![Android](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/15)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Status](https://img.shields.io/badge/Status-0.3.2--alpha-orange)
+![Status](https://img.shields.io/badge/Status-0.3.3--alpha-orange)
 
 <img src="docs/images/tgws-logo.jpg" width="240" alt="TGWS-Android" />
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 15+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[English README](README_EN.md) · [План разработки](ROADMAP.md) · [Проверки и Telegram E2E](docs/TESTING.md) · [Отчёт обновления](docs/TEST_REPORT_0.3.2-alpha.md) · [Разработка с Codex](docs/CODEX_WORKFLOW.md)**
+**[English README](README_EN.md) · [План разработки](ROADMAP.md) · [Проверки и Telegram E2E](docs/TESTING.md) · [Отчёт обновления](docs/TEST_REPORT_0.3.3-alpha.md) · [Разработка с Codex](docs/CODEX_WORKFLOW.md)**
 
 > [!IMPORTANT]
-> **0.3.2-alpha — тестовое обновление. Проверка владельцем на физическом устройстве: ожидается.** Автоматические проверки не подтверждают доступность у оператора. Владелец ранее сообщил о рабочем Telegram на Android 16 / Wi-Fi и стабильных 6 мс в 0.2.0 на порту 8443; это показание Telegram, а не независимый замер или проверка новой версии.
+> **0.3.3-alpha — тестовое обновление. Проверка владельцем на физическом устройстве: ожидается.** Автоматические проверки не подтверждают доступность у оператора. Владелец ранее сообщил о рабочем Telegram на Android 16 / Wi-Fi и стабильных 6 мс в 0.2.0 на порту 8443; это показание Telegram, а не независимый замер или проверка новой версии.
 
-## Интерфейс и DNS 0.3.2
+## Интерфейс и DNS 0.3.3
 
 В нижнем меню две вкладки: **Главная страница** (запуск, Telegram, сеть) и
 **Настройки приложения и MTProxy**. Светлая/тёмная/системная тема сохраняется;
 кнопка в верхнем меню быстро переключает светлый и тёмный режим. UI использует Material 3.
 В разделе «Оформление» доступен **Liquid Glass · бета**: стеклянные панели и навигация
 в обеих темах. По умолчанию выключен; выбор сохраняется и применяется сразу.
+Рядом добавлен отдельный **«Эффект прозрачности»**: фон приложения действительно виден
+сквозь карточки и панели. Можно включить без Liquid Glass или вместе с ним; по умолчанию выключен.
 
 В настройках можно выбрать **Cloudflare DNS over HTTPS**: 1.1.1.1 / 1.0.0.1 и IPv6
 2606:4700:4700::1111 / ::1001. Выбор применяется при следующем запуске прокси.
@@ -40,7 +42,7 @@
 
 TGWS-Android — нативное Android-приложение на Kotlin и Jetpack Compose для запуска локального MTProto WebSocket-прокси. Планируется функциональная совместимость с сетевым ядром Flowseal TG-WS-Proxy, включая WebSocket, TCP fallback, Fake TLS, Cloudflare-маршруты и HTTP/2. Приложение **не является VPN** и не перехватывает системный трафик.
 
-## Текущее состояние (0.3.2-alpha)
+## Текущее состояние (0.3.3-alpha)
 
 | Возможность | Статус |
 |---|---|
@@ -82,14 +84,14 @@ TGWS-Android — нативное Android-приложение на Kotlin и Je
 6. Debug APK доступен в **Actions → Android CI → запуск → Artifacts**. [Инструкции Codex](AGENTS.md).
 
 > [!NOTE]
-> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет также по 23 инструментальных тестов на API 35–37. [Результаты и ограничения обновления](docs/TEST_REPORT_0.3.2-alpha.md).
+> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет также по 23 инструментальных тестов на API 35–37. [Результаты и ограничения обновления](docs/TEST_REPORT_0.3.3-alpha.md).
 
 CI запускается при push в `main`, Pull Request и вручную. Успешная проверка
 публикует debug APK, `SHA256SUMS`, версию и commit, changelog; отчёты JVM/Lint
 сохраняются отдельно. Actions и Wrapper закреплены по проверенным SHA.
 Отдельный workflow при PR и вручную проверяет Android API 35, 36, 37.0.
 
-[Скачать 0.3.2 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.2-alpha-debug/TGWS-Android-0.3.2-debug.apk)
+[Скачать 0.3.3 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.3-alpha-debug/TGWS-Android-0.3.3-debug.apk)
 
 ## Транспорты 0.3.0
 
@@ -140,7 +142,7 @@ WSS использует обычную проверку доверия TLS и �
 
 При смене сети существующие сессии закрываются; Telegram должен создать новые.
 Бесшовной миграции нет. Полные критерии, ограничения и фактически выполненные
-проверки приведены в [отчёте обновления](docs/TEST_REPORT_0.3.2-alpha.md).
+проверки приведены в [отчёте обновления](docs/TEST_REPORT_0.3.3-alpha.md).
 
 ## Архитектура исходников
 

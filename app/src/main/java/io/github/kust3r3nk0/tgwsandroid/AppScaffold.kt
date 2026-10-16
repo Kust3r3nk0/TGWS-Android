@@ -22,7 +22,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
 
 @Composable internal fun AppScaffold(page:Int,onPage:(Int)->Unit,version:String,isDark:Boolean,onToggleTheme:()->Unit,
     content:@Composable ColumnScope.()->Unit){
-    val glass=LocalLiquidGlass.current
+    val glass=LocalLiquidGlass.current || LocalTransparency.current
     Box(Modifier.fillMaxSize().liquidGlass(panel=false,rounded=false)){
     Scaffold(modifier=Modifier.semantics{testTagsAsResourceId=true},containerColor=if(glass)Color.Transparent else MaterialTheme.colorScheme.background,
         contentColor=MaterialTheme.colorScheme.onBackground,
@@ -53,7 +53,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
 
 @Composable internal fun SectionCard(title:String,modifier:Modifier=Modifier,content:@Composable ColumnScope.()->Unit){
     Card(modifier.fillMaxWidth().liquidGlass(),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(
-        containerColor=if(LocalLiquidGlass.current)Color.Transparent else MaterialTheme.colorScheme.surface,
+        containerColor=if(LocalLiquidGlass.current || LocalTransparency.current)Color.Transparent else MaterialTheme.colorScheme.surface,
         contentColor=MaterialTheme.colorScheme.onSurface)){
         Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
             Text(title,style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.primary)
@@ -74,7 +74,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
 }
 
 @Composable internal fun AppearanceSettings(theme:ThemeMode,onTheme:(ThemeMode)->Unit,dns:DnsMode,onDns:(DnsMode)->Unit,editable:Boolean,
-    liquidGlass:Boolean,onLiquidGlass:(Boolean)->Unit){
+    liquidGlass:Boolean,onLiquidGlass:(Boolean)->Unit,transparency:Boolean,onTransparency:(Boolean)->Unit){
     SectionCard(stringResource(R.string.appearance_title)){
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
             for(mode in ThemeMode.entries)FilterChip(selected=theme==mode,onClick={onTheme(mode)},modifier=Modifier.testTag("theme.${mode.name}"),
@@ -87,6 +87,14 @@ import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
                 Text(stringResource(R.string.liquid_glass_description),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Switch(checked=liquidGlass,onCheckedChange=onLiquidGlass,modifier=Modifier.testTag("appearance.glass").semantics{contentDescription=glassTitle})
+        }
+        val transparencyTitle=stringResource(R.string.transparency_title)
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(16.dp)){
+            Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
+                Text(transparencyTitle,style=MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.transparency_description),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(checked=transparency,onCheckedChange=onTransparency,modifier=Modifier.testTag("appearance.transparency").semantics{contentDescription=transparencyTitle})
         }
     }
     SectionCard(stringResource(R.string.dns_title)){
