@@ -14,19 +14,9 @@ import android.os.PersistableBundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -40,16 +30,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.testTag
+import android.os.Handler
+import android.os.Looper
+import android.view.WindowInsetsController
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.res.painterResource
 import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
 import io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.CancellationException
@@ -64,7 +56,30 @@ class MainActivity : ComponentActivity() {
         @Suppress("DEPRECATION")
         val version = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
         setContent {
-            MaterialTheme {
+            val preferences=remember{AppPreferences(this@MainActivity)}
+            var themeMode by remember{mutableStateOf(preferences.theme)}
+            var dnsMode by remember{mutableStateOf(preferences.dns)}
+            TgwsTheme(themeMode) {
+                val isDark=darkTheme(themeMode)
+                SideEffect{window.insetsController?.setSystemBarsAppearance(
+                    if(isDark)0 else WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)}
+                var page by rememberSaveable{mutableStateOf(0)}
+                var observedNetwork by remember{mutableStateOf(NetworkView())}
+                DisposableEffect(Unit){
+                    var monitor:AndroidNetworkMonitor?=null
+                    fun startMonitor(){if(monitor==null){
+                        monitor=AndroidNetworkMonitor(this@MainActivity,Handler(Looper.getMainLooper())){_,view->observedNetwork=view}.also{it.start()}
+                    }}
+                    val observer=LifecycleEventObserver{_,event->when(event){
+                        Lifecycle.Event.ON_START->startMonitor()
+                        Lifecycle.Event.ON_STOP->{monitor?.close();monitor=null}
+                        else->Unit
+                    }}
+                    lifecycle.addObserver(observer)
+                    if(lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))startMonitor()
+                    onDispose{lifecycle.removeObserver(observer);monitor?.close()}
+                }
                 var portText by rememberSaveable { mutableStateOf(SettingsValidation.DEFAULT_PORT.toString()) }
                 // Secret/reveal state is deliberately absent from savedInstanceState.
                 var secretText by remember { mutableStateOf("") }
@@ -116,25 +131,28 @@ class MainActivity : ComponentActivity() {
                     onDispose { lifecycle.removeObserver(observer) }
                 }
 
-                Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(painterResource(R.drawable.tgws_symbol), contentDescription = null,
-                            modifier = Modifier.size(56.dp))
-                        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
+                AppScaffold(page=page,onPage={page=it;revealSecret=false},version=version,isDark=isDark,onToggleTheme={
+                    themeMode=if(isDark)ThemeMode.LIGHT else ThemeMode.DARK;preferences.theme=themeMode
+                }){
+                    if(busy)androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().testTag("settings.loading"))
+                    val error = errorResource ?: snapshot.issue?.let(::issueResource)
+                    error?.let {
+                        val warning = errorResource == null && snapshot.issueIsWarning
+                        val message = stringResource(it)
+                        Text(if (warning) stringResource(R.string.session_event, message) else message,
+                            color = if (warning) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error)
                     }
-                    Text(stringResource(R.string.version_label, version), style = MaterialTheme.typography.labelMedium)
-                    Text(stringResource(statusResource(snapshot.phase)), style = MaterialTheme.typography.bodyLarge)
+                    feedbackResource?.let { Text(stringResource(it)) }
+                    if(page==0){
+                        SectionCard(stringResource(R.string.proxy_overview),Modifier.testTag("home.status")){
+                    Text(stringResource(statusResource(snapshot.phase)), style = MaterialTheme.typography.headlineSmall)
                     Text(stringResource(R.string.local_address, SettingsValidation.LOOPBACK, portText))
                     Text(stringResource(R.string.session_counts, snapshot.sessions, snapshot.pending))
-                    Text(stringResource(R.string.transport_counts, snapshot.wssSessions, snapshot.tcpSessions, snapshot.relaySessions,snapshot.cfSessions,snapshot.h2Sessions))
                     Text(stringResource(when {
                         snapshot.sessions > 0 -> R.string.remote_transport_established
                         snapshot.pending > 0 -> R.string.remote_transport_connecting
                         else -> R.string.remote_transport_unconfirmed
-                    }))
+                    }),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     if (snapshot.rejectedHandshakes > 0) {
                         Text(stringResource(R.string.handshake_rejections, snapshot.rejectedHandshakes),
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -142,11 +160,71 @@ class MainActivity : ComponentActivity() {
                             Text(stringResource(rejectionResource(it)), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    if (busy) Text(stringResource(R.string.settings_loading))
+                    Button(modifier = Modifier.fillMaxWidth().then(Modifier.testTag("proxy.toggle")), enabled = !busy && snapshot.phase != ProxyPhase.STOPPING,
+                        onClick = {
+                            feedbackResource = null
+                            if (snapshot.running) {
+                                startService(Intent(this@MainActivity, ProxyService::class.java).setAction(ProxyService.ACTION_STOP))
+                            } else if (!validConfiguration) {
+                                errorResource = if (secretUnavailable) R.string.error_secret_unavailable else R.string.error_configuration
+                            } else {
+                                val port = portText.toInt()
+                                val secret = secretText
+                                scope.launch {
+                                    busy = true
+                                    try {
+                                        withContext(Dispatchers.IO) { store.save(port, secret, relayUrl,requireNotNull(advancedConfig)) }
+                                        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                                            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 10)
+                                        }
+                                        startForegroundService(Intent(this@MainActivity, ProxyService::class.java).setAction(ProxyService.ACTION_START))
+                                        errorResource = null
+                                        revealSecret = false
+                                    } catch (error: SettingsException) {
+                                        errorResource = settingsError(error.issue)
+                                        if (error.issue == SettingsIssue.SECRET_UNAVAILABLE) secretUnavailable = true
+                                    } catch (_: RuntimeException) {
+                                        errorResource = R.string.error_service_start
+                                    } finally { busy = false }
+                                }
+                            }
+                        }) {
+                        Text(stringResource(if (snapshot.running) R.string.stop else R.string.start_proxy))
+                    }
+                        }
+                        NetworkCard(observedNetwork,dnsMode)
+                        SectionCard(stringResource(R.string.telegram_actions)){
+                    OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = validConfiguration && !busy, onClick = {
+                        copySensitive(getString(R.string.clipboard_link), SettingsValidation.telegramLink(portText.toInt(), secretText,requireNotNull(advancedConfig).fakeTlsDomain))
+                        feedbackResource = R.string.link_copied
+                    }) { Text(stringResource(R.string.copy_link)) }
+                    OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = validConfiguration && !busy, onClick = {
+                        try {
+                            val link = SettingsValidation.telegramLink(portText.toInt(), secretText,requireNotNull(advancedConfig).fakeTlsDomain)
+                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                        } catch (_: ActivityNotFoundException) {
+                            errorResource = R.string.error_telegram_missing
+                        } catch (_: SecurityException) {
+                            errorResource = R.string.error_telegram_missing
+                        }
+                    }) { Text(stringResource(R.string.open_telegram)) }
+                        }
+                        SectionCard(stringResource(R.string.connection_details)){
+                            Text(stringResource(R.string.transport_counts,snapshot.wssSessions,snapshot.tcpSessions,snapshot.relaySessions,snapshot.cfSessions,snapshot.h2Sessions),style=MaterialTheme.typography.bodySmall)
+                    DiagnosticsPanel(snapshot.copy(network=observedNetwork),onProbe={
+                        try{startService(Intent(this@MainActivity,ProxyService::class.java).setAction(ProxyService.ACTION_PROBE));feedbackResource=R.string.probe_requested}
+                        catch(_:RuntimeException){errorResource=R.string.error_service_start}
+                    },onCopy={copySensitive(getString(R.string.diagnostics),it)})
+                        }
+                        Text(stringResource(R.string.local_notice),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                    }else{
+                        AppearanceSettings(themeMode,{themeMode=it;preferences.theme=it},dnsMode,{dnsMode=it;preferences.dns=it},editable)
+                        SectionCard(stringResource(R.string.mtproxy_settings)){
+                            if(!editable)Text(stringResource(R.string.stop_to_edit),style=MaterialTheme.typography.bodySmall)
                     OutlinedTextField(
                         value = portText,
                         onValueChange = { portText = it.filter { char -> char in '0'..'9' }.take(5); feedbackResource = null },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag("settings.port"),
                         label = { Text(stringResource(R.string.local_port)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         enabled = editable,
@@ -155,7 +233,7 @@ class MainActivity : ComponentActivity() {
                     OutlinedTextField(
                         value = secretText,
                         onValueChange = { secretText = it.take(32); feedbackResource = null },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().testTag("settings.secret"),
                         label = { Text(stringResource(R.string.secret_label)) },
                         visualTransformation = if (revealSecret) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -222,70 +300,26 @@ class MainActivity : ComponentActivity() {
                     }, enabled = editable) {
                         Text(stringResource(if (secretUnavailable) R.string.secret_replace else R.string.secret_generate))
                     }
-                    val error = errorResource ?: snapshot.issue?.let(::issueResource)
-                    error?.let {
-                        val warning = errorResource == null && snapshot.issueIsWarning
-                        val message = stringResource(it)
-                        Text(if (warning) stringResource(R.string.session_event, message) else message,
-                            color = if (warning) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error)
-                    }
-                    feedbackResource?.let { Text(stringResource(it)) }
-                    Button(modifier = Modifier.fillMaxWidth(), enabled = !busy && snapshot.phase != ProxyPhase.STOPPING,
-                        onClick = {
-                            feedbackResource = null
-                            if (snapshot.running) {
-                                startService(Intent(this@MainActivity, ProxyService::class.java).setAction(ProxyService.ACTION_STOP))
-                            } else if (!validConfiguration) {
-                                errorResource = if (secretUnavailable) R.string.error_secret_unavailable else R.string.error_configuration
-                            } else {
-                                val port = portText.toInt()
-                                val secret = secretText
-                                scope.launch {
-                                    busy = true
-                                    try {
-                                        withContext(Dispatchers.IO) { store.save(port, secret, relayUrl,requireNotNull(advancedConfig)) }
-                                        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                                            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 10)
-                                        }
-                                        startForegroundService(Intent(this@MainActivity, ProxyService::class.java).setAction(ProxyService.ACTION_START))
-                                        errorResource = null
-                                        revealSecret = false
-                                    } catch (error: SettingsException) {
-                                        errorResource = settingsError(error.issue)
-                                        if (error.issue == SettingsIssue.SECRET_UNAVAILABLE) secretUnavailable = true
-                                    } catch (_: RuntimeException) {
-                                        errorResource = R.string.error_service_start
-                                    } finally { busy = false }
-                                }
-                            }
-                        }) {
-                        Text(stringResource(if (snapshot.running) R.string.stop else R.string.start_proxy))
-                    }
-                    OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = validConfiguration && !busy, onClick = {
-                        copySensitive(getString(R.string.clipboard_link), SettingsValidation.telegramLink(portText.toInt(), secretText,requireNotNull(advancedConfig).fakeTlsDomain))
-                        feedbackResource = R.string.link_copied
-                    }) { Text(stringResource(R.string.copy_link)) }
                     OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = SettingsValidation.validSecret(secretText) && !busy, onClick = {
                         copySensitive(getString(R.string.clipboard_secret), SettingsValidation.normalizeSecret(secretText))
                         feedbackResource = R.string.secret_copied
                     }) { Text(stringResource(R.string.copy_secret)) }
-                    OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = validConfiguration && !busy, onClick = {
-                        try {
-                            val link = SettingsValidation.telegramLink(portText.toInt(), secretText,requireNotNull(advancedConfig).fakeTlsDomain)
-                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
-                        } catch (_: ActivityNotFoundException) {
-                            errorResource = R.string.error_telegram_missing
-                        } catch (_: SecurityException) {
-                            errorResource = R.string.error_telegram_missing
+                        Button(modifier=Modifier.fillMaxWidth().testTag("settings.save"),enabled=editable && validConfiguration,onClick={
+                            scope.launch{
+                                busy=true
+                                try{
+                                    withContext(Dispatchers.IO){store.save(portText.toInt(),secretText,relayUrl,requireNotNull(advancedConfig))}
+                                    errorResource=null;feedbackResource=R.string.settings_saved;revealSecret=false
+                                }catch(error:SettingsException){errorResource=settingsError(error.issue)}
+                                finally{busy=false}
+                            }
+                        }){Text(stringResource(R.string.save_settings))}
                         }
-                    }) { Text(stringResource(R.string.open_telegram)) }
-                    HorizontalDivider()
-                    DiagnosticsPanel(snapshot,onProbe={
-                        try{startService(Intent(this@MainActivity,ProxyService::class.java).setAction(ProxyService.ACTION_PROBE));feedbackResource=R.string.probe_requested}
-                        catch(_:RuntimeException){errorResource=R.string.error_service_start}
-                    },onCopy={copySensitive(getString(R.string.diagnostics),it)})
-                    Text(stringResource(R.string.alpha_notice))
-                    Text(stringResource(R.string.local_notice))
+                        SectionCard(stringResource(R.string.about_title)){
+                            Text(stringResource(R.string.version_label,version))
+                            Text(stringResource(R.string.alpha_notice),style=MaterialTheme.typography.bodySmall)
+                        }
+                    }
                 }
             }
         }
