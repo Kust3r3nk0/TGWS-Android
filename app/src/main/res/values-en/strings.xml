@@ -145,9 +145,7 @@
     <string name="theme_dark">Dark</string>
     <string name="dns_title">App DNS</string>
     <string name="dns_system">System DNS</string>
-    <string name="dns_cloudflare">Cloudflare · DNS over HTTPS</string>
-    <string name="cloudflare_addresses">IPv4: 1.1.1.1 · 1.0.0.1\nIPv6: 2606:4700:4700::1111 · 2606:4700:4700::1001</string>
-    <string name="dns_notice">App DNS queries go to Cloudflare over HTTPS. Android DNS settings stay under Android control. There is no silent system DNS fallback. Select System DNS if you need carrier DNS64.</string>
+    <string name="dns_notice">The app uses DNS from the active Android network, including system Private DNS and carrier DNS64. Built-in Cloudflare DNS has been removed; Android settings stay unchanged. A blocked IP or domain requires a reachable relay.</string>
     <string name="stop_to_edit">Stop the proxy to change connection settings.</string>
     <string name="network_card">Current network</string>
     <string name="network_portal">Network sign-in required</string>

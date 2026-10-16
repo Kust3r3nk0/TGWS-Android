@@ -6,7 +6,7 @@ One UI 8.5/9.0; минимум всего приложения остаётся 
 
 ## Применимость к текущему приложению
 
-Аудит 0.3.3-alpha: **встроенных WebView-компонентов нет**. `MainActivity` использует
+Аудит 0.3.4-alpha: **встроенных WebView-компонентов нет**. `MainActivity` использует
 Jetpack Compose/Material 3; `tg://proxy` открывается внешним `ACTION_VIEW` Intent.
 Сетевое ядро — Kotlin/Java sockets, TLS и OkHttp, без браузера и JavaScript.
 В production-исходниках/manifest и объявленных зависимостях нет WebView, WebKit или JS bridge.

@@ -2,6 +2,15 @@
 
 Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 2026. Historical reports remain unchanged. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
+## 0.3.4-alpha — network compatibility
+
+- [x] Remove Cloudflare DNS from APK/UI, system DNS migration without configuration loss
+- [x] TCP IPv4/IPv6 interleaving, 250 ms stagger, two attempts, bounded resources/deadlines
+- [x] Blackhole/refusal/cancellation/network-change regressions, migration and APK gate; previous tests preserved
+- [x] [Network failure research and options](NETWORK_COMPATIBILITY_0.3.4.md); strict TLS preserved
+- [ ] Final Wrapper/CI/API 35–37 and Debug pre-release
+- [ ] Owner's physical carrier/problematic Wi-Fi validation
+
 ## TGWS-16-016 / 017 — WebView applicability and physical ownership
 
 - [x] Audit: native Compose/MTProto, no embedded WebView; no unnecessary WebKit dependency

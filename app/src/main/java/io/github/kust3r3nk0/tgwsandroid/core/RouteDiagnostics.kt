@@ -33,3 +33,13 @@ internal class RouteDiagnostics(private val nano:()->Long=System::nanoTime,priva
     }
     @Synchronized fun clear(){entries.clear();starts.clear()}
 }
+
+/** Classify the failed native setup layer, without copying exception text or private endpoints. */
+internal fun setupFailure(error:Exception,fallback:ServerIssue):ServerIssue=when(error){
+    is javax.net.ssl.SSLException->ServerIssue.TLS
+    is java.net.UnknownHostException->ServerIssue.DNS
+    is NetworkUnavailable->ServerIssue.NETWORK
+    is java.net.SocketTimeoutException->ServerIssue.TIMEOUT
+    is java.net.SocketException->ServerIssue.TCP
+    else->fallback
+}

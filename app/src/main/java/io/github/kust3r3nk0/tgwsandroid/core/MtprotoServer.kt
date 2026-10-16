@@ -458,7 +458,7 @@ class MtprotoServer(
                 if (session.closed.get()) session.run.retries.cancel(permit)
                 else {
                     session.run.retries.failure(permit)
-                    val failure=when(error){is SSLException->ServerIssue.TLS;is java.net.UnknownHostException->ServerIssue.DNS;is NetworkUnavailable->ServerIssue.NETWORK;else->issue}
+                    val failure=setupFailure(error,issue)
                     synchronized(lifecycle){if(!session.closed.get())mark(key,issue,RouteStatus.UNAVAILABLE,failure)}
                     emit(session.run, ServerEvent.Diagnostic(failure))
                 }
@@ -648,7 +648,7 @@ class MtprotoServer(
                             run.diagnostics.mark(candidate.key,2,candidate.kind==TransportKind.HTTP2,candidate.kind,RouteStatus.AVAILABLE,timings=remote.setupTimings)
                             emit(run,ServerEvent.Routes(run.diagnostics.snapshot()))}}
                     }catch(error:Exception){synchronized(lifecycle){if(current===run && !run.stopping.get() && run.networkGeneration==generation){
-                        val issue=if(attempt.timedOut)ServerIssue.TIMEOUT else when(error){is SSLException->ServerIssue.TLS;is java.net.UnknownHostException->ServerIssue.DNS;is NetworkUnavailable->ServerIssue.NETWORK;else->if(candidate.kind==TransportKind.HTTP2)ServerIssue.HTTP2 else ServerIssue.WSS_HANDSHAKE}
+                        val issue=if(attempt.timedOut)ServerIssue.TIMEOUT else setupFailure(error,if(candidate.kind==TransportKind.HTTP2)ServerIssue.HTTP2 else ServerIssue.WSS_HANDSHAKE)
                         run.diagnostics.mark(candidate.key,2,candidate.kind==TransportKind.HTTP2,candidate.kind,RouteStatus.UNAVAILABLE,issue)
                         emit(run,ServerEvent.Routes(run.diagnostics.snapshot()))}}}
                     finally{timeout.cancel(false);attempt.close();run.probes.remove(attempt)}

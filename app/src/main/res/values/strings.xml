@@ -145,9 +145,7 @@
     <string name="theme_dark">Тёмная</string>
     <string name="dns_title">DNS приложения</string>
     <string name="dns_system">Системный DNS</string>
-    <string name="dns_cloudflare">Cloudflare · DNS over HTTPS</string>
-    <string name="cloudflare_addresses">IPv4: 1.1.1.1 · 1.0.0.1\nIPv6: 2606:4700:4700::1111 · 2606:4700:4700::1001</string>
-    <string name="dns_notice">DNS-запросы приложения отправляются Cloudflare по HTTPS. Настройки DNS Android не меняются. При отказе Cloudflare нет скрытого перехода на DNS оператора. Для DNS64 оператора выберите системный DNS.</string>
+    <string name="dns_notice">Приложение использует DNS активной сети Android, включая настроенный в системе Private DNS и DNS64 оператора. Встроенный Cloudflare DNS удалён; настройки Android не меняются. При блокировке IP или домена потребуется доступное реле.</string>
     <string name="stop_to_edit">Остановите прокси, чтобы изменить параметры подключения.</string>
     <string name="network_card">Текущая сеть</string>
     <string name="network_portal">Требуется вход в сеть</string>

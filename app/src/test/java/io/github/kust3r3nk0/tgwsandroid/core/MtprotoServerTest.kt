@@ -273,7 +273,9 @@ class MtprotoServerTest {
             connect(port).use { client ->
                 client.getOutputStream().write(init().bytes)
                 assertClosed(client)
-                await("Missing relay failure") { events.issue(ServerIssue.RELAY) && events.sessions(0, 0) }
+                await("Missing relay deadline") { events.issue(ServerIssue.TIMEOUT) && events.sessions(0, 0) }
+                assertTrue(events.all.filterIsInstance<ServerEvent.Routes>().any{event->
+                    event.routes.any{it.kind==TransportKind.RELAY && it.issue==ServerIssue.TIMEOUT}})
                 assertTrue(channel.sent.isEmpty())
             }
         }

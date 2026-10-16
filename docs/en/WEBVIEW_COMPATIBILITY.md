@@ -3,7 +3,7 @@
 P1, Android 16+ AOSP / One UI 8.5/9.0. App minimum remains Android 15.
 [Full specification and matrix (RU)](../TGWS-16-016_WEBVIEW.md).
 
-Current 0.3.3-alpha uses **no embedded WebView**: Compose/Material 3 UI, external Telegram
+Current 0.3.4-alpha uses **no embedded WebView**: Compose/Material 3 UI, external Telegram
 Intent, native Kotlin/socket/TLS/OkHttp transports. Do not add AndroidX WebKit or create a
 hidden engine merely to satisfy a version checkbox. Renderer/page recovery and feature
 checks are not applicable; this is not certification of latest Stable/Beta or One UI.

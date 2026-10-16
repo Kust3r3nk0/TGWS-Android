@@ -1,5 +1,8 @@
 # Mobile networks and a WSS relay
 
+> Current 0.3.4 behavior: [network diagnosis](NETWORK_COMPATIBILITY_0.3.4.md). Version 0.3+ requires explicit Relay-only mode plus its URL; a nonempty field alone does not select it. Built-in Cloudflare DNS is removed.
+
+
 An [experimental Cloudflare Worker template](CLOUDFLARE_WORKER.md) is available
 for testing without a VPS. It needs your Cloudflare account and works with APK
 0.2.0. SNI is the actual Worker name, not `cloudflare.com`. Megafon Moscow-region

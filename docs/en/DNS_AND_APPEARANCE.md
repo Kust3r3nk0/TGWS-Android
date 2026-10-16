@@ -1,4 +1,4 @@
-# 0.3.1 DNS, network and interface
+# 0.3.4 DNS, network and interface
 
 [Русский](../DNS_AND_APPEARANCE.md). Android 15+.
 
@@ -9,24 +9,27 @@ Secrets remain absent from savedInstanceState. The top-menu button toggles light
 also offer Android system theme. The preference persists separately from protected proxy data.
 Colors, surfaces, cards and navigation use Material 3.
 
-Stop the proxy, then select **Cloudflare DNS over HTTPS** under settings. The saved choice
-applies at the next proxy start. **System DNS remains the default/migration choice.**
+## System DNS (0.3.4)
 
-- RFC 8484 POST `application/dns-message` to `https://cloudflare-dns.com/dns-query`.
-- Bootstrap IPv4 `1.1.1.1` / `1.0.0.1`, IPv6 `2606:4700:4700::1111` / `2606:4700:4700::1001`.
-- A/AAAA, up to eight route answers; 65,535 B response cap, six-second HTTP call,
-  6.5-second DNS wait, dispatcher four. Numeric route addresses do not require DoH.
-- Numeric bootstrap avoids system DNS; normal certificate and hostname verification remains.
-  Sockets capture the active Android Network. Stop/network changes cancel HTTP and waiting
-  DNS calls, discard old cache/pool and reject late results. No silent system fallback.
+Built-in Cloudflare DNS is **removed** from the UI, application code and runtime dependencies.
+Upgrade removes only the obsolete public `dns` preference (including malformed types), preserving
+ports, secrets, encrypted endpoints/lists, themes and effects. Historical strict local TLS DoH tests
+remain under `app/src/sharedTest/` and never ship in the user APK; CI inspects DEX for regressions.
 
-This affects TGWS only: no Android DNS/Private DNS/APN change, VPN or other-app DNS interception.
-Cloudflare receives the TGWS domain names after explicit provider selection; queries/replies
-are not logged. DNS does not remove IP blocking. Carrier DNS64 with A-only destinations may
-require System DNS/XLAT on IPv6-only networks; Cloudflare does not invent carrier NAT64 prefixes.
-[Provider addresses](https://developers.cloudflare.com/1.1.1.1/ip-addresses/) and
-[DoH documentation](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/).
-Independent client, no affiliation with Cloudflare.
+Name resolution uses the active Android Network's resolver, including system Private DNS and
+network-provided DNS64 answers. No Android DNS/APN/SIM settings or hidden public resolver are
+changed. An unavailable system Private DNS is configured by the owner in Android settings.
+DNS64/CLAT depends on the network; numeric Telegram routes still require IPv4/CLAT. Full
+IPv6-only compatibility is not claimed.
+
+TCP connection attempts interleave address families while retaining the OS's first preference,
+stagger by 250 ms, allow two simultaneous attempts and cap answers at eight. The shared dial
+pool has eight workers/32 queued tasks; DNS has two/eight. Total deadlines, loser cleanup and
+stale-network checks remain. Single-address paths need no extra worker. HTTP/2 retains OkHttp.
+This covers the Happy Eyeballs connection phase, not a complete RFC 8305 implementation.
+
+DNS cannot resolve IP/domain blocks or network allowlists. See [network compatibility](NETWORK_COMPATIBILITY_0.3.4.md).
+Configured Worker/Cloudflare transports are preserved. Physical connectivity awaits owner testing.
 
 Home automatically observes Wi-Fi/cellular/other and IPv4/IPv6/dual-stack/unknown even while
 the proxy is stopped. These are active-interface addresses, excluding loopback/link-local;

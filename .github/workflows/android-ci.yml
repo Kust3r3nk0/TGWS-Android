@@ -33,6 +33,8 @@ jobs:
         run: python3 .github/scripts/verify_native_ui.py --output app/build/reports/native-ui.json
       - name: Run tests, lint and debug build
         run: ./gradlew --no-daemon -PsoakSeconds=60 :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Check retired Cloudflare DNS is absent from the app APK
+        run: python3 .github/scripts/verify_native_dns.py
       - name: Verify instrumentation report gate tests
         run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
       - name: Verify actual 60-second soak execution and resource limits

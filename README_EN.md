@@ -4,13 +4,13 @@
   <img src="docs/images/tgws-github-cover-en.svg" width="100%" alt="TGWS-Android — native MTProto proxy for Android, English cover" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/15) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.3--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/15) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.4--alpha-orange)
 
-**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.3-alpha-debug/TGWS-Android-0.3.3-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Test results](docs/en/TEST_REPORT_0.3.3-alpha.md) · [Contributing](docs/en/CONTRIBUTING.md)**
+**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.4-alpha-debug/TGWS-Android-0.3.4-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Test results](docs/en/TEST_REPORT_0.3.4-alpha.md) · [Contributing](docs/en/CONTRIBUTING.md)**
 
 **Unofficial, open-source Android 15+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
-> **0.3.3-alpha is a debug-signed test build.** Automated checks pass on Android 15–17. Physical Telegram/carrier validation of this version is pending.
+> **0.3.4-alpha is a debug-signed test build.** Automated checks pass on Android 15–17. Physical Telegram/carrier validation of this version is pending.
 
 ## Languages & technology
 
@@ -50,7 +50,7 @@ Actual **0.3.3-alpha** CI captures: Android API 35/36/37, English locale, softwa
 Beta effects are enabled for this demonstration; they are off by default. These captures
 do not establish Telegram connectivity. [Sources and verified SHA-256](docs/en/IMAGE_ASSETS.md).
 
-## 0.3.3 interface and DNS
+## 0.3.4 interface and DNS
 
 Transparency effect: a separate, persistent, off-by-default switch under Settings → Appearance. Cards and panels composite the real app backdrop; works with or without Liquid Glass. Text and controls stay opaque.
 
@@ -60,10 +60,11 @@ Material 3 now has **Home** and **App & MTProxy settings** bottom tabs. Light/da
 themes persist, with a quick theme toggle in the top menu. Proxy configuration is preserved
 and can be saved separately without starting the service.
 
-Select **Cloudflare DNS over HTTPS** in settings for 1.1.1.1 / 1.0.0.1 and IPv6 bootstrap.
-System DNS remains the migration/default choice. This is app-scoped and never changes Android
-DNS. Home automatically shows Wi-Fi/cellular and IPv4/IPv6/dual-stack even when the proxy is stopped.
-[DNS behavior and limits](docs/en/DNS_AND_APPEARANCE.md).
+Built-in **Cloudflare DNS is removed**. The app uses the active Android network's DNS,
+including system Private DNS and carrier DNS64 answers; other settings remain intact.
+Bounded parallel IPv4/IPv6 TCP attempts stagger by 250 ms. Home automatically shows
+Wi-Fi/cellular and address families even while stopped.
+[DNS behavior](docs/en/DNS_AND_APPEARANCE.md) · [Network failures and options](docs/en/NETWORK_COMPATIBILITY_0.3.4.md).
 
 ## Architecture & roadmap
 
@@ -75,7 +76,7 @@ DNS. Home automatically shows Wi-Fi/cellular and IPv4/IPv6/dual-stack even when 
 
 Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 35+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
 
-[Download 0.3.3 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.3-alpha-debug/TGWS-Android-0.3.3-debug.apk)
+[Download 0.3.4 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.4-alpha-debug/TGWS-Android-0.3.4-debug.apk)
 
 ## 0.2.0 reliability
 
@@ -133,7 +134,7 @@ checksum, build version/commit and changelog, with JVM/Lint reports separately.
 Action versions are pinned to verified commit SHAs. A separate PR/manual workflow
 executes all 25 instrumentation tests on each API 35, 36 and 37.0.
 JVM tests, Lint and APK assembly are required checks. See [testing](docs/en/TESTING.md) and the
-[update test report](docs/en/TEST_REPORT_0.3.3-alpha.md).
+[update test report](docs/en/TEST_REPORT_0.3.4-alpha.md).
 
 ## Versions
 

@@ -6,13 +6,13 @@ body:
       value: |
         Физические результаты подтверждает владелец. Не публикуйте secret, ключи, relay URL,
         сообщения, SIM/IMEI/serial и полную конфигурацию. Проверка CI не заменяет этот отчёт.
-        В TGWS 0.3.3 встроенный WebView не используется; указывайте среду, не выдумывая тест веб-страницы.
+        В TGWS 0.3.4 встроенный WebView не используется; указывайте среду, не выдумывая тест веб-страницы.
   - type: input
     id: build
     attributes:
       label: Версия и commit SHA
       description: Из OWNER_HANDOFF.md / build-info.json именно скачанной сборки.
-      placeholder: 0.3.3-alpha / source SHA / checked tree SHA
+      placeholder: 0.3.4-alpha / source SHA / checked tree SHA
     validations:
       required: true
   - type: input
