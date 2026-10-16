@@ -1,12 +1,43 @@
 # TGWS-Android
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml)
+<p align="center">
+  <img src="docs/images/tgws-github-cover-en.svg" width="100%" alt="TGWS-Android — native MTProto proxy for Android, English cover" />
+</p>
 
-<img src="docs/images/tgws-logo.jpg" width="240" alt="TGWS-Android" />
+<p align="center">
+  <img src="docs/images/tgws-logo.jpg" width="176" alt="Official TGWS-Android logo" />
+</p>
+
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml)
 
 **Unofficial, open-source Android 15+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
 > **0.3.2-alpha test update. Owner physical-device validation: pending.** Automated checks do not establish carrier reachability. Earlier user reports cover Android 16 / Wi-Fi; the reported stable 6 ms on port 8443 in 0.2.0 is Telegram’s reading, not an independent measurement or a test of this version.
+
+## Programming languages & technology
+
+**Languages actually used in this repository:**
+
+| Language | Role |
+| --- | --- |
+| ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white) **Kotlin** | Native Android app, MTProto core, Jetpack Compose UI and tests |
+| ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=222222) **JavaScript (ES modules)** | WSS relay and Cloudflare Worker, `.mjs` modules |
+| ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) **Python 3** | Upstream protocol test-vector generation, CI and utility scripts; **not bundled in the APK** |
+| **Shell** | CI scripts for Android instrumentation tests |
+| **XML** | AndroidManifest, UI resources, icons and localization |
+| **Kotlin DSL** | Gradle build configuration (`.gradle.kts`) |
+
+**Core stack:** Android SDK, Jetpack Compose, Material 3, Kotlin Coroutines, OkHttp, Android Keystore, Gradle and GitHub Actions. YAML/JSON are also used for CI and server configuration.
+
+## App screenshots
+
+<p align="center">
+  <img src="docs/images/0.3.1/home-light.png" width="31%" alt="Home screen — light theme" />
+  <img src="docs/images/0.3.1/home-dark.png" width="31%" alt="Home screen — dark theme" />
+  <img src="docs/images/0.3.1/settings-dark.png" width="31%" alt="App settings — dark theme" />
+</p>
+
+<p align="center"><sub>Screenshots from the 0.3.1-alpha build: light home, dark home and settings. The current 0.3.2-alpha UI may differ.</sub></p>
 
 ## 0.3.2 interface and DNS
 
