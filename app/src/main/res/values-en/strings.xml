@@ -168,4 +168,6 @@
     <string name="settings_saved">Proxy settings saved.</string>
     <string name="liquid_glass_title">Liquid Glass · beta</string>
     <string name="liquid_glass_description">Glass panels with a soft backdrop and highlights. Experimental appearance; off by default.</string>
+    <string name="transparency_title">Transparency effect</string>
+    <string name="transparency_description">Beta: see the app backdrop through cards and panels. Works independently or with Liquid Glass; off by default.</string>
 </resources>

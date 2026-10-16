@@ -2,6 +2,14 @@
 
 All notable changes will be documented in this file. Versions of this Android port do not correspond directly to upstream Flowseal releases.
 
+## [0.3.3-alpha] — 2026-10-16 (debug)
+
+- Separate Transparency effect switch: actually translucent cards/navigation over the app backdrop, independently or alongside Liquid Glass.
+- Off by default, persists separately from Liquid Glass and protected proxy settings; applies without restarting the service. Text and controls remain opaque.
+- Premultiplied alpha in native RuntimeShader; root window stays opaque. No capture of other apps/wallpaper, extra permissions/dependencies or continuous animation.
+- Native UI tests cover changing parent backdrop compositing, both themes/effect combinations, text visibility, persistence/disabling and unchanged MTProxy/DNS.
+- versionCode 9, Android 15+, same applicationId/debug key. Beta appearance inspired by Liquid Glass; physical appearance/battery validation pending.
+
 ## [0.3.2-alpha] — 2026-10-16 (debug)
 
 - Optional Liquid Glass beta: frosted panels/navigation, blue/teal backdrop, edge highlights and refraction in both themes. Settings → Appearance → Liquid Glass.

@@ -8,6 +8,9 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 /** Public UI/DNS preferences, separate from all Keystore-protected proxy configuration. */
 class AppPreferences(context:Context){
     private val prefs=context.applicationContext.getSharedPreferences("app_preferences",Context.MODE_PRIVATE)
+    var transparency:Boolean
+        get()=runCatching{prefs.getBoolean("transparency",false)}.getOrDefault(false)
+        set(value){prefs.edit().putBoolean("transparency",value).apply()}
     var liquidGlass:Boolean
         get()=runCatching{prefs.getBoolean("liquid_glass",false)}.getOrDefault(false)
         set(value){prefs.edit().putBoolean("liquid_glass",value).apply()}

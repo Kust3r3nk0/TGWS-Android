@@ -4,6 +4,21 @@ import android.content.Context
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -30,10 +45,10 @@ class NavigationThemeInstrumentedTest {
     @Before fun setup(){
         // Only the unrelated emulator launcher is stopped. TGWS errors/ANRs remain visible.
         shell("am force-stop com.google.android.apps.nexuslauncher")
-        AppPreferences(context).apply{theme=ThemeMode.SYSTEM;dns=DnsMode.SYSTEM;liquidGlass=false}
+        AppPreferences(context).apply{theme=ThemeMode.SYSTEM;dns=DnsMode.SYSTEM;liquidGlass=false;transparency=false}
         SettingsStore(context).recover(8443,"00112233445566778899aabbccddeeff")
     }
-    @After fun cleanup(){AppPreferences(context).apply{dns=DnsMode.SYSTEM;theme=ThemeMode.SYSTEM;liquidGlass=false}}
+    @After fun cleanup(){AppPreferences(context).apply{dns=DnsMode.SYSTEM;theme=ThemeMode.SYSTEM;liquidGlass=false;transparency=false}}
     private fun selector(tag:String)=By.pkg(context.packageName).res(tag)
     private fun node(tag:String,direction:Direction?=null):UiObject2 {
         device.wait(Until.findObject(selector(tag)),1000)?.let{return it}
@@ -183,6 +198,75 @@ class NavigationThemeInstrumentedTest {
             assertEquals(before,protectedPrefs.all)
             assertEquals(DnsMode.SYSTEM,AppPreferences(context).dns)
             assertFalse(ProxyState.snapshot.running)
+        }
+    }
+    @Test fun transparencyPersistsIndependentlyWithReadableThemesAndUnchangedProxyConfiguration(){
+        val publicPrefs=context.getSharedPreferences("app_preferences",Context.MODE_PRIVATE)
+        publicPrefs.edit().putString("transparency","invalid").commit()
+        assertFalse(AppPreferences(context).transparency)
+        publicPrefs.edit().remove("transparency").commit()
+        assertFalse(AppPreferences(context).transparency)
+        AppPreferences(context).theme=ThemeMode.LIGHT
+        val protectedPrefs=context.getSharedPreferences("settings",Context.MODE_PRIVATE)
+        val before=protectedPrefs.all.toMap()
+        ActivityScenario.launch(MainActivity::class.java).use{activity->
+            settled();node("nav.settings").click()
+            assertFalse(node("appearance.transparency",Direction.DOWN).isChecked)
+            node("appearance.transparency").click();eventually{AppPreferences(context).transparency}
+            assertFalse(AppPreferences(context).liquidGlass)
+            activity.recreate();settled()
+            assertTrue(node("appearance.transparency",Direction.UP).isChecked)
+            screenshot("transparency-settings",dark=false)
+            node("nav.home").click();screenshot("transparency-light",dark=false)
+            readableText(R.string.app_name,dark=false);readableText(R.string.status_stopped,dark=false)
+            node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.DARK}
+            screenshot("transparency-dark",dark=true)
+            readableText(R.string.app_name,dark=true);readableText(R.string.status_stopped,dark=true)
+            node("nav.settings").click();node("appearance.glass",Direction.UP).click()
+            eventually{AppPreferences(context).liquidGlass && AppPreferences(context).transparency}
+            node("nav.home").click();screenshot("transparency-combined",dark=true)
+            readableText(R.string.app_name,dark=true);readableText(R.string.status_stopped,dark=true)
+            node("nav.settings").click();node("appearance.transparency",Direction.DOWN).click()
+            eventually{!AppPreferences(context).transparency}
+            assertTrue(AppPreferences(context).liquidGlass)
+            node("appearance.glass",Direction.UP).click()
+            activity.recreate();settled()
+            assertFalse(node("appearance.transparency",Direction.UP).isChecked)
+            assertFalse(AppPreferences(context).liquidGlass)
+            assertEquals(before,protectedPrefs.all)
+            assertEquals(DnsMode.SYSTEM,AppPreferences(context).dns)
+        }
+    }
+    @Test fun transparentPanelsActuallyCompositeTheParentBackdropInBothThemesAndGlassModes(){
+        ActivityScenario.launch(MainActivity::class.java).use{activity->
+            settled()
+            for(mode in listOf(ThemeMode.LIGHT,ThemeMode.DARK))for(glass in listOf(false,true)){
+                val backdrop=mutableStateOf(Color.Red)
+                activity.onActivity{screen->screen.setContent{
+                    TgwsTheme(mode,liquidGlass=glass,transparency=true){
+                        Box(Modifier.fillMaxSize().background(backdrop.value).semantics{testTagsAsResourceId=true}){
+                            SectionCard(context.getString(R.string.app_name),Modifier.width(280.dp).height(180.dp)
+                                .align(Alignment.Center).testTag("proof.panel")){
+                                Text(context.getString(R.string.status_stopped))
+                            }
+                        }
+                    }
+                }}
+                val panel=node("proof.panel").visibleBounds
+                fun sample():Int {
+                    val image=requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+                    return try{image.getPixel(panel.centerX(),panel.bottom-24)}finally{image.recycle()}
+                }
+                // Change only the real parent, not the shader's procedural backdrop.
+                // Opaque paint or a simulated transparency gradient cannot pass this.
+                eventually{sample().let{android.graphics.Color.red(it)-android.graphics.Color.green(it)>60}}
+                val red=sample()
+                activity.onActivity{backdrop.value=Color.Green}
+                eventually{sample().let{android.graphics.Color.green(it)-android.graphics.Color.red(it)>60}}
+                val green=sample()
+                assertTrue("Parent must show through: $mode glass=$glass",android.graphics.Color.red(red)-android.graphics.Color.red(green)>60)
+                assertTrue(android.graphics.Color.green(green)-android.graphics.Color.green(red)>60)
+            }
         }
     }
 }
