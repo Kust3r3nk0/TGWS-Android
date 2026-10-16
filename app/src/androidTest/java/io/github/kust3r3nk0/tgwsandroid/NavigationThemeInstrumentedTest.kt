@@ -37,7 +37,9 @@ class NavigationThemeInstrumentedTest {
     private fun node(tag:String,direction:Direction?=null):UiObject2 {
         device.wait(Until.findObject(selector(tag)),1000)?.let{return it}
         if(direction!=null)repeat(12){
-            val area=device.findObject(By.pkg(context.packageName).scrollable(true))?:error("No settings scroller for $tag")
+            // Settings also contain independently scrollable text fields. Target the page,
+            // not the first accessibility node advertising scrollable=true.
+            val area=device.findObject(selector("page.scroll"))?:error("No page scroller for $tag")
             val more=area.scroll(direction,0.65f)
             device.wait(Until.findObject(selector(tag)),1000)?.let{return it}
             if(!more)error("Control not found: $tag")

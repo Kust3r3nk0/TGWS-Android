@@ -39,7 +39,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
             NavigationBarItem(selected=page==1,onClick={onPage(1)},modifier=Modifier.testTag("nav.settings"),
                 icon={Icon(painterResource(R.drawable.ic_settings),null)},label={Text(stringResource(R.string.nav_settings))})
         }}){insets->
-        key(page){Column(Modifier.fillMaxSize().padding(insets).consumeWindowInsets(insets)
+        key(page){Column(Modifier.fillMaxSize().padding(insets).consumeWindowInsets(insets).testTag("page.scroll")
             .verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(18.dp),content=content)}
     }
 }
