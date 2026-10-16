@@ -166,4 +166,6 @@
     <string name="about_title">About</string>
     <string name="save_settings">Save proxy settings</string>
     <string name="settings_saved">Proxy settings saved.</string>
+    <string name="liquid_glass_title">Liquid Glass · beta</string>
+    <string name="liquid_glass_description">Glass panels with a soft backdrop and highlights. Experimental appearance; off by default.</string>
 </resources>

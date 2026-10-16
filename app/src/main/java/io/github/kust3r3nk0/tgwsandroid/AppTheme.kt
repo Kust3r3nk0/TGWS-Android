@@ -5,6 +5,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 private val LightColors=lightColorScheme(primary=Color(0xFF155C94),onPrimary=Color.White,
@@ -17,6 +19,9 @@ private val DarkColors=darkColorScheme(primary=Color(0xFF9FCAFF),onPrimary=Color
     background=Color(0xFF0C141E),surface=Color(0xFF111D2B),surfaceContainer=Color(0xFF1B2A3B))
 
 @Composable internal fun darkTheme(mode:ThemeMode)=when(mode){ThemeMode.SYSTEM->isSystemInDarkTheme();ThemeMode.DARK->true;ThemeMode.LIGHT->false}
-@Composable internal fun TgwsTheme(mode:ThemeMode,content:@Composable ()->Unit){
-    MaterialTheme(colorScheme=if(darkTheme(mode))DarkColors else LightColors,content=content)
+internal val LocalLiquidGlass=staticCompositionLocalOf{false}
+@Composable internal fun TgwsTheme(mode:ThemeMode,liquidGlass:Boolean=false,content:@Composable ()->Unit){
+    CompositionLocalProvider(LocalLiquidGlass provides liquidGlass){
+        MaterialTheme(colorScheme=if(darkTheme(mode))DarkColors else LightColors,content=content)
+    }
 }

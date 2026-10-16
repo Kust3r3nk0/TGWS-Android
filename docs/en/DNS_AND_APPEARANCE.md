@@ -37,3 +37,12 @@ locks. DNS/address details remain local and are excluded from anonymous export.
 
 [Automated report](TEST_REPORT_0.3.1-alpha.md). Live Cloudflare, carrier/Telegram and physical
 UI validation await the owner.
+
+## Liquid Glass beta (0.3.2)
+
+App & MTProxy settings → Appearance → Liquid Glass. Off by default, including upgrades.
+The choice persists immediately, also while the proxy is running. Disabling restores normal
+opaque Material 3 surfaces. Android RuntimeShader renders a static blue/teal procedural backdrop,
+frosted tint, edge refraction and highlights. Text and controls remain crisp in both themes.
+It does not capture/refract arbitrary underlying UI or feed secrets into shaders. No animation loop,
+network calls, extra permissions or proxy/DNS changes. Physical performance/battery validation pending.

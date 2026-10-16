@@ -63,7 +63,8 @@ class MainActivity : ComponentActivity() {
             val preferences=remember{AppPreferences(this@MainActivity)}
             var themeMode by remember{mutableStateOf(preferences.theme)}
             var dnsMode by remember{mutableStateOf(preferences.dns)}
-            TgwsTheme(themeMode) {
+            var liquidGlass by remember{mutableStateOf(preferences.liquidGlass)}
+            TgwsTheme(themeMode,liquidGlass) {
                 val isDark=darkTheme(themeMode)
                 val windowBackground=MaterialTheme.colorScheme.background.toArgb()
                 SideEffect{
@@ -230,7 +231,8 @@ class MainActivity : ComponentActivity() {
                         }
                         Text(stringResource(R.string.local_notice),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     }else{
-                        AppearanceSettings(themeMode,{themeMode=it;preferences.theme=it},dnsMode,{dnsMode=it;preferences.dns=it},editable)
+                        AppearanceSettings(themeMode,{themeMode=it;preferences.theme=it},dnsMode,{dnsMode=it;preferences.dns=it},editable,
+                            liquidGlass,{liquidGlass=it;preferences.liquidGlass=it})
                         SectionCard(stringResource(R.string.mtproxy_settings)){
                             if(!editable)Text(stringResource(R.string.stop_to_edit),style=MaterialTheme.typography.bodySmall)
                     OutlinedTextField(
