@@ -9,7 +9,7 @@ Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 20
 - [x] Both themes, standalone and with Liquid Glass
 - [x] Native backdrop compositing, visibility and persistence tests
 - [x] Final CI: 181 JVM, zero Lint errors, 25 Android cases each on API 35/36/37; native PNGs inspected
-- [ ] Checked debug prerelease with preserved signing certificate
+- [x] [Checked 0.3.3 debug prerelease](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.3-alpha-debug) with preserved certificate, checksum and reports
 - [ ] Owner physical appearance/performance validation
 
 ## 0.3.2-alpha — Liquid Glass beta

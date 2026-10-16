@@ -26,3 +26,9 @@ or continuous animation. Android beta appearance inspired by Liquid Glass, not A
 technology/arbitrary UI refraction. Physical appearance/performance/battery, new Telegram/carrier,
 external CF/Worker/H2 and IPv6-only E2E pending. Worker remains limited to 16 MiB/session.
 Debug signing is not a production release gate.
+
+[Publication workflow 38861469403](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38861469403)
+succeeded; the [GitHub prerelease](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.3-alpha-debug)
+is not a draft, tag targets the checked source, and published APK digest matches the SHA above.
+[Owner Drive copy](https://drive.google.com/file/d/1N7LLzk-77OSpj9_S7a1HTrIgkiShDo-6/view?usp=drivesdk)
+verified by metadata; sharing unchanged.

@@ -52,3 +52,9 @@ ApplicationId прежний. APK получен из указанного ус�
 Проверка владельцем на физическом устройстве: ожидается. Реальные GPU/батарея, Telegram,
 мобильный оператор, внешние CF/Worker/H2 и IPv6-only не подтверждены этой версией.
 Прежний Worker сохраняет лимит 16 MiB/сессию. Debug-подпись не заменяет production release gate.
+
+[Публикация 38861469403](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38861469403)
+успешна. [GitHub Pre-release](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.3-alpha-debug)
+не draft, tag указывает на проверяемый код, digest опубликованного APK совпадает с указанным выше.
+[Копия на Drive владельца](https://drive.google.com/file/d/1N7LLzk-77OSpj9_S7a1HTrIgkiShDo-6/view?usp=drivesdk)
+проверена по имени, MIME и размеру; настройки доступа не менялись.
