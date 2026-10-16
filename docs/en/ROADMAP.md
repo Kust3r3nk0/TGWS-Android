@@ -2,6 +2,18 @@
 
 Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 2026. Historical reports remain unchanged. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
+## TGWS-16-016 / 017 — WebView applicability and physical ownership
+
+- [x] Audit: native Compose/MTProto, no embedded WebView; no unnecessary WebKit dependency
+- [x] CI declaration guard, emulator provider inventory before/after and regression gate tests
+- [x] Owner-only phone testing, handoff/report template with version/source/tree SHA and CI URL
+- [ ] Final CI verification of the new tooling
+- [ ] Owner Android 16 Stable/Beta physical native-app regression
+- [ ] One UI 8.5 Stable/Beta when available; One UI 9.0 when an environment exists
+- [ ] If a real WebView UI is added: feature guards, renderer recovery, security/performance and mandatory channel tests
+
+[WebView](WEBVIEW_COMPATIBILITY.md) · [Physical testing](PHYSICAL_TESTING.md).
+
 ## 0.3.3-alpha — transparency effect
 
 - [x] Independent persistent appearance switch, off by default

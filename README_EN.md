@@ -178,3 +178,12 @@ This is an independent community port, not an official Flowseal Android release.
 ## Codex development and CI artifacts
 
 To implement a specification with Codex, follow the [English Codex workflow](docs/en/CODEX_WORKFLOW.md) and [project agent instructions](AGENTS.md). The existing GitHub Actions workflow runs JVM tests, Android Lint and debug build checks for pull requests to `main`; after a successful run, download the `TGWS-Android-<version>-debug-<commit>` ZIP under **Actions → Android CI → Artifacts**. A successful CI run is not proof of real Telegram connectivity or production readiness.
+
+
+## WebView and owner testing
+
+Current UI is native Compose: no embedded WebView or WebKit dependency. Provider inventory
+in CI does not certify latest Stable/Beta. [WebView applicability](docs/en/WEBVIEW_COMPATIBILITY.md)
+and [owner physical-testing workflow](docs/en/PHYSICAL_TESTING.md) define responsibilities.
+Successful CI artifacts include version/source/tree SHA and `OWNER_HANDOFF.md`; phone,
+One UI, carrier, Telegram and Stable/Beta results are confirmed by the owner.

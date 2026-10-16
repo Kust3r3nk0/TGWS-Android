@@ -1,4 +1,4 @@
-# Testing 0.3.1-alpha
+# Testing TGWS-Android
 
 Baseline: Flowseal/tg-ws-proxy **v1.11.2**, commit
 `307a384ab7f522e34bb1a045884d0bd90f40bee5`. [Русский](../TESTING.md).
@@ -32,7 +32,7 @@ Instrumentation requires a connected device or emulator:
 ```
 
 CI also runs `python3 .github/scripts/verify_android_tests.py`, requiring entries
-for all 22 tests instead of relying only on Gradle's exit code. Empty reports,
+for all current tests (25 in 0.3.3) instead of relying only on Gradle's exit code. Empty reports,
 skips, duplicates and failures/errors fail the job. Test the gate and emulator
 entry points with `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
 
@@ -136,3 +136,14 @@ NetworkViewTest checks IPv4/IPv6/dual/unknown and excludes link-local. Android a
 and navigation/draft/save/recreate/theme/DNS/protected-secret checks. CI collects light/dark
 Home and settings PNGs in Android reports. Owner physical carrier/Cloudflare/Telegram checks
 remain separate.
+
+
+## TGWS-16-016 / 017: applicability and handoff
+
+Current production UI/transport has no embedded WebView. CI checks declared production
+references/dependencies with `verify_native_ui.py`; this does not replace code/security review.
+Before/after emulator tests `android-environment/*.json` records manufacturer/model/OS/API
+and selected provider package/version, not latest-channel certification. It neither switches
+providers nor instantiates an engine; null/unknown states are explicit. No personal device discovery.
+See [WebView matrix](WEBVIEW_COMPATIBILITY.md), [owner workflow](PHYSICAL_TESTING.md),
+and the populated `OWNER_HANDOFF.md` included with successful CI APK artifacts.

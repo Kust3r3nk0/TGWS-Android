@@ -207,3 +207,12 @@ app/src/main/java/io/github/kust3r3nk0/tgwsandroid/
 
 **Разработчик / инициатор проекта:** Makarov Lab's 3.0™.  
 **Репозиторий:** `Kust3r3nk0/TGWS-Android`.
+
+
+## WebView и проверки владельцем
+
+Интерфейс нативный Compose: встроенного WebView и зависимости WebKit нет. Инвентаризация
+провайдера в CI не подтверждает latest Stable/Beta. [WebView-контракт](docs/TGWS-16-016_WEBVIEW.md)
+и [порядок физических проверок](docs/TGWS-16-017_PHYSICAL_TESTING.md) закрепляют обязанности.
+Успешные CI-артефакты содержат версию, source/tree SHA и `OWNER_HANDOFF.md`; результаты
+на смартфоне, One UI, у оператора, в Telegram и Stable/Beta подтверждает владелец.

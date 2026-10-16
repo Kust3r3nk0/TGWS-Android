@@ -1,4 +1,4 @@
-# Проверка 0.3.1-alpha
+# Проверка TGWS-Android
 
 Эталон: Flowseal/tg-ws-proxy **v1.11.2**, commit
 `307a384ab7f522e34bb1a045884d0bd90f40bee5`. [English](en/TESTING.md).
@@ -32,7 +32,7 @@ fallback и локальный WebSocket-сервер. Они не подтве�
 ```
 
 CI дополнительно запускает `python3 .github/scripts/verify_android_tests.py`:
-проверяются записи всех 22 тестов, а не только exit code Gradle. Пустые отчёты,
+проверяются записи всех актуальных тестов (25 в 0.3.3), а не только exit code Gradle. Пустые отчёты,
 пропуски, повторяющиеся записи и любой failed/error не засчитываются. Саму
 проверку и настройку эмулятора проверяет
 `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
@@ -152,3 +152,14 @@ NavigationThemeInstrumentedTest проверяет вкладки, draft/save/re
 DNS и неизменность защищённого secret. Http2InstrumentedTest добавляет настоящий DoH
 на Android. CI сохраняет PNG главной в двух темах и настроек в Android reports artifact.
 Физические Cloudflare/мобильный интернет/Telegram отдельно проверяет владелец.
+
+
+## TGWS-16-016 / 017: применимость и передача сборки
+
+Production UI/transport не содержит встроенного WebView. `verify_native_ui.py` проверяет
+явные production-ссылки/зависимости; это не заменяет review или полный аудит безопасности.
+До/после эмуляторных тестов `android-environment/*.json` сохраняет manufacturer/model/OS/API
+и выбранный provider package/version, без заявления о latest-канале. Провайдер не переключается,
+движок не создаётся, отсутствие/неизвестность различаются; личные устройства не ищутся.
+[WebView-матрица](TGWS-16-016_WEBVIEW.md) · [процесс владельца](TGWS-16-017_PHYSICAL_TESTING.md).
+В успешный CI ZIP с APK входит заполненный `OWNER_HANDOFF.md`.

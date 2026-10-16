@@ -29,6 +29,8 @@ jobs:
         uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
       - name: Install Android API 37 platform
         run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+      - name: Check the declared native UI contract (TGWS-16-016)
+        run: python3 .github/scripts/verify_native_ui.py --output app/build/reports/native-ui.json
       - name: Run tests, lint and debug build
         run: ./gradlew --no-daemon -PsoakSeconds=60 :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Verify instrumentation report gate tests
@@ -44,6 +46,8 @@ jobs:
           npm test -- --test-reporter=junit --test-reporter-destination=test-results.xml
       - name: Collect debug APK, checksum and build information
         if: success()
+        env:
+          TGWS_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           python3 - <<'PY'
           import hashlib
@@ -64,9 +68,15 @@ jobs:
               checksums.append(f'{hashlib.sha256(apk.read_bytes()).hexdigest()}  {apk.name}')
           (output / 'SHA256SUMS').write_text('\n'.join(checksums) + '\n')
           version = re.search(r'versionName\s*=\s*"([^"]+)"', Path('app/build.gradle.kts').read_text()).group(1)
+          run_url = f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+          native_ui = json.loads(Path('app/build/reports/native-ui.json').read_text())
           info = {
               'version': version,
               'commit': os.environ['GITHUB_SHA'],
+              'source_commit': os.environ['TGWS_SOURCE_COMMIT'],
+              'workflow_url': run_url,
+              'physical_testing': 'owner_pending',
+              'native_ui': native_ui,
               'build_type': 'debug',
               'signature': 'Android debug key; not a trusted distribution release',
               'jdk': '17',
@@ -83,6 +93,14 @@ jobs:
               env_file.write(f'TGWS_VERSION={version}\n')
           (output / 'build-info.json').write_text(json.dumps(info, indent=2) + '\n')
           shutil.copy2('CHANGELOG.md', output / 'CHANGELOG.md')
+          handoff = Path('docs/OWNER_TEST_REPORT_TEMPLATE.md').read_text()
+          for key, value in {'VERSION': version, 'BUILD_COMMIT': os.environ['GITHUB_SHA'],
+                             'SOURCE_COMMIT': os.environ['TGWS_SOURCE_COMMIT'], 'RUN_URL': run_url}.items():
+              handoff = handoff.replace('{{' + key + '}}', value)
+          if re.search(r'\{\{[A-Z_]+\}\}', handoff):
+              raise SystemExit('Owner handoff contains unresolved build placeholders')
+          (output / 'OWNER_HANDOFF.md').write_text(handoff)
+          shutil.copy2('app/build/reports/native-ui.json', output / 'native-ui.json')
           PY
       - name: Upload debug build (not a distribution release)
         if: success()
@@ -103,6 +121,7 @@ jobs:
             app/build/reports/lint-results-debug.*
             app/build/reports/soak-summary.json
             app/build/reports/http2-soak-summary.json
+            app/build/reports/native-ui.json
             relay/test-results.xml
           if-no-files-found: warn
           retention-days: 14
