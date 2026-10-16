@@ -41,7 +41,9 @@ preserved debug certificate; every ZIP payload byte matches passing CI. Size 32,
 - Certificate SHA-256: `26877620e16c5b2680023fc1fc6a285214b2e06dc998366731d9bcacd11c9fbe`.
 
 [Debug pre-release](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.4-alpha-debug)
-is published after these gates; it is not production signing or stable validation.
+was published by successful [run 38975728048](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38975728048). Tag targets the verified source; published APK digest matches; prerelease=true, draft=false. It is not production signing or stable validation.
+
+[Owner Drive copy](https://drive.google.com/file/d/15cbJNWZET2CCm4uyL92l4zaDb636Dpa6/view?usp=drivesdk) verified by name/MIME/size; sharing unchanged.
 
 The owner reports previous failure in all three modes; exact previous build/SHA/stage unknown.
 **Carrier/Wi-Fi/Telegram connectivity restoration is not confirmed.** DNS cannot overcome IP/SNI

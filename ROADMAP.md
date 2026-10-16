@@ -9,7 +9,7 @@
 - [x] Регрессии blackhole/refusal/отмена/смена сети, миграция и APK guard; прежние тесты сохранены
 - [x] [Исследование и варианты сетевых отказов](docs/NETWORK_COMPATIBILITY_0.3.4.md), строгий TLS сохранён
 - [x] Wrapper/CI: 190 JVM, Lint 0 ошибок; 26 case на каждом API 35/36/37, APK/metadata проверены
-- [ ] Debug-предрелиз 0.3.4 с прежним сертификатом
+- [x] [Debug-предрелиз 0.3.4](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.4-alpha-debug), прежний сертификат, checksum/отчёты
 - [ ] Мобильные операторы и проблемные Wi-Fi: физические проверки владельцем
 
 ## TGWS-16-016 / 017 — WebView и физические проверки

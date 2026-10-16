@@ -73,7 +73,9 @@ versionName 0.3.4-alpha / versionCode 10 / minSdk 35 / targetSdk 37. Прежн�
 - SHA-256 прежнего debug-сертификата: `26877620e16c5b2680023fc1fc6a285214b2e06dc998366731d9bcacd11c9fbe`.
 
 [Debug Pre-release](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.4-alpha-debug)
-публикуется после этих проверок. Это debug-подпись, не production-релиз.
+опубликован после этих проверок. [Публикация 38975728048](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38975728048) успешна. Tag указывает на проверяемый source, Pre-release не draft; digest опубликованного APK совпадает с указанным выше. Это debug-подпись, не production-релиз.
+
+[Копия для владельца на Google Drive](https://drive.google.com/file/d/15cbJNWZET2CCm4uyL92l4zaDb636Dpa6/view?usp=drivesdk) проверена по имени, MIME и размеру; настройки доступа не менялись.
 
 Владелец сообщил об отказах предыдущей сборки **во всех трёх режимах**; точная предыдущая
 версия/SHA и этап ошибки не указаны. Устранение отказов оператора/реального Wi-Fi/Telegram

@@ -9,7 +9,7 @@ Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 20
 - [x] Blackhole/refusal/cancellation/network-change regressions, migration and APK gate; previous tests preserved
 - [x] [Network failure research and options](NETWORK_COMPATIBILITY_0.3.4.md); strict TLS preserved
 - [x] Wrapper/CI: 190 JVM, zero Lint errors, 26 cases each API 35/36/37; APK/metadata verified
-- [ ] Preserved-certificate 0.3.4 Debug pre-release
+- [x] [0.3.4 Debug pre-release](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.4-alpha-debug), preserved certificate/checksum/reports
 - [ ] Owner's physical carrier/problematic Wi-Fi validation
 
 ## TGWS-16-016 / 017 — WebView applicability and physical ownership
