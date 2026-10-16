@@ -1,4 +1,4 @@
-# Testing 0.3.0-alpha
+# Testing 0.3.1-alpha
 
 Baseline: Flowseal/tg-ws-proxy **v1.11.2**, commit
 `307a384ab7f522e34bb1a045884d0bd90f40bee5`. [Русский](../TESTING.md).
@@ -32,7 +32,7 @@ Instrumentation requires a connected device or emulator:
 ```
 
 CI also runs `python3 .github/scripts/verify_android_tests.py`, requiring entries
-for all 19 tests instead of relying only on Gradle's exit code. Empty reports,
+for all 22 tests instead of relying only on Gradle's exit code. Empty reports,
 skips, duplicates and failures/errors fail the job. Test the gate and emulator
 entry points with `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
 
@@ -72,7 +72,7 @@ Record:
 ```text
 UTC date:
 Git commit:
-TGWS-Android version: 0.3.0-alpha
+TGWS-Android version: 0.3.1-alpha
 APK SHA-256:
 Device / Android / API:
 Official Telegram version:
@@ -121,8 +121,18 @@ python3 .github/scripts/verify_http2_soak.py --seconds 180
 ```
 
 Both soaks execute the requested duration individually (CI: 60 seconds each). Gates require actual
-passing JUnit cases, duration, measured summaries and bounded resources. Android now requires 19
+passing JUnit cases, duration, measured summaries and bounded resources. Android now requires 22
 cases per API 35/36/37.0: added encrypted-settings migration/tamper, network callback stop/permissions,
 real local H2 and full Fake TLS → core → TLS/H2 integration. Fixture CA trust is test-client-only.
 [Carrier model versus physical RU-01–14 matrix](RU_MOBILE_OPERATORS.md),
-[transports](TRANSPORTS_0.3.md), [actual report](TEST_REPORT_0.3.0-alpha.md).
+[transports](TRANSPORTS_0.3.md), [actual report](TEST_REPORT_0.3.1-alpha.md).
+
+
+## 0.3.1 UI and DNS
+
+CloudflareDnsTest exercises real local TLS/H2 DNS: A/AAAA, NXDOMAIN, malformed/HTML/
+oversize/redirect/untrusted-certificate rejection, stop/stale callbacks without system fallback.
+NetworkViewTest checks IPv4/IPv6/dual/unknown and excludes link-local. Android adds real DoH
+and navigation/draft/save/recreate/theme/DNS/protected-secret checks. CI collects light/dark
+Home and settings PNGs in Android reports. Owner physical carrier/Cloudflare/Telegram checks
+remain separate.
