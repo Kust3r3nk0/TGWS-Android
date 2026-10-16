@@ -7,7 +7,8 @@ Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 20
 - [x] Optional glass panels/navigation in light and dark themes
 - [x] Persistent appearance switch, off by default, separate from MTProxy configuration
 - [x] Native UI test for actual rendering, persistence and disabling
-- [ ] Final API 35/36/37 CI verification and debug APK publication
+- [x] Final CI: 181 JVM, zero Lint errors, 23 Android cases each on API 35/36/37; native PNGs checked
+- [ ] Checked debug APK publication
 - [ ] Owner physical appearance/performance validation
 
 ## 0.3.1-alpha — interface and DNS
