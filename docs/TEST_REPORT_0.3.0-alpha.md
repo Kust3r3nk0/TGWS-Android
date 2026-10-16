@@ -51,16 +51,33 @@ cancel, RST_STREAM и GOAWAY, отказ ALPN/status/HTML/размеров. Не
 
 ## Сборка и GitHub CI
 
-Полная Wrapper-команда с JDK 17, `-PsoakSeconds=180`, JVM/Lint/Debug APK/instrumentation APK:
-**BUILD SUCCESSFUL**. Lint — 0 errors / 3 прежних UseKtx warnings; Debug APK и instrumentation APK собраны.
-CI и Android API35/36/37.0 ожидаются;
-до проверки фактических JUnit они не обозначаются PASS.
+Исходный commit приложения: `7bb77b5354e7ae4e6c2274ab85315025a166bcf0`.
+Документация может быть новее; application/build файлы совпадают с проверяемым commit.
 
-Публикация debug APK выполняется только после успешных обоих CI для одного исходного commit.
-Публикационный workflow повторно сверяет CI/JUnit/оба soak/подпись и каждый ZIP entry APK
-с исходным CI APK. Сохраняется прежний debug-сертификат
+- Полная Wrapper-команда с JDK 17, JVM/Lint/Debug APK/instrumentation APK: **BUILD SUCCESSFUL**.
+  Финальные локальные 176 тестов прошли; Lint — 0 errors / 3 прежних UseKtx warnings.
+- [Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38828242098): **успешно**,
+  176 JVM cases, 0 failures/errors/skipped, Lint 0 errors, APK собран; оба soak по 60 с проверены по JUnit.
+- [Android-матрица](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38828242138): **успешно**,
+  API 35 — **19**, API 36 — **19**, API 37.0 — **19**. Все **57** записей проверены
+  по скачанным JUnit; нет errors/failed/skipped, пропущенных или дублирующихся тестов.
+- ZIP-артефакты сверены с GitHub SHA-256. PR merge tree идентичен исходному commit;
+  каждый ZIP entry подписанного APK совпадает с CI APK. В APK нет тестового p12/сертификата.
+- Manifest: прежний applicationId `io.github.kust3r3nk0.tgwsandroid`, minSdk 35,
+  targetSdk 37, versionCode 6, название `TGWS-Android`.
+
+Фактический CI soak TCP/WSS: **60 с**, 26 022 пакета, 7 108 завершённых сессий,
+59 сбросов, 61 ожидаемый разрыв, pool leases 1 445; peak sessions 4/8, pool 3/4,
+WSS/TCP sessions 3/4. H2: **60 с**, 5 479 пакетов, 1 106 завершённых сессий,
+58 сбросов, 189 ожидаемых разрывов, 6 938 HTTP requests; peak native/H2 4/8,
+HTTP calls 5/16. Ресурсные границы соблюдены.
+
+Сохранён прежний debug-сертификат
 `26877620e16c5b2680023fc1fc6a285214b2e06dc998366731d9bcacd11c9fbe`;
-это не production signing. Исходный commit и APK checksum входят в build-info/SHA256SUMS релиза.
+это не production signing. SHA-256 подписанного APK:
+`b40411bc922725aeac585adb6402e12ff2065d5e92fa999d37d763cd8db1e58b`.
+Публикационный workflow повторно проверяет source/оба CI/JUnit/оба soak/подпись и
+побайтовый payload перед созданием [debug Pre-release](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.0-alpha-debug).
 
 ## Физическое устройство и ограничения
 
