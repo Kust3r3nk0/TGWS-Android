@@ -50,7 +50,8 @@ internal class NetworkConnector(private val current:()->NetworkAccess?) : Socket
                 val tcpStart=System.nanoTime()
                 // Leave a bounded share for alternate IPv4/IPv6 answers; no fixed-IP family assumption.
                 socket.connect(InetSocketAddress(address,port),(left/(addresses.size-index)).coerceIn(1,Int.MAX_VALUE.toLong()).toInt())
-                checkCurrent(access);timings[socket]=SetupTimings(dnsMillis,TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-tcpStart));return socket
+                checkCurrent(access);timings[socket]=SetupTimings(dnsMillis,TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-tcpStart),
+                    resolvedAddresses=addresses.mapNotNull{it.hostAddress});return socket
             }catch(error:Exception){socket.close();if(error !is IOException)throw error;last=error}
         }
         throw last ?: java.net.SocketTimeoutException("Connection deadline")

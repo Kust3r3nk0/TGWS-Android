@@ -52,7 +52,9 @@ class Http2MediaTransportTest {
         }}
         val transports=(0..1).map{Http2MediaTransport.open(client,endpoint(server),tag){}}
         assertNotNull(transports[0].setupTimings?.tlsMillis)
+        assertTrue(transports[0].setupTimings!!.resolvedAddresses.isNotEmpty())
         assertNull(transports[1].setupTimings?.tlsMillis)
+        assertTrue(transports[1].setupTimings!!.resolvedAddresses.isEmpty())
         try{
             val cryptos=(0..1).map{crypto()}
             val payloads=(0..1).map{worker->ByteArray(24){(it+worker+1).toByte()}}

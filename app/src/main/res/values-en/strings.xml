@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="route_dns_answers">DNS A/AAAA answers (local only): %1$s</string>
     <string name="app_name">TGWS-Android</string>
     <string name="app_label">TGWS-Android</string>
     <string name="version_label">Android 15+ · %1$s</string>

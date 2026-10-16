@@ -24,7 +24,8 @@ class NetworkConnectorTest {
                 val network=access(answers)
                 NetworkConnector{network}.use{connector->
                     val owned=mutableListOf<Socket>();connector.connect("configured.example",listener.localPort,1000){owned+=it}.use{connected->
-                        listener.accept().use{assertTrue(connected.isConnected)}}
+                        listener.accept().use{assertTrue(connected.isConnected)}
+                        assertEquals(answers.mapNotNull{it.hostAddress},connector.takeTiming(connected)?.resolvedAddresses)}
                     assertTrue(owned.all{it.isClosed})
                 }
             }

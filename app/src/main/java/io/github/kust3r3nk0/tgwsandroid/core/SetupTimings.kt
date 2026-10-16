@@ -1,7 +1,10 @@
 package io.github.kust3r3nk0.tgwsandroid.core
 
 /** Null means that phase was not measured (for example a reused H2 connection), never an estimate. */
-data class SetupTimings(val dnsMillis:Long?=null,val tcpMillis:Long?=null,val tlsMillis:Long?=null,val httpMillis:Long?=null)
+data class SetupTimings(val dnsMillis:Long?=null,val tcpMillis:Long?=null,val tlsMillis:Long?=null,val httpMillis:Long?=null,
+    val resolvedAddresses:List<String> = emptyList()) {
+    override fun toString()="SetupTimings(redacted)"
+}
 
 internal class HttpSetupRecorder:okhttp3.EventListener(){
     private var dnsStart=0L
@@ -13,7 +16,9 @@ internal class HttpSetupRecorder:okhttp3.EventListener(){
     private var measured=SetupTimings()
     private fun elapsed(start:Long)=java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start).coerceAtLeast(0)
     @Synchronized override fun dnsStart(call:okhttp3.Call,domainName:String){dnsStart=System.nanoTime()}
-    @Synchronized override fun dnsEnd(call:okhttp3.Call,domainName:String,inetAddressList:List<java.net.InetAddress>){measured=measured.copy(dnsMillis=elapsed(dnsStart))}
+    @Synchronized override fun dnsEnd(call:okhttp3.Call,domainName:String,inetAddressList:List<java.net.InetAddress>){
+        measured=measured.copy(dnsMillis=elapsed(dnsStart),resolvedAddresses=inetAddressList.take(8).mapNotNull{it.hostAddress})
+    }
     @Synchronized override fun connectStart(call:okhttp3.Call,inetSocketAddress:java.net.InetSocketAddress,proxy:java.net.Proxy){connecting[inetSocketAddress]=System.nanoTime()}
     @Synchronized override fun secureConnectStart(call:okhttp3.Call){handshaking[Thread.currentThread().id]=Tls()}
     @Synchronized override fun secureConnectEnd(call:okhttp3.Call,handshake:okhttp3.Handshake?){handshaking[Thread.currentThread().id]?.let{it.millis=elapsed(it.started)}}

@@ -50,7 +50,9 @@ validation status remain distinct; lack of validation alone does not prove CF un
 Monitoring uses callbacks, no periodic reconnect loop or additional wake locks.
 
 Diagnostics show listener/network, optional active data-SIM and registered PLMN, IP families,
-DNS/Private DNS/NAT64, DC/media/routes/stages/errors/time/attempts and Telegram-side traffic.
+DNS/Private DNS/NAT64, actual resolved A/AAAA answers (up to eight, local display only),
+DC/media/routes/stages/errors/time/attempts and Telegram-side traffic. Reused H2 connections
+show unknown DNS/TCP/TLS phases/answers rather than fabricated measurements.
 Actual DNS/TCP/TLS/HTTP setup measurements are not Telegram ping; reused phases are unknown.
 An explicit probe opens up to three transport handshakes, no MTProto packets, once per 30 s.
 Export requires preview and copy; it excludes URLs/domains/IP/DNS/PLMN/SIM IDs/secrets.

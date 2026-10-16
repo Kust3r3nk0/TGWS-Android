@@ -92,7 +92,8 @@ internal data class TransportDraft(val mode:TransportMode=TransportMode.DIRECT,v
             Text(stringResource(R.string.route_details,route.id,if(route.media)-route.dc else route.dc,stringResource(transport),stringResource(status),
                 stringResource(stage),checked,route.setupMillis?.toString()?:unknown,route.issue?.let{stringResource(diagnosticIssueResource(it))}?:stringResource(R.string.no),route.attempts))
             route.timings?.let{timing->Text(stringResource(R.string.phase_timings,timing.dnsMillis?.toString()?:unknown,
-                timing.tcpMillis?.toString()?:unknown,timing.tlsMillis?.toString()?:unknown,timing.httpMillis?.toString()?:unknown))}
+                timing.tcpMillis?.toString()?:unknown,timing.tlsMillis?.toString()?:unknown,timing.httpMillis?.toString()?:unknown))
+                Text(stringResource(R.string.route_dns_answers,timing.resolvedAddresses.joinToString(", ").ifEmpty{unknown}))}
         }
         TextButton(onClick={carriers=!carriers}){Text(stringResource(R.string.carrier_reference))}
         if(carriers){
