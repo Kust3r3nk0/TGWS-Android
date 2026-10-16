@@ -75,7 +75,7 @@ jobs:
               'gradle': '9.8.1',
               'compile_sdk': '37.0',
               'build_tools': '36.0.0',
-              'telegram_e2e': '0.3.0: owner physical validation pending; cellular/external transports unverified',
+              'telegram_e2e': f'{version}: owner physical validation pending; cellular/external transports unverified',
               'local_soak': json.loads(Path('app/build/reports/soak-summary.json').read_text()),
               'http2_soak': json.loads(Path('app/build/reports/http2-soak-summary.json').read_text()),
           }

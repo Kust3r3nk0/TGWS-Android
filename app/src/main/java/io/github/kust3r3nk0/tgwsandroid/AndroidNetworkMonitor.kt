@@ -56,8 +56,8 @@ internal class AndroidNetworkMonitor(private val context:Context,private val han
         val portal=caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL)==true
         val internet=caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)==true
         val dns=links?.dnsServers.orEmpty().mapNotNull{it.hostAddress}.take(8)
-        val ipv4=links?.linkAddresses.orEmpty().any{it.address is Inet4Address}
-        val ipv6=links?.linkAddresses.orEmpty().any{it.address is Inet6Address}
+        val ipv4=links?.linkAddresses.orEmpty().any{it.address is Inet4Address && internetAddress(it.address)}
+        val ipv6=links?.linkAddresses.orEmpty().any{it.address is Inet6Address && internetAddress(it.address)}
         val signature=listOf(internet,portal,links?.linkAddresses,links?.routes,dns,links?.nat64Prefix,links?.privateDnsServerName).joinToString("|")
         val replaced=state.update(network,actual,signature)
         if(replaced){

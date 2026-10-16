@@ -10,3 +10,5 @@ if [[ "$actual_api" != "${requested_api%%.*}" ]]; then
 fi
 ./gradlew --no-daemon :app:connectedDebugAndroidTest
 python3 .github/scripts/verify_android_tests.py
+mkdir -p app/build/reports/androidTests/connected/screenshots
+adb -s emulator-5554 pull /sdcard/Android/data/io.github.kust3r3nk0.tgwsandroid/files/ui-screenshots/. app/build/reports/androidTests/connected/screenshots/

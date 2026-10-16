@@ -7,14 +7,14 @@ import unittest
 
 
 class AndroidEntryPointTest(unittest.TestCase):
-    def run_script(self, api='37', gradle_status=0):
+    def run_script(self, api='37', gradle_status=0, report_status=0, pull_status=0):
         script = Path(__file__).with_name('run_android_tests.sh').resolve()
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             for name, content in {
-                'adb': f'#!/bin/sh\nprintf "{api}\\r\\n"\n',
+                'adb': f'#!/bin/sh\nif [ "$3" = "pull" ]; then echo screenshots >> steps; exit {pull_status}; fi\nprintf "{api}\\r\\n"\n',
                 'gradlew': f'#!/bin/sh\necho gradle >> steps\nexit {gradle_status}\n',
-                'python3': '#!/bin/sh\necho report-gate >> steps\n',
+                'python3': f'#!/bin/sh\necho report-gate >> steps\nexit {report_status}\n',
             }.items():
                 path = root / name
                 path.write_text(content)
@@ -37,4 +37,14 @@ class AndroidEntryPointTest(unittest.TestCase):
     def test_success_checks_actual_reports(self):
         status, steps = self.run_script()
         self.assertEqual(0, status)
+        self.assertEqual(['gradle', 'report-gate', 'screenshots'], steps)
+
+    def test_failed_report_gate_cannot_be_hidden_by_screenshot_pull(self):
+        status, steps = self.run_script(report_status=1)
+        self.assertNotEqual(0, status)
         self.assertEqual(['gradle', 'report-gate'], steps)
+
+    def test_screenshot_collection_failure_is_visible(self):
+        status, steps = self.run_script(pull_status=1)
+        self.assertNotEqual(0, status)
+        self.assertEqual(['gradle', 'report-gate', 'screenshots'], steps)

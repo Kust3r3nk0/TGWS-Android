@@ -1,4 +1,4 @@
-# Проверка 0.3.0-alpha
+# Проверка 0.3.1-alpha
 
 Эталон: Flowseal/tg-ws-proxy **v1.11.2**, commit
 `307a384ab7f522e34bb1a045884d0bd90f40bee5`. [English](en/TESTING.md).
@@ -32,7 +32,7 @@ fallback и локальный WebSocket-сервер. Они не подтве�
 ```
 
 CI дополнительно запускает `python3 .github/scripts/verify_android_tests.py`:
-проверяются записи всех 19 тестов, а не только exit code Gradle. Пустые отчёты,
+проверяются записи всех 22 тестов, а не только exit code Gradle. Пустые отчёты,
 пропуски, повторяющиеся записи и любой failed/error не засчитываются. Саму
 проверку и настройку эмулятора проверяет
 `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
@@ -76,7 +76,7 @@ CI дополнительно запускает `python3 .github/scripts/verify
 ```text
 Дата UTC:
 Git commit:
-TGWS-Android version: 0.3.0-alpha
+TGWS-Android version: 0.3.1-alpha
 APK SHA-256:
 Устройство / Android / API:
 Официальный Telegram version:
@@ -140,4 +140,15 @@ Gate отклоняет короткий/пропущенный/ошибочны
 NetworkViewTest повторяет callback-сценарии для всех четырёх операторских карточек;
 NetworkConnectorTest моделирует адресные семейства и смену сети. [Покрытие и ограничения
 RU-01–14](RU_MOBILE_OPERATORS.md) отделены от физических NOT TESTED результатов.
-[Режимы](TRANSPORTS_0.3.md) · [Фактический отчёт](TEST_REPORT_0.3.0-alpha.md).
+[Режимы](TRANSPORTS_0.3.md) · [Фактический отчёт](TEST_REPORT_0.3.1-alpha.md).
+
+
+## UI и DNS 0.3.1
+
+CloudflareDnsTest использует локальный TLS/H2 DNS peer: A/AAAA, NXDOMAIN, malformed/HTML/
+oversize/redirect, недоверенный сертификат, stop/late callback без системного fallback.
+NetworkViewTest проверяет IPv4/IPv6/dual-stack/unknown и исключение link-local.
+NavigationThemeInstrumentedTest проверяет вкладки, draft/save/recreate, тему, явный выбор
+DNS и неизменность защищённого secret. Http2InstrumentedTest добавляет настоящий DoH
+на Android. CI сохраняет PNG главной в двух темах и настроек в Android reports artifact.
+Физические Cloudflare/мобильный интернет/Telegram отдельно проверяет владелец.

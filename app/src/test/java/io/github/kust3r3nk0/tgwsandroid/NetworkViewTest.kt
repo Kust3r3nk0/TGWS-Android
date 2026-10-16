@@ -39,4 +39,14 @@ class NetworkViewTest {
         assertEquals(RadioKind.LTE,CarrierReference.radio(13));assertEquals(RadioKind.LTE_PLUS,CarrierReference.radio(19))
         assertEquals(RadioKind.NR,CarrierReference.radio(20));assertEquals(RadioKind.UNKNOWN,CarrierReference.radio(123))
     }
+    @Test fun ipFamiliesDescribeConfiguredAddressesAndExcludeLinkLocalOnlyIpv6(){
+        assertEquals(IpSupport.UNKNOWN,NetworkView().ipSupport)
+        assertEquals(IpSupport.IPV4,NetworkView(ipv4=true).ipSupport)
+        assertEquals(IpSupport.IPV6,NetworkView(ipv6=true).ipSupport)
+        assertEquals(IpSupport.DUAL,NetworkView(ipv4=true,ipv6=true).ipSupport)
+        assertFalse(internetAddress(java.net.InetAddress.getByName("fe80::1")))
+        assertFalse(internetAddress(java.net.InetAddress.getByName("::1")))
+        assertTrue(internetAddress(java.net.InetAddress.getByName("2001:db8::1")))
+        assertTrue(internetAddress(java.net.InetAddress.getByName("192.0.2.1")))
+    }
 }

@@ -2,6 +2,8 @@ package io.github.kust3r3nk0.tgwsandroid
 
 enum class AccessKind { NONE, WIFI, CELLULAR, OTHER }
 enum class RadioKind { UNKNOWN, G2, G3, LTE, LTE_PLUS, NR }
+enum class IpSupport { UNKNOWN, IPV4, IPV6, DUAL }
+internal fun internetAddress(address:java.net.InetAddress)=!address.isLoopbackAddress && !address.isLinkLocalAddress && !address.isAnyLocalAddress
 enum class CarrierBrand { MEGAFON, MTS, BEELINE, T2 }
 data class CarrierCard(val brand:CarrierBrand,val primaryPlmn:String,val additional:Set<String>,val apn:String,val login:String?,val password:String?)
 object CarrierReference {
@@ -31,7 +33,9 @@ data class OperatorView(val registeredName:String?=null,val registeredPlmn:Strin
 data class NetworkView(val kind:AccessKind=AccessKind.NONE,val validated:Boolean=false,val captivePortal:Boolean=false,
     val metered:Boolean?=null,val roaming:Boolean?=null,val ipv4:Boolean=false,val ipv6:Boolean=false,
     val nat64Prefix:String?=null,val dnsServers:List<String> = emptyList(),val privateDns:Boolean=false,
-    val privateDnsName:String?=null,val operator:OperatorView=OperatorView(),val observedAtMillis:Long=0)
+    val privateDnsName:String?=null,val operator:OperatorView=OperatorView(),val observedAtMillis:Long=0){
+    val ipSupport:IpSupport get()=when{ipv4&&ipv6->IpSupport.DUAL;ipv4->IpSupport.IPV4;ipv6->IpSupport.IPV6;else->IpSupport.UNKNOWN}
+}
 
 /** Ignore callbacks for a network which is no longer the system default. */
 internal class DefaultNetworkState<T> {

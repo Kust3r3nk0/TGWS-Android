@@ -2,6 +2,17 @@
 
 Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 2026. Historical reports remain unchanged. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
+## 0.3.1-alpha — interface and DNS
+
+- [x] Two Material 3 tabs, separate settings and save without starting
+- [x] Persistent light/dark/system themes and top-menu toggle
+- [x] Optional Cloudflare DoH with A/AAAA, strict TLS and cancellation; preserve System DNS
+- [x] Automatic Wi-Fi/cellular and IPv4/IPv6/dual-stack on Home, including while stopped
+- [x] DNS/network tests, Android UI/theme/persistence and CI screenshots
+- [ ] Owner physical UI/DNS/cellular/Telegram validation
+
+[Behavior and limits](DNS_AND_APPEARANCE.md) · [Report](TEST_REPORT_0.3.1-alpha.md).
+
 ## 0.3.0-alpha — extended transports and Android
 
 This stage merges the former 0.3.0 and **all 0.4.0 items**. [Owner specification (RU)](../TZ_0.3.0-alpha.md).
