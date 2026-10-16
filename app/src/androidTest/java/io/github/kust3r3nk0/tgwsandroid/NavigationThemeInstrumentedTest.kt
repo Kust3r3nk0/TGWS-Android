@@ -83,7 +83,8 @@ class NavigationThemeInstrumentedTest {
             node("nav.settings").click();assertEquals("2443",node("settings.port",Direction.DOWN).text)
             node("settings.save",Direction.DOWN).click();eventually{SettingsStore(context).port==2443}
             activity.recreate();settled()
-            assertEquals("2443",node("settings.port",Direction.DOWN).text)
+            // rememberScrollState restores the bottom viewport after recreation.
+            assertEquals("2443",node("settings.port",Direction.UP).text)
             assertFalse(ProxyState.snapshot.running)
         }
     }
