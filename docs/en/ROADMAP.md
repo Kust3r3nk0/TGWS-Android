@@ -8,7 +8,7 @@ Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 20
 - [x] Actual translucent cards/navigation while text remains opaque
 - [x] Both themes, standalone and with Liquid Glass
 - [x] Native backdrop compositing, visibility and persistence tests
-- [ ] Final CI and Android API 35/36/37 verification
+- [x] Final CI: 181 JVM, zero Lint errors, 25 Android cases each on API 35/36/37; native PNGs inspected
 - [ ] Checked debug prerelease with preserved signing certificate
 - [ ] Owner physical appearance/performance validation
 
