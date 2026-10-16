@@ -4,6 +4,8 @@ Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 20
 
 ## 0.3.1-alpha — interface and DNS
 
+- [x] Final CI: 181 JVM and 22 Android cases each on API 35/36/37, actual light/dark screenshots
+
 - [x] Two Material 3 tabs, separate settings and save without starting
 - [x] Persistent light/dark/system themes and top-menu toggle
 - [x] Optional Cloudflare DoH with A/AAAA, strict TLS and cancellation; preserve System DNS

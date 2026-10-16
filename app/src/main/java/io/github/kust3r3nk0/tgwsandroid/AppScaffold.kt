@@ -11,6 +11,8 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -18,7 +20,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
 
 @Composable internal fun AppScaffold(page:Int,onPage:(Int)->Unit,version:String,isDark:Boolean,onToggleTheme:()->Unit,
     content:@Composable ColumnScope.()->Unit){
-    Scaffold(containerColor=MaterialTheme.colorScheme.background,
+    Scaffold(modifier=Modifier.semantics{testTagsAsResourceId=true},containerColor=MaterialTheme.colorScheme.background,
         topBar={Surface(color=MaterialTheme.colorScheme.background){
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal=20.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically){
                 Image(painterResource(R.drawable.tgws_symbol),null,Modifier.size(44.dp))
@@ -37,7 +39,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
             NavigationBarItem(selected=page==1,onClick={onPage(1)},modifier=Modifier.testTag("nav.settings"),
                 icon={Icon(painterResource(R.drawable.ic_settings),null)},label={Text(stringResource(R.string.nav_settings))})
         }}){insets->
-        key(page){Column(Modifier.fillMaxSize().padding(insets).consumeWindowInsets(insets)
+        key(page){Column(Modifier.fillMaxSize().padding(insets).consumeWindowInsets(insets).testTag("page.scroll")
             .verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(18.dp),content=content)}
     }
 }

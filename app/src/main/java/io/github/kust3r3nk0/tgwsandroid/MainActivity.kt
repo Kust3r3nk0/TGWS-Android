@@ -13,6 +13,8 @@ import android.os.Bundle
 import android.os.PersistableBundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
@@ -26,6 +28,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -34,8 +37,8 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.testTag
 import android.os.Handler
 import android.os.Looper
-import android.view.WindowInsetsController
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
 import io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint
 import androidx.compose.ui.res.stringResource
@@ -52,6 +55,7 @@ import kotlinx.coroutines.withContext
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         val store = SettingsStore(this)
         @Suppress("DEPRECATION")
         val version = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
@@ -61,10 +65,15 @@ class MainActivity : ComponentActivity() {
             var dnsMode by remember{mutableStateOf(preferences.dns)}
             TgwsTheme(themeMode) {
                 val isDark=darkTheme(themeMode)
-                SideEffect{window.insetsController?.setSystemBarsAppearance(
-                    if(isDark)0 else WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
-                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)}
-                var page by rememberSaveable{mutableStateOf(0)}
+                val windowBackground=MaterialTheme.colorScheme.background.toArgb()
+                SideEffect{
+                    // Android 15 can expose the native window beneath transparent system bars.
+                    window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(windowBackground))
+                    val bars=if(isDark)SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                        else SystemBarStyle.light(android.graphics.Color.TRANSPARENT,android.graphics.Color.TRANSPARENT)
+                    enableEdgeToEdge(statusBarStyle=bars,navigationBarStyle=bars)
+                }
+                var page by rememberSaveable{mutableIntStateOf(0)}
                 var observedNetwork by remember{mutableStateOf(NetworkView())}
                 DisposableEffect(Unit){
                     var monitor:AndroidNetworkMonitor?=null
@@ -134,7 +143,10 @@ class MainActivity : ComponentActivity() {
                 AppScaffold(page=page,onPage={page=it;revealSecret=false},version=version,isDark=isDark,onToggleTheme={
                     themeMode=if(isDark)ThemeMode.LIGHT else ThemeMode.DARK;preferences.theme=themeMode
                 }){
-                    if(busy)androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().testTag("settings.loading"))
+                    if(busy){
+                        androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().testTag("settings.loading"))
+                        Text(stringResource(R.string.settings_loading),style=MaterialTheme.typography.bodySmall)
+                    }
                     val error = errorResource ?: snapshot.issue?.let(::issueResource)
                     error?.let {
                         val warning = errorResource == null && snapshot.issueIsWarning
