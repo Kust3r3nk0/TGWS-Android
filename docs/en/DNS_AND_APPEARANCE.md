@@ -1,6 +1,6 @@
 # 0.3.4 DNS, network and interface
 
-[Русский](../DNS_AND_APPEARANCE.md). Android 15+.
+[Русский](../DNS_AND_APPEARANCE.md). Android 16+.
 
 Bottom navigation separates Home (proxy status/start/stop, Telegram, network and diagnostics)
 from App & MTProxy settings. Existing port/secret/relay/Fake TLS/CF/Worker/H2 formats and mode

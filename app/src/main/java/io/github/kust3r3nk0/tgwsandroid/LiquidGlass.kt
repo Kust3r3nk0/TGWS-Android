@@ -55,7 +55,7 @@ import androidx.compose.ui.unit.dp
 
 private fun Color.luminanceForGlass()=0.2126f*red+0.7152f*green+0.0722f*blue
 
-// Android 15+ provides RuntimeShader. Uniforms contain geometry/theme only.
+// Android 16+ baseline: RuntimeShader uniforms contain geometry/theme only.
 private const val GLASS_SHADER="""
 uniform float2 bounds;
 uniform float2 origin;

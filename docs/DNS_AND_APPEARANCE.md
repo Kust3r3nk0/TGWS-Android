@@ -1,6 +1,6 @@
 # DNS, сеть и интерфейс 0.3.4
 
-[English](en/DNS_AND_APPEARANCE.md). Android 15+.
+[English](en/DNS_AND_APPEARANCE.md). Android 16+.
 
 ## Навигация и темы
 

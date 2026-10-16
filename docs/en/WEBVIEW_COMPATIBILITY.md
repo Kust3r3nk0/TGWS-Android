@@ -1,6 +1,6 @@
 # TGWS-16-016 — WebView compatibility
 
-P1, Android 16+ AOSP / One UI 8.5/9.0. App minimum remains Android 15.
+P1, Android 16+ AOSP / One UI 8.5/9.0. App minimum is Android 16 (API 36); Android 14/15 are no longer supported.
 [Full specification and matrix (RU)](../TGWS-16-016_WEBVIEW.md).
 
 Current 0.3.4-alpha uses **no embedded WebView**: Compose/Material 3 UI, external Telegram

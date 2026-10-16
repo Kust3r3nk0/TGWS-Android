@@ -24,7 +24,7 @@ Telegram servers from the user's network.
 
 ## Android
 
-Test API 35, 36 and 37 where a stable system image is available.
+Test API 36 and 37 where a stable system image is available. API 34/35 are outside the current support matrix.
 Instrumentation requires a connected device or emulator:
 
 ```bash
@@ -56,7 +56,7 @@ distribution requires a separate review of the store's foreground-service rules.
 
 ## Physical Telegram E2E — separate owner validation
 
-The owner uses a physical Android 15+ device and official Telegram. These checks do not block
+The owner uses a physical Android 16+ device and official Telegram. These checks do not block
 a debug Pre-release after automated validation; stable release acceptance still requires E2E.
 
 1. Install the APK and record its SHA-256 and build commit.
