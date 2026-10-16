@@ -99,6 +99,21 @@ class NavigationThemeInstrumentedTest {
         ParcelFileDescriptor.AutoCloseInputStream(pipes[0]).use{it.readBytes()}
         check((shell("stat -c %s /sdcard/Download/tgws-ui/$name.png").trim().toLongOrNull()?:0)>0)
     }
+    private fun readableText(resource:Int,dark:Boolean){
+        val text=context.getString(resource)
+        val bounds=requireNotNull(device.wait(Until.findObject(By.pkg(context.packageName).text(text)),5000)).visibleBounds
+        val image=requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+        try{
+            var glyphPixels=0
+            for(y in bounds.top until bounds.bottom)for(x in bounds.left until bounds.right){
+                val luminance=android.graphics.Color.luminance(image.getPixel(x,y))
+                if(if(dark)luminance>0.55f else luminance<0.20f)glyphPixels++
+            }
+            // The text rectangle must contain visible foreground glyphs, not just
+            // a correctly coloured panel. Catches black inherited text on dark glass.
+            assertTrue("Text is not visible in the rendered theme: $text",glyphPixels>bounds.width()*bounds.height()/50)
+        }finally{image.recycle()}
+    }
     @Test fun navigationKeepsDraftAndSaveSurvivesActivityRecreation(){
         ActivityScenario.launch(MainActivity::class.java).use{activity->
             settled();assertFalse(device.hasObject(selector("settings.secret")))
@@ -155,8 +170,10 @@ class NavigationThemeInstrumentedTest {
             screenshot("glass-settings",dark=false)
             node("nav.home").click();eventually{margin()!=normal}
             screenshot("glass-light",dark=false)
+            readableText(R.string.app_name,dark=false);readableText(R.string.status_stopped,dark=false)
             node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.DARK}
             screenshot("glass-dark",dark=true)
+            readableText(R.string.app_name,dark=true);readableText(R.string.status_stopped,dark=true)
             node("nav.settings").click();node("appearance.glass",Direction.UP).click()
             eventually{!AppPreferences(context).liquidGlass}
             activity.recreate();settled()

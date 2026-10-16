@@ -25,7 +25,9 @@ import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
     val glass=LocalLiquidGlass.current
     Box(Modifier.fillMaxSize().liquidGlass(panel=false,rounded=false)){
     Scaffold(modifier=Modifier.semantics{testTagsAsResourceId=true},containerColor=if(glass)Color.Transparent else MaterialTheme.colorScheme.background,
-        topBar={Surface(modifier=Modifier.liquidGlass(rounded=false),color=if(glass)Color.Transparent else MaterialTheme.colorScheme.background){
+        contentColor=MaterialTheme.colorScheme.onBackground,
+        topBar={Surface(modifier=Modifier.liquidGlass(rounded=false),color=if(glass)Color.Transparent else MaterialTheme.colorScheme.background,
+            contentColor=MaterialTheme.colorScheme.onSurface){
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal=20.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically){
                 Image(painterResource(R.drawable.tgws_symbol),null,Modifier.size(44.dp))
                 Column(Modifier.weight(1f).padding(start=12.dp)){
@@ -50,7 +52,9 @@ import io.github.kust3r3nk0.tgwsandroid.core.DnsMode
 }
 
 @Composable internal fun SectionCard(title:String,modifier:Modifier=Modifier,content:@Composable ColumnScope.()->Unit){
-    Card(modifier.fillMaxWidth().liquidGlass(),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=if(LocalLiquidGlass.current)Color.Transparent else MaterialTheme.colorScheme.surface)){
+    Card(modifier.fillMaxWidth().liquidGlass(),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(
+        containerColor=if(LocalLiquidGlass.current)Color.Transparent else MaterialTheme.colorScheme.surface,
+        contentColor=MaterialTheme.colorScheme.onSurface)){
         Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
             Text(title,style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.primary)
             content()
