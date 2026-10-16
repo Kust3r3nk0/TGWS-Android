@@ -13,6 +13,8 @@ import android.os.Bundle
 import android.os.PersistableBundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
@@ -35,7 +37,6 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.testTag
 import android.os.Handler
 import android.os.Looper
-import android.view.WindowInsetsController
 import androidx.compose.ui.Modifier
 import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
 import io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint
@@ -53,6 +54,7 @@ import kotlinx.coroutines.withContext
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         val store = SettingsStore(this)
         @Suppress("DEPRECATION")
         val version = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
@@ -62,9 +64,11 @@ class MainActivity : ComponentActivity() {
             var dnsMode by remember{mutableStateOf(preferences.dns)}
             TgwsTheme(themeMode) {
                 val isDark=darkTheme(themeMode)
-                SideEffect{window.insetsController?.setSystemBarsAppearance(
-                    if(isDark)0 else WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
-                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)}
+                SideEffect{
+                    val bars=if(isDark)SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                        else SystemBarStyle.light(android.graphics.Color.TRANSPARENT,android.graphics.Color.TRANSPARENT)
+                    enableEdgeToEdge(statusBarStyle=bars,navigationBarStyle=bars)
+                }
                 var page by rememberSaveable{mutableIntStateOf(0)}
                 var observedNetwork by remember{mutableStateOf(NetworkView())}
                 DisposableEffect(Unit){

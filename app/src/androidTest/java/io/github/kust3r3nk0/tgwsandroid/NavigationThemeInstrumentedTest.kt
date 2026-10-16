@@ -68,7 +68,17 @@ class NavigationThemeInstrumentedTest {
         // Verify the real page margin has switched luminance before retaining a PNG.
         val deadline=SystemClock.elapsedRealtime()+5000
         var image=requireNotNull(automation.takeScreenshot())
-        while((android.graphics.Color.luminance(image.getPixel(0,image.height/2))<0.5f)!=dark){
+        fun matchesTheme()=listOf(0,image.height/2,image.height-1).all{y->
+            (android.graphics.Color.luminance(image.getPixel(0,y))<0.5f)==dark
+        }
+        var stableSince:Long?=null
+        while(true){
+            if(matchesTheme()){
+                val now=SystemClock.elapsedRealtime()
+                if(stableSince==null)stableSince=now
+                // Allow Material component colour transitions to finish as well.
+                if(now-requireNotNull(stableSince)>=300)break
+            }else stableSince=null
             image.recycle()
             check(SystemClock.elapsedRealtime()<deadline){"Expected theme was not rendered: $name"}
             SystemClock.sleep(16)
