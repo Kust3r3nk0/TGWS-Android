@@ -27,9 +27,17 @@ class NavigationThemeInstrumentedTest {
     private fun loaded(){settled();compose.onNodeWithTag("home.status").assertExists()}
     private fun screenshot(name:String){
         compose.waitForIdle()
-        val image=requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
-        val folder=java.io.File(context.getExternalFilesDir(null),"ui-screenshots").apply{check(mkdirs() || isDirectory)}
-        java.io.File(folder,"$name.png").outputStream().use{check(image.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it))}
+        require(name.matches(Regex("[a-z-]+")))
+        val automation=InstrumentationRegistry.getInstrumentation().uiAutomation
+        val image=requireNotNull(automation.takeScreenshot())
+        // AGP removes app-owned storage after tests. Shell-owned CI artifacts survive teardown.
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /sdcard/Download/tgws-ui")).use{it.readBytes()}
+        val pipes=automation.executeShellCommandRw("dd of=/sdcard/Download/tgws-ui/$name.png")
+        android.os.ParcelFileDescriptor.AutoCloseOutputStream(pipes[1]).use{check(image.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it))}
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(pipes[0]).use{it.readBytes()}
+        val size=android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("stat -c %s /sdcard/Download/tgws-ui/$name.png"))
+            .bufferedReader().use{it.readText().trim().toLongOrNull()}
+        check(size!=null && size>0)
         image.recycle()
     }
     @Test fun navigationKeepsDraftAndSaveSurvivesActivityRecreation(){

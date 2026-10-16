@@ -15,7 +15,7 @@ An existing malformed-MTProto test now awaits finally-close with a finite deadli
 than racing local EOF; protocol checks remain intact.
 
 Complete local Wrapper: **BUILD SUCCESSFUL**, 181 JVM cases, zero failed/error/skipped,
-Lint zero errors / three existing UseKtx warnings, debug and instrumentation APK assembled.
+Lint zero errors / five UseKtx warnings (three existing and two new UI-preference style suggestions), debug and instrumentation APK assembled.
 Actual CI JUnit results are pending. Existing176 cases remain;
 five new JVM cases give181. Android source requires22 cases, adding navigation/persistence,
 theme and real local DoH. CI captures light/dark Home and settings for visual verification.
@@ -25,3 +25,9 @@ Physical device, public Cloudflare over a carrier, cellular and new-version Tele
 **NOT TESTED**. A local peer verifies client behavior, not carrier access to1.1.1.1.
 No Android DNS/APN/SIM changes, IP-bypass guarantee or carrier DNS64 synthesis. The
 experimental Worker retains16MiB/session. The retained debug key is not production signing.
+
+
+The first [device matrix](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38832625220)
+ran all22 cases on each API but failed artifact collection: AGP removed app-owned storage
+during teardown. Test-only screenshots now go to shell-owned Download before uninstall;
+image collection stays mandatory. No app storage permission was added. Repeated CI pending.

@@ -26,6 +26,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -64,7 +65,7 @@ class MainActivity : ComponentActivity() {
                 SideEffect{window.insetsController?.setSystemBarsAppearance(
                     if(isDark)0 else WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
                     WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)}
-                var page by rememberSaveable{mutableStateOf(0)}
+                var page by rememberSaveable{mutableIntStateOf(0)}
                 var observedNetwork by remember{mutableStateOf(NetworkView())}
                 DisposableEffect(Unit){
                     var monitor:AndroidNetworkMonitor?=null
@@ -134,7 +135,10 @@ class MainActivity : ComponentActivity() {
                 AppScaffold(page=page,onPage={page=it;revealSecret=false},version=version,isDark=isDark,onToggleTheme={
                     themeMode=if(isDark)ThemeMode.LIGHT else ThemeMode.DARK;preferences.theme=themeMode
                 }){
-                    if(busy)androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().testTag("settings.loading"))
+                    if(busy){
+                        androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().testTag("settings.loading"))
+                        Text(stringResource(R.string.settings_loading),style=MaterialTheme.typography.bodySmall)
+                    }
                     val error = errorResource ?: snapshot.issue?.let(::issueResource)
                     error?.let {
                         val warning = errorResource == null && snapshot.issueIsWarning

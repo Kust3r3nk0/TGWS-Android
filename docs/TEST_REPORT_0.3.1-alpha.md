@@ -24,7 +24,7 @@ bootstrap/fallback, NXDOMAIN, повреждённый DNS, HTML, размер �
 с конечным deadline, без отключения проверки или изменения протокола.
 
 Полная локальная Wrapper-команда: **BUILD SUCCESSFUL**, 181 JVM case, 0 failures/errors/skipped;
-Lint — 0 errors / 3 прежних UseKtx warnings, Debug APK и instrumentation APK собраны.
+Lint — 0 errors / 5 UseKtx warnings (3 прежних и 2 для новых UI preferences), Debug APK и instrumentation APK собраны.
 Фактические CI JUnit будут зафиксированы после выполнения матрицы.
 Прежние 176 тестов сохранены, новых JVM — 5 (итого 181). В исходниках 22 Android cases,
 включая новые навигацию/сохранение/тему и настоящий локальный DoH на Android.
@@ -39,3 +39,10 @@ Android CI собирает снимки главной в двух темах �
 Cloudflare DoH не гарантирует обход IP-блокировки и не заменяет операторский DNS64.
 Прежний экспериментальный Worker сохраняет лимит 16 MiB/сессию. Debug APK не имеет
 production-подписи; используется прежний debug-сертификат для обновления.
+
+
+Первичная CI-матрица [38832625220](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38832625220)
+выполнила по 22 теста на всех API без skipped, но workflow не прошёл из-за сбора PNG:
+AGP удалял app-owned storage при teardown. Исправлено сохранение test-only снимков
+в shell-owned Download до удаления APK; проверка наличия снимков остаётся обязательной.
+Повторный полный CI ожидается. Новых разрешений хранилища у приложения нет.
