@@ -4,40 +4,51 @@
   <img src="docs/images/tgws-github-cover-en.svg" width="100%" alt="TGWS-Android — native MTProto proxy for Android, English cover" />
 </p>
 
-<p align="center">
-  <img src="docs/images/tgws-logo.jpg" width="176" alt="Official TGWS-Android logo" />
-</p>
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/15) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.3--alpha-orange)
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml)
+**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.3-alpha-debug/TGWS-Android-0.3.3-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Test results](docs/en/TEST_REPORT_0.3.3-alpha.md) · [Contributing](docs/en/CONTRIBUTING.md)**
 
 **Unofficial, open-source Android 15+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
-> **0.3.3-alpha test update. Owner physical-device validation: pending.** Automated checks do not establish carrier reachability. Earlier user reports cover Android 16 / Wi-Fi; the reported stable 6 ms on port 8443 in 0.2.0 is Telegram’s reading, not an independent measurement or a test of this version.
+> **0.3.3-alpha is a debug-signed test build.** Automated checks pass on Android 15–17. Physical Telegram/carrier validation of this version is pending.
 
-## Programming languages & technology
+## Languages & technology
 
-**Languages actually used in this repository:**
+![TGWS-Android languages and tools: Kotlin, JavaScript, Python, Bash, AGSL, Android, Compose, Gradle and GitHub Actions](docs/images/tgws-stack.svg)
 
 | Language | Role |
 | --- | --- |
-| ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white) **Kotlin** | Native Android app, MTProto core, Jetpack Compose UI and tests |
-| ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=222222) **JavaScript (ES modules)** | WSS relay and Cloudflare Worker, `.mjs` modules |
-| ![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white) **Python 3** | Upstream protocol test-vector generation, CI and utility scripts; **not bundled in the APK** |
-| **Shell** | CI scripts for Android instrumentation tests |
-| **XML** | AndroidManifest, UI resources, icons and localization |
-| **Kotlin DSL** | Gradle build configuration (`.gradle.kts`) |
+| **Kotlin** | Native Android application, MTProto core, Jetpack Compose UI and tests |
+| **JavaScript · ES modules** | Standalone WSS relay and Cloudflare Worker in `relay/` and `cloudflare-worker/` |
+| **Python 3** | Protocol reference vectors, CI verification and publishing; **not bundled in the APK** |
+| **Bash** | Android instrumentation and emulator preparation in CI |
+| **AGSL** | Embedded Android RuntimeShader for Liquid Glass/transparency in `LiquidGlass.kt` |
 
-**Core stack:** Android SDK, Jetpack Compose, Material 3, Kotlin Coroutines, OkHttp, Android Keystore, Gradle and GitHub Actions. YAML/JSON are also used for CI and server configuration.
+**Resources & configuration:** XML for AndroidManifest, icons and localization; Kotlin DSL
+for Gradle; YAML/JSON for workflows/server configuration. Java provides JDK 17; this project
+currently has no separate Java source files.
 
-## App screenshots
+**Platform:** Android 15+, Jetpack Compose / Material 3, Kotlin Coroutines, OkHttp,
+Android Keystore, Gradle and GitHub Actions. [Image sources & licenses](docs/en/IMAGE_ASSETS.md).
 
-<p align="center">
-  <img src="docs/images/0.3.1/home-light.png" width="31%" alt="Home screen — light theme" />
-  <img src="docs/images/0.3.1/home-dark.png" width="31%" alt="Home screen — dark theme" />
-  <img src="docs/images/0.3.1/settings-dark.png" width="31%" alt="App settings — dark theme" />
-</p>
+## Inside the app
 
-<p align="center"><sub>Screenshots from the 0.3.1-alpha build: light home, dark home and settings. The current 0.3.3-alpha UI may differ.</sub></p>
+<table>
+  <tr>
+    <td align="center" width="33%"><strong>Light theme</strong></td>
+    <td align="center" width="33%"><strong>Dark theme</strong></td>
+    <td align="center" width="33%"><strong>Appearance</strong></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/0.3.3/home-light.png" alt="TGWS-Android 0.3.3: light Home screen with transparency" width="260" /></td>
+    <td><img src="docs/images/0.3.3/home-dark.png" alt="TGWS-Android 0.3.3: dark Home screen with transparency" width="260" /></td>
+    <td><img src="docs/images/0.3.3/settings-glass.png" alt="TGWS-Android 0.3.3: settings with Liquid Glass and transparency enabled" width="260" /></td>
+  </tr>
+</table>
+
+Actual **0.3.3-alpha** CI captures: Android API 35/36/37, English locale, software GPU.
+Beta effects are enabled for this demonstration; they are off by default. These captures
+do not establish Telegram connectivity. [Sources and verified SHA-256](docs/en/IMAGE_ASSETS.md).
 
 ## 0.3.3 interface and DNS
 
@@ -98,7 +109,6 @@ WSS endpoint. No external relay has been deployed or validated on a carrier yet.
 | Debug APK | Debug-signed test artifact, not a distribution release |
 | GitHub debug Pre-releases | Owner-authorized after CI, with debug signing and stated limitations |
 | Trusted signed stable APK | Planned; full release gate not passed |
-
 | Fake TLS and CF Proxy/Worker routing | Implemented and tested locally; external E2E unverified |
 | HTTP/2 media `/api` | Real local TLS/ALPN/flow-control/multiplexing and RST/GOAWAY tests; needs compatible server |
 | Network-bound DNS/sockets, IPv4/IPv6, network changes | Local/model tests; physical DNS64/XLAT and handover unverified |
