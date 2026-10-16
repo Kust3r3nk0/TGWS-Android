@@ -57,9 +57,9 @@ internal class RawWebSocket private constructor(
     private var fragmentBuffer = ByteArray(0)
     private var fragmentBytes = 0
     private var fragmented = false
+    var setupTimings=SetupTimings();private set
 
     companion object {
-        private val dns = BoundedDns()
         private const val HEADER_LIMIT = 16 * 1024
         private const val MAGIC = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
         private val token = Regex("[!#$%&'*+.^_`|~0-9A-Za-z-]+")
@@ -72,8 +72,9 @@ internal class RawWebSocket private constructor(
             address: String,
             domain: String,
             path: String = "/apiws",
+            connector:SocketConnector=SystemSocketConnector,
             socketOwner: (Socket) -> Unit = {},
-        ): RawWebSocket = connectTls(address, domain, path, 443, SSLContext.getDefault(), Limits(), socketOwner)
+        ): RawWebSocket = connectTls(address, domain, path, 443, SSLContext.getDefault(), Limits(),connector,socketOwner)
 
         /** Test endpoint injection preserves the same TLS trust and hostname checks as production. */
         internal fun connectTls(
@@ -83,26 +84,31 @@ internal class RawWebSocket private constructor(
             port: Int,
             context: SSLContext,
             limits: Limits = Limits(),
+            connector:SocketConnector=SystemSocketConnector,
             socketOwner: (Socket) -> Unit = {},
         ): RawWebSocket {
             validateRequest(domain, path)
-            val tcp = Socket()
+            var tcp:Socket?=null
             var tls: SSLSocket? = null
             try {
-                socketOwner(tcp)
-                tcp.tcpNoDelay = true
-                tcp.connect(InetSocketAddress(dns.resolve(address, limits.connectMillis), port), limits.connectMillis)
-                tcp.soTimeout = limits.handshakeMillis
-                val ssl = context.socketFactory.createSocket(tcp, domain, port, true) as SSLSocket
+                val connected=connector.connect(address,port,limits.connectMillis,socketOwner)
+                tcp=connected
+                val timing=connector.takeTiming(connected)?:SetupTimings()
+                connected.soTimeout = limits.handshakeMillis
+                val ssl = context.socketFactory.createSocket(connected, domain, port, true) as SSLSocket
                 tls = ssl
                 socketOwner(ssl)
                 ssl.sslParameters = ssl.sslParameters.apply { endpointIdentificationAlgorithm = "HTTPS" }
                 // soTimeout alone permits a peer to drip handshake records forever.
                 val deadline = deadlines.schedule({ quietlyClose(ssl) }, limits.handshakeMillis.toLong(), TimeUnit.MILLISECONDS)
+                val tlsStart=System.nanoTime()
                 try { ssl.startHandshake() } finally { deadline.cancel(false) }
-                return upgrade(ssl, domain, path, limits)
+                val tlsMillis=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-tlsStart)
+                val httpStart=System.nanoTime()
+                return upgrade(ssl, domain, path, limits).also{it.setupTimings=timing.copy(tlsMillis=tlsMillis,
+                    httpMillis=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-httpStart))}
             } catch (e: Exception) {
-                quietlyClose(tls ?: tcp)
+                (tls ?: tcp)?.let(::quietlyClose)
                 throw e
             }
         }

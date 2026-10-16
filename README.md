@@ -5,16 +5,16 @@
 [![Android](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/15)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Status](https://img.shields.io/badge/Status-0.2.0--alpha-orange)
+![Status](https://img.shields.io/badge/Status-0.3.0--alpha-orange)
 
 <img src="docs/images/tgws-logo.jpg" width="240" alt="TGWS-Android" />
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 15+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[English README](README_EN.md) · [План разработки](ROADMAP.md) · [Проверки и Telegram E2E](docs/TESTING.md) · [Отчёт обновления](docs/TEST_REPORT_0.2.0-alpha.md) · [Разработка с Codex](docs/CODEX_WORKFLOW.md)**
+**[English README](README_EN.md) · [План разработки](ROADMAP.md) · [Проверки и Telegram E2E](docs/TESTING.md) · [Отчёт обновления](docs/TEST_REPORT_0.3.0-alpha.md) · [Разработка с Codex](docs/CODEX_WORKFLOW.md)**
 
 > [!IMPORTANT]
-> **0.2.0-alpha — тестовое обновление.** Пользователь подтвердил отправку, получение и загрузку в 0.1.0-alpha на Android 16 / Telegram 13.0.2 / Wi-Fi, но сообщил о кратких обрывах. Исправления 0.2.0-alpha требуют повторной проверки на устройстве; устойчивость всех маршрутов не подтверждена.
+> **0.3.0-alpha — тестовое обновление. Проверка владельцем на физическом устройстве: ожидается.** Автоматические проверки не подтверждают доступность у оператора. Владелец ранее сообщил о рабочем Telegram на Android 16 / Wi-Fi и стабильных 6 мс в 0.2.0 на порту 8443; это показание Telegram, а не независимый замер или проверка новой версии.
 
 ## Как работает TGWS-Android
 
@@ -26,7 +26,7 @@
 
 TGWS-Android — нативное Android-приложение на Kotlin и Jetpack Compose для запуска локального MTProto WebSocket-прокси. Планируется функциональная совместимость с сетевым ядром Flowseal TG-WS-Proxy, включая WebSocket, TCP fallback, Fake TLS, Cloudflare-маршруты и HTTP/2. Приложение **не является VPN** и не перехватывает системный трафик.
 
-## Текущее состояние (0.2.0-alpha)
+## Текущее состояние (0.3.0-alpha)
 
 | Возможность | Статус |
 |---|---|
@@ -37,12 +37,13 @@ TGWS-Android — нативное Android-приложение на Kotlin и Je
 | Foreground Service, реакция на потерю сети | Основной lifecycle протестирован на эмуляторах API 35–37; реальные Wi-Fi/LTE требуют проверки |
 | Compose / Material 3, русский и английский UI | Реализовано, требует проверки на устройстве |
 | Android Keystore AES-256-GCM | Реализовано и протестировано на эмуляторах API 35–37; утрата ключа требует явного восстановления |
-| Реальное подключение официального Telegram | Частично проверено пользователем: 0.1.0-alpha, Android 16, Wi-Fi; повтор 0.2.0-alpha и восстановление сети требуют проверки |
+| Реальное подключение официального Telegram | Частично проверено пользователем: 0.1.0-alpha, Android 16, Wi-Fi; повтор 0.3.0-alpha и восстановление сети требуют проверки |
 | Собственное WSS-реле (Worker-совместимое) | Реализовано и протестировано локально; нужен внешний узел, мобильный E2E не проверен |
-| Fake TLS (ee-secret) | Запланировано |
-| Cloudflare Proxy, пулы Worker и балансировка | Запланировано; базовый WSS relay-клиент выделен отдельно |
-| HTTP/2 для медиатрафика | Запланировано |
-| IPv6-only, миграция сетей, тестовые DC | Запланировано |
+| Fake TLS (ee-secret) | Реализовано и протестировано: HMAC/records и локальные сессии; внешний E2E не проверен |
+| Cloudflare Proxy и Worker fallback | Реализовано и протестировано локально: проверяемая конфигурация, ротация/backoff; нужен совместимый внешний узел |
+| HTTP/2 для медиатрафика | Реализовано и протестировано с локальным TLS/H2 `/api`, multiplexing/flow control/RST/GOAWAY; внешний E2E не проверен |
+| IPv4/IPv6 и смена сети | Реализовано и протестировано в моделях/локальных тестах; DNS64/XLAT зависят от ОС и сети, физическая проверка ожидается |
+| Диагностика и справочник операторов | Реализовано: состояния маршрутов/сети, реальные замеры, явная проверка и обезличенный экспорт |
 | Debug APK | Тестовый артефакт с отладочной подписью; не пользовательский релиз |
 | GitHub debug-предрелизы | Разрешены владельцем; публикуются после CI, с отладочной подписью и ограничениями |
 | Доверенно подписанный стабильный APK | Запланировано; полный release gate не пройден |
@@ -67,14 +68,20 @@ TGWS-Android — нативное Android-приложение на Kotlin и Je
 6. Debug APK доступен в **Actions → Android CI → запуск → Artifacts**. [Инструкции Codex](AGENTS.md).
 
 > [!NOTE]
-> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет также по 14 инструментальных тестов на API 35–37. [Результаты и ограничения обновления](docs/TEST_REPORT_0.2.0-alpha.md).
+> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет также по 19 инструментальных тестов на API 35–37. [Результаты и ограничения обновления](docs/TEST_REPORT_0.3.0-alpha.md).
 
 CI запускается при push в `main`, Pull Request и вручную. Успешная проверка
 публикует debug APK, `SHA256SUMS`, версию и commit, changelog; отчёты JVM/Lint
 сохраняются отдельно. Actions и Wrapper закреплены по проверенным SHA.
 Отдельный workflow при PR и вручную проверяет Android API 35, 36, 37.0.
 
-[Скачать 0.2.0 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.2.0-alpha-debug/TGWS-Android-0.2.0-debug.apk)
+[Скачать 0.3.0 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.0-alpha-debug/TGWS-Android-0.3.0-debug.apk)
+
+## Транспорты 0.3.0
+
+[Настройка direct / relay-only / Auto CF, Fake TLS и H2](docs/TRANSPORTS_0.3.md).
+[Российские операторы, APN-справочник и матрица](docs/RU_MOBILE_OPERATORS.md).
+Прежние настройки мигрируют с сохранением режима; автоматическая смена APN, DNS и SIM не выполняется.
 
 ## Надёжность 0.2.0
 
@@ -109,8 +116,7 @@ WSS использует обычную проверку доверия TLS и �
 
 Секрет скрыт по умолчанию. Отображение, копирование и открытие Telegram-ссылки
 требуют действия пользователя; ссылка использует `dd` для Padded Intermediate.
-Маркер transport `ee` поддерживается в базовом Obfuscated2, но Fake TLS с
-`ee-secret` в эту версию не входит. Ciphertext сохранённого секрета не заменяется
+Для Fake TLS укажите домен: ссылка использует `ee` + secret + HEX домена. Локальная маскировка не заменяет удалённый TLS и не снимает IP-блокировку сама по себе. Ciphertext сохранённого секрета не заменяется
 молча при утрате ключа Keystore. Диагностика содержит только категории событий.
 
 После 60 с тишины WSS проверяет peer через Ping/Pong, вместо немедленного
@@ -120,7 +126,7 @@ WSS использует обычную проверку доверия TLS и �
 
 При смене сети существующие сессии закрываются; Telegram должен создать новые.
 Бесшовной миграции нет. Полные критерии, ограничения и фактически выполненные
-проверки приведены в [отчёте обновления](docs/TEST_REPORT_0.2.0-alpha.md).
+проверки приведены в [отчёте обновления](docs/TEST_REPORT_0.3.0-alpha.md).
 
 ## Архитектура исходников
 

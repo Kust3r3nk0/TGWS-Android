@@ -6,7 +6,7 @@
 
 **Unofficial, open-source Android 15+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
-> **0.2.0-alpha test update:** The user confirmed text send/receive and downloads in 0.1.0-alpha on Android 16 / Telegram 13.0.2 / Wi-Fi, with brief disconnections. Version 0.2.0-alpha requires another device test; stability of every route is unverified.
+> **0.3.0-alpha test update. Owner physical-device validation: pending.** Automated checks do not establish carrier reachability. Earlier user reports cover Android 16 / Wi-Fi; the reported stable 6 ms on port 8443 in 0.2.0 is Telegram’s reading, not an independent measurement or a test of this version.
 
 ## Architecture & roadmap
 
@@ -18,7 +18,7 @@
 
 Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 35+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
 
-[Download 0.2.0 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.2.0-alpha-debug/TGWS-Android-0.2.0-debug.apk)
+[Download 0.3.0 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.0-alpha-debug/TGWS-Android-0.3.0-debug.apk)
 
 ## 0.2.0 reliability
 
@@ -53,8 +53,13 @@ WSS endpoint. No external relay has been deployed or validated on a carrier yet.
 | GitHub debug Pre-releases | Owner-authorized after CI, with debug signing and stated limitations |
 | Trusted signed stable APK | Planned; full release gate not passed |
 
-Not yet ported: Fake TLS, Cloudflare Proxy and worker pools, HTTP/2 media multiplexing,
-IPv6-only, seamless network migration and test datacenters. Future features have no active UI toggles.
+| Fake TLS and CF Proxy/Worker routing | Implemented and tested locally; external E2E unverified |
+| HTTP/2 media `/api` | Real local TLS/ALPN/flow-control/multiplexing and RST/GOAWAY tests; needs compatible server |
+| Network-bound DNS/sockets, IPv4/IPv6, network changes | Local/model tests; physical DNS64/XLAT and handover unverified |
+| Network/route diagnostics and carrier reference | Actual phase timings, explicit probe, anonymous export preview; no APN/DNS/SIM changes |
+
+[0.3 transports and configuration](docs/en/TRANSPORTS_0.3.md) · [Carrier reference/matrix](docs/en/RU_MOBILE_OPERATORS.md).
+Seamless migration, test datacenters and full experimental Worker media flow control remain outside this release.
 
 ## Build prerequisites
 
@@ -70,9 +75,9 @@ Run `:app:connectedDebugAndroidTest` with a device or emulator. CI checks pushes
 `main`, Pull Requests and manual runs; successful builds publish the debug APK,
 checksum, build version/commit and changelog, with JVM/Lint reports separately.
 Action versions are pinned to verified commit SHAs. A separate PR/manual workflow
-executes all 14 instrumentation tests on each API 35, 36 and 37.0.
+executes all 19 instrumentation tests on each API 35, 36 and 37.0.
 JVM tests, Lint and APK assembly are required checks. See [testing](docs/en/TESTING.md) and the
-[update test report](docs/en/TEST_REPORT_0.2.0-alpha.md).
+[update test report](docs/en/TEST_REPORT_0.3.0-alpha.md).
 
 ## Versions
 
@@ -98,8 +103,7 @@ inactivity to 300 seconds. The UI shows WSS/TCP session counts and clears obsole
 fallback errors after a new connection succeeds.
 
 Secrets are hidden by default; reveal, copy and link opening require user action.
-Telegram links use `dd` for Padded Intermediate. Transport marker `ee` in basic
-Obfuscated2 is supported, while Fake TLS `ee-secret` is outside this version.
+Telegram links use `dd` for Padded Intermediate. An optional Fake TLS domain produces an `ee` + secret + HEX-domain link. This local record camouflage does not replace authenticated remote TLS or remove carrier IP blocking.
 Lost Keystore keys never silently overwrite stored ciphertext. Diagnostic events
 contain categories only. Network changes close sessions so Telegram can reconnect;
 seamless migration is not supported.

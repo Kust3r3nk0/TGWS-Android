@@ -20,11 +20,17 @@ internal class BoundedDns(
     private val executor = ThreadPoolExecutor(workers, workers, 0, TimeUnit.MILLISECONDS,
         ArrayBlockingQueue(queueSize), { task -> Thread(task, "tgws-dns").apply { isDaemon = true } },
         ThreadPoolExecutor.AbortPolicy())
+    private val pending=java.util.concurrent.ConcurrentHashMap.newKeySet<java.util.concurrent.Future<*>>()
 
-    fun resolve(host: String, timeoutMillis: Int): InetAddress {
+    fun resolve(host: String, timeoutMillis: Int): InetAddress = await(timeoutMillis){lookup(host)}
+    fun resolveAll(host:String,timeoutMillis:Int,lookupAll:(String)->List<InetAddress>):List<InetAddress> =
+        await(timeoutMillis){lookupAll(host).distinct().also{if(it.isEmpty())throw java.net.UnknownHostException("Empty DNS result")}}
+
+    private fun <T> await(timeoutMillis: Int, task:()->T):T {
         require(timeoutMillis > 0)
-        val future = try { executor.submit<InetAddress> { lookup(host) } }
+        val future = try { executor.submit<T> { task() } }
         catch (_: RejectedExecutionException) { throw IOException("DNS capacity exhausted") }
+        pending+=future
         try {
             return future.get(timeoutMillis.toLong(), TimeUnit.MILLISECONDS)
         } catch (_: TimeoutException) {
@@ -33,12 +39,16 @@ internal class BoundedDns(
             Thread.currentThread().interrupt()
             throw IOException("DNS interrupted")
         } catch (_: ExecutionException) {
-            throw IOException("DNS resolution failed")
+            throw java.net.UnknownHostException("DNS resolution failed")
+        } catch (_: java.util.concurrent.CancellationException) {
+            throw IOException("DNS canceled")
         } finally {
+            pending-=future
             future.cancel(true)
             executor.remove(future as Runnable)
         }
     }
 
-    override fun close() { executor.shutdownNow() }
+    fun invalidate(){pending.forEach{it.cancel(true)};executor.purge()}
+    override fun close() { invalidate();executor.shutdownNow() }
 }

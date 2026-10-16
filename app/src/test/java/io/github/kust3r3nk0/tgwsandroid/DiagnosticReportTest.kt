@@ -1,0 +1,17 @@
+package io.github.kust3r3nk0.tgwsandroid
+
+import org.junit.Assert.*
+import org.junit.Test
+import io.github.kust3r3nk0.tgwsandroid.core.*
+
+class DiagnosticReportTest {
+    @Test fun exportNeverIncludesNetworkAddressesPlmnPrivateDnsOrRawOperatorNames(){
+        val snapshot=ProxySnapshot(network=NetworkView(kind=AccessKind.CELLULAR,ipv6=true,nat64Prefix="64:ff9b::/96",
+            dnsServers=listOf("192.0.2.123"),privateDnsName="private.example",operator=OperatorView("private-name","25002","sim-name","25001",RadioKind.NR)),
+            routes=listOf(RouteObservation(1,2,true,TransportKind.HTTP2,RouteStatus.AVAILABLE,RouteStage.READY,
+                timings=SetupTimings(resolvedAddresses=listOf("198.51.100.42","2001:db8::123")))))
+        val report=DiagnosticReport.render(snapshot)
+        for(value in listOf("192.0.2.123","64:ff9b","private.example","private-name","sim-name","25002","25001","198.51.100.42","2001:db8::123"))assertFalse(value,report.contains(value))
+        assertTrue(report.contains("CELLULAR"));assertTrue(report.contains("\"ipv6\": true"))
+    }
+}

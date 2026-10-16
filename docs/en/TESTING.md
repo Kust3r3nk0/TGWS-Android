@@ -1,4 +1,4 @@
-# Testing 0.2.0-alpha
+# Testing 0.3.0-alpha
 
 Baseline: Flowseal/tg-ws-proxy **v1.11.2**, commit
 `307a384ab7f522e34bb1a045884d0bd90f40bee5`. [Русский](../TESTING.md).
@@ -32,7 +32,7 @@ Instrumentation requires a connected device or emulator:
 ```
 
 CI also runs `python3 .github/scripts/verify_android_tests.py`, requiring entries
-for all 14 tests instead of relying only on Gradle's exit code. Empty reports,
+for all 19 tests instead of relying only on Gradle's exit code. Empty reports,
 skips, duplicates and failures/errors fail the job. Test the gate and emulator
 entry points with `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
 
@@ -54,9 +54,10 @@ The `specialUse` foreground service represents a user-started persistent
 local proxy with an ongoing notification. This app is not a VPN. Store
 distribution requires a separate review of the store's foreground-service rules.
 
-## Physical Telegram E2E — release gate
+## Physical Telegram E2E — separate owner validation
 
-Use a physical Android 15+ device and the official Telegram app.
+The owner uses a physical Android 15+ device and official Telegram. These checks do not block
+a debug Pre-release after automated validation; stable release acceptance still requires E2E.
 
 1. Install the APK and record its SHA-256 and build commit.
 2. Start the proxy and open its local `tg://proxy` link using the app button.
@@ -71,7 +72,7 @@ Record:
 ```text
 UTC date:
 Git commit:
-TGWS-Android version: 0.2.0-alpha
+TGWS-Android version: 0.3.0-alpha
 APK SHA-256:
 Device / Android / API:
 Official Telegram version:
@@ -100,3 +101,28 @@ direct mode, a failed relay has a bounded deadline with no direct fallback, and
 Keystore key loss requires explicit URL recovery. [Relay setup](MOBILE_NETWORKS.md).
 
 For the 0.2 soak, add `-PsoakSeconds=180` to the Wrapper command (1–3600 seconds; CI 60). [Policy and fixture](RELIABILITY_0.2.md).
+
+
+## 0.3 automated scope and owner acceptance
+
+**Owner physical-device validation: pending.** The owner runs Telegram/cellular/screen-off
+checks separately; they do not block a checked debug Pre-release. No device/ADB access is required
+for this development run. Stable release gates remain unchanged.
+
+New tests cover pinned Fake TLS HMAC/records, cf_h2 byte vectors, real local strict TLS/ALPN H2,
+concurrent streams, 256 KiB flow-control windows, bounded backpressure/cancellation, RST/GOAWAY,
+HTTP/ALPN/oversize rejection and reused-connection timing. The native H2 soak exercises core
+Obfuscated2 ef/ee/dd and media DC under four clients and resets. The original TCP/WSS soak remains.
+
+```bash
+./gradlew --no-daemon -PsoakSeconds=180 :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+python3 .github/scripts/verify_soak.py --seconds 180
+python3 .github/scripts/verify_http2_soak.py --seconds 180
+```
+
+Both soaks execute the requested duration individually (CI: 60 seconds each). Gates require actual
+passing JUnit cases, duration, measured summaries and bounded resources. Android now requires 19
+cases per API 35/36/37.0: added encrypted-settings migration/tamper, network callback stop/permissions,
+real local H2 and full Fake TLS → core → TLS/H2 integration. Fixture CA trust is test-client-only.
+[Carrier model versus physical RU-01–14 matrix](RU_MOBILE_OPERATORS.md),
+[transports](TRANSPORTS_0.3.md), [actual report](TEST_REPORT_0.3.0-alpha.md).
