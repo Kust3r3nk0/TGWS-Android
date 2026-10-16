@@ -2,6 +2,29 @@
 
 Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 2026. Historical reports remain unchanged. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
+## 0.3.0-alpha — extended transports and Android
+
+This stage merges the former 0.3.0 and **all 0.4.0 items**. [Owner specification (RU)](../TZ_0.3.0-alpha.md).
+Checks below refer to implementation and automated validation, not physical acceptance.
+
+- [x] Fake TLS HMAC hello/response, `ee` link import/export and record framing; pinned v1.11.2 vectors
+- [x] Separate direct / relay-only / automatic CF; Worker → CF Proxy → TCP, bounded rotation/backoff without replay
+- [x] Validated `kwsN.<base>` domains and Worker URLs; encrypted settings and 0.2 migration
+- [x] Compatible CF media HTTP/2 `/api`: ALPN, multiplexing, flow control/backpressure, RST/GOAWAY and cancellation
+- [x] Route/network/session/traffic diagnostics, actual measured phases, explicit probe and anonymous export preview
+- [x] IPv4/dual-stack, active Android Network AAAA/DNS64/XLAT support and bounded family fallback
+- [x] Wi-Fi ↔ cellular cleanup: cancel old DNS/HTTP/sockets, reset pool/backoff and create fresh native sessions
+- [x] Callback-based power behavior, no demand-free perpetual warmup or additional wake locks
+- [x] MegaFon/MTS/Beeline/T2 reference cards; active data-SIM versus registered PLMN and unknown/denied telemetry
+- [x] Android 15/16/17 instrumentation, Keystore migration and real local TLS/H2/Fake TLS integration
+- [x] Preserve standalone relay and experimental Worker server components with local tests
+- [ ] External CF/Worker → Telegram E2E; physical IPv6-only, handover and 30–60 minute screen-off tests
+- [ ] Owner physical RU-01–14 matrix on available SIMs; not a debug Pre-release blocker
+- [ ] Full experimental Worker flow control replacing its current 16 MiB/session budget
+
+[Transports and limits](TRANSPORTS_0.3.md) · [Carrier matrix](RU_MOBILE_OPERATORS.md) · [Report](TEST_REPORT_0.3.0-alpha.md).
+No automatic remote-list refresh is enabled: configuration changes are explicit. Seamless migration and test DCs are not claimed.
+
 ## 0.2.0-alpha — reliability and compatibility
 
 - [x] Preserve pinned Flowseal v1.11.2 vectors and strict MTProto/WebSocket handshakes
@@ -58,22 +81,6 @@ This is a plan, not a statement that a release has shipped.
 - [x] Execute all 10 instrumentation tests on each API 34–37 emulator (see test report)
 - [ ] Manual UI and network scenarios on a physical device
 - [ ] Device and Telegram end-to-end smoke test
-
-## v0.3.0 — Extended transports
-- [x] Experimental Worker server template for the existing relay client; local tests/bundling, 16 MiB/session budget
-- [ ] Worker deployment, cloud runtime and Telegram E2E on Megafon Moscow region; full media flow control
-
-- [ ] Fake TLS `ee-secret` and masking
-- [ ] Cloudflare proxy fallback and domain selection
-- [ ] Cloudflare Worker fallback, HTTP 429 and retry policies
-- [ ] Configurable datacenter routing
-
-## v0.4.0 — HTTP/2 media and mobile networks
-
-- [ ] HTTP/2 multiplexing and flow control
-- [ ] Replay semantics and bounded memory buffers
-- [ ] IPv4/IPv6 dual stack, IPv6-only validation
-- [ ] Wi-Fi ↔ mobile handover, battery and reconnection testing
 
 ## v1.0.0 — First stable release gates
 

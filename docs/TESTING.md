@@ -1,4 +1,4 @@
-# Проверка 0.2.0-alpha
+# Проверка 0.3.0-alpha
 
 Эталон: Flowseal/tg-ws-proxy **v1.11.2**, commit
 `307a384ab7f522e34bb1a045884d0bd90f40bee5`. [English](en/TESTING.md).
@@ -32,7 +32,7 @@ fallback и локальный WebSocket-сервер. Они не подтве�
 ```
 
 CI дополнительно запускает `python3 .github/scripts/verify_android_tests.py`:
-проверяются записи всех 14 тестов, а не только exit code Gradle. Пустые отчёты,
+проверяются записи всех 19 тестов, а не только exit code Gradle. Пустые отчёты,
 пропуски, повторяющиеся записи и любой failed/error не засчитываются. Саму
 проверку и настройку эмулятора проверяет
 `python3 -m unittest discover -s .github/scripts -p 'test_*.py'`.
@@ -57,9 +57,11 @@ CI дополнительно запускает `python3 .github/scripts/verify
 локального прокси с постоянным уведомлением. Это не VPN. При распространении
 через магазин требуется отдельная проверка его правил для этого типа сервиса.
 
-## Реальный Telegram E2E — release gate
+## Реальный Telegram E2E — отдельная проверка владельца
 
-Нужно физическое устройство Android 15+ с официальным Telegram.
+Физическую проверку проводит владелец на Android 15+ с официальным Telegram.
+Она не блокирует debug-предрелиз после автоматических проверок.
+**Проверка владельцем на физическом устройстве: ожидается.**
 
 1. Установить APK; записать его SHA-256 и commit сборки.
 2. Запустить прокси; передать локальную `tg://proxy` ссылку кнопкой приложения.
@@ -74,13 +76,13 @@ CI дополнительно запускает `python3 .github/scripts/verify
 ```text
 Дата UTC:
 Git commit:
-TGWS-Android version: 0.2.0-alpha
+TGWS-Android version: 0.3.0-alpha
 APK SHA-256:
 Устройство / Android / API:
 Официальный Telegram version:
 Сеть (без персональных адресов):
 Оператор / страна (для мобильной сети):
-Режим: прямой / WSS-реле (URL с ключом не публиковать)
+Режим: direct / relay-only / Auto CF / H2/media (URL с ключом не публиковать)
 Подключение через прокси: PASS / FAIL / NOT RUN
 Отправка текста: PASS / FAIL / NOT RUN
 Получение текста: PASS / FAIL / NOT RUN
@@ -106,3 +108,36 @@ APK SHA-256:
 [Настройка внешнего узла](MOBILE_NETWORKS.md).
 
 Нагрузочный прогон 0.2: добавьте `-PsoakSeconds=180` к Wrapper-команде (1–3600 с; CI 60 с). [Политика и стенд](RELIABILITY_0.2.md).
+
+
+## Автоматические проверки 0.3
+
+FakeTlsTest/FakeTlsServerTest сравнивают HMAC/ServerHello/records с закреплённым
+upstream и передают независимую Obfuscated2-сессию. HttpMtprotoFramingTest проверяет
+побайтовый framing из `cf_h2.py`. Генераторы `tools/generate_fake_tls_vectors.py` и
+`tools/generate_http_media_vectors.py` используют прежний commit v1.11.2; Python не входит в APK.
+
+Http2MediaTransportTest использует настоящий локальный TLS/ALPN H2 peer: параллельные
+потоки, повторное соединение без ложного TLS замера, тело 256 KiB через flow-control windows,
+backpressure/cancel, RST_STREAM, GOAWAY, неверный ALPN/status/HTML/размер.
+Http2SoakTest проверяет весь native MTProto → core → TLS/H2 тракт с ef/ee/dd/media DC,
+четырьмя клиентами, непрерывным CTR и сетевыми сбросами.
+
+```bash
+./gradlew --no-daemon -PsoakSeconds=180 :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+python3 .github/scripts/verify_soak.py --seconds 180
+python3 .github/scripts/verify_http2_soak.py --seconds 180
+```
+
+Оба soak последовательно выполняются указанное число секунд каждый (CI — по 60 с).
+Gate отклоняет короткий/пропущенный/ошибочный JUnit, неполную статистику, отсутствие
+реального транспорта/reset или превышение лимитов; успешный Gradle exit недостаточен.
+
+Новые Android tests проверяют миграцию 0.2/защиту расширенной записи, stop callbacks,
+отсутствие опасных телефонных permissions и настоящий Fake TLS → core → TLS/H2 поток.
+Тестовый localhost-сертификат доверен только локальному test-client, не production-клиенту.
+
+NetworkViewTest повторяет callback-сценарии для всех четырёх операторских карточек;
+NetworkConnectorTest моделирует адресные семейства и смену сети. [Покрытие и ограничения
+RU-01–14](RU_MOBILE_OPERATORS.md) отделены от физических NOT TESTED результатов.
+[Режимы](TRANSPORTS_0.3.md) · [Фактический отчёт](TEST_REPORT_0.3.0-alpha.md).
