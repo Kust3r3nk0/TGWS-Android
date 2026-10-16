@@ -60,11 +60,20 @@ class NavigationThemeInstrumentedTest {
     private fun selected(tag:String,direction:Direction=Direction.DOWN){
         val item=node(tag,direction);assertTrue("Expected selected control: $tag",item.isChecked || item.isSelected)
     }
-    private fun screenshot(name:String){
+    private fun screenshot(name:String,dark:Boolean){
         require(name.matches(Regex("[a-z-]+")))
         device.waitForIdle(1000)
         val automation=instrumentation.uiAutomation
-        val image=requireNotNull(automation.takeScreenshot())
+        // Preference writes and accessibility idle can precede the compositor frame.
+        // Verify the real page margin has switched luminance before retaining a PNG.
+        val deadline=SystemClock.elapsedRealtime()+5000
+        var image=requireNotNull(automation.takeScreenshot())
+        while((android.graphics.Color.luminance(image.getPixel(0,image.height/2))<0.5f)!=dark){
+            image.recycle()
+            check(SystemClock.elapsedRealtime()<deadline){"Expected theme was not rendered: $name"}
+            SystemClock.sleep(16)
+            image=requireNotNull(automation.takeScreenshot())
+        }
         try{
             shell("mkdir -p /sdcard/Download/tgws-ui")
             val pipes=automation.executeShellCommandRw("dd of=/sdcard/Download/tgws-ui/$name.png")
@@ -98,10 +107,10 @@ class NavigationThemeInstrumentedTest {
             eventually{AppPreferences(context).dns==DnsMode.CLOUDFLARE && AppPreferences(context).theme==ThemeMode.DARK}
             activity.recreate();settled()
             selected("theme.DARK");selected("dns.CLOUDFLARE")
-            node("theme.DARK",Direction.UP);screenshot("settings-dark")
+            node("theme.DARK",Direction.UP);screenshot("settings-dark",dark=true)
             node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.LIGHT}
-            node("nav.home").click();screenshot("home-light")
-            node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.DARK};screenshot("home-dark")
+            node("nav.home").click();screenshot("home-light",dark=false)
+            node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.DARK};screenshot("home-dark",dark=true)
             assertEquals(before,prefs.getString("secret_encrypted",null))
         }
     }
