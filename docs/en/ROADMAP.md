@@ -8,7 +8,8 @@ Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 20
 - [x] TCP IPv4/IPv6 interleaving, 250 ms stagger, two attempts, bounded resources/deadlines
 - [x] Blackhole/refusal/cancellation/network-change regressions, migration and APK gate; previous tests preserved
 - [x] [Network failure research and options](NETWORK_COMPATIBILITY_0.3.4.md); strict TLS preserved
-- [ ] Final Wrapper/CI/API 35–37 and Debug pre-release
+- [x] Wrapper/CI: 190 JVM, zero Lint errors, 26 cases each API 35/36/37; APK/metadata verified
+- [ ] Preserved-certificate 0.3.4 Debug pre-release
 - [ ] Owner's physical carrier/problematic Wi-Fi validation
 
 ## TGWS-16-016 / 017 — WebView applicability and physical ownership
@@ -16,7 +17,7 @@ Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 20
 - [x] Audit: native Compose/MTProto, no embedded WebView; no unnecessary WebKit dependency
 - [x] CI declaration guard, emulator provider inventory before/after and regression gate tests
 - [x] Owner-only phone testing, handoff/report template with version/source/tree SHA and CI URL
-- [ ] Final CI verification of the new tooling
+- [x] CI tooling verified, including exact before/after provider metadata and resolved owner handoff
 - [ ] Owner Android 16 Stable/Beta physical native-app regression
 - [ ] One UI 8.5 Stable/Beta when available; One UI 9.0 when an environment exists
 - [ ] If a real WebView UI is added: feature guards, renderer recovery, security/performance and mandatory channel tests
