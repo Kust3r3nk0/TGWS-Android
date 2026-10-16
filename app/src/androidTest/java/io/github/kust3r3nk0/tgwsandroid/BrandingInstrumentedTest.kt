@@ -10,11 +10,11 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class BrandingInstrumentedTest {
-    @Test fun installedApplicationHasUserBrandingAndAndroid15Minimum() {
+    @Test fun installedApplicationHasUserBrandingAndAndroid16Minimum() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val info = context.applicationInfo
-        assertEquals(35, info.minSdkVersion)
-        assertTrue(Build.VERSION.SDK_INT >= 35)
+        assertEquals(36, info.minSdkVersion)
+        assertTrue(Build.VERSION.SDK_INT >= 36)
         assertEquals("TGWS-Android", context.packageManager.getApplicationLabel(info).toString())
         val icon = context.packageManager.getApplicationIcon(info)
         assertTrue(icon is AdaptiveIconDrawable)
