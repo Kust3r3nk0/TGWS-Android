@@ -30,10 +30,10 @@ class NavigationThemeInstrumentedTest {
     @Before fun setup(){
         // Only the unrelated emulator launcher is stopped. TGWS errors/ANRs remain visible.
         shell("am force-stop com.google.android.apps.nexuslauncher")
-        AppPreferences(context).apply{theme=ThemeMode.SYSTEM;dns=DnsMode.SYSTEM}
+        AppPreferences(context).apply{theme=ThemeMode.SYSTEM;dns=DnsMode.SYSTEM;liquidGlass=false}
         SettingsStore(context).recover(8443,"00112233445566778899aabbccddeeff")
     }
-    @After fun cleanup(){AppPreferences(context).apply{dns=DnsMode.SYSTEM;theme=ThemeMode.SYSTEM}}
+    @After fun cleanup(){AppPreferences(context).apply{dns=DnsMode.SYSTEM;theme=ThemeMode.SYSTEM;liquidGlass=false}}
     private fun selector(tag:String)=By.pkg(context.packageName).res(tag)
     private fun node(tag:String,direction:Direction?=null):UiObject2 {
         device.wait(Until.findObject(selector(tag)),1000)?.let{return it}
@@ -129,6 +129,43 @@ class NavigationThemeInstrumentedTest {
             node("nav.home").click();screenshot("home-light",dark=false)
             node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.DARK};screenshot("home-dark",dark=true)
             assertEquals(before,prefs.getString("secret_encrypted",null))
+        }
+    }
+    @Test fun liquidGlassDefaultsOffPersistsAndActuallyChangesBothThemesWithoutChangingProxySettings(){
+        val publicPrefs=context.getSharedPreferences("app_preferences",Context.MODE_PRIVATE)
+        publicPrefs.edit().putString("liquid_glass","invalid").commit()
+        assertFalse(AppPreferences(context).liquidGlass)
+        publicPrefs.edit().remove("liquid_glass").commit()
+        assertFalse(AppPreferences(context).liquidGlass)
+        AppPreferences(context).theme=ThemeMode.LIGHT
+        val protectedPrefs=context.getSharedPreferences("settings",Context.MODE_PRIVATE)
+        val before=protectedPrefs.all.toMap()
+        fun margin():Int {
+            val image=requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+            return try{image.getPixel(0,image.height/2)}finally{image.recycle()}
+        }
+        ActivityScenario.launch(MainActivity::class.java).use{activity->
+            settled();screenshot("glass-disabled",dark=false)
+            val normal=margin()
+            node("nav.settings").click()
+            assertFalse(node("appearance.glass",Direction.UP).isChecked)
+            node("appearance.glass").click();eventually{AppPreferences(context).liquidGlass}
+            activity.recreate();settled()
+            assertTrue(node("appearance.glass",Direction.UP).isChecked)
+            screenshot("glass-settings",dark=false)
+            node("nav.home").click();eventually{margin()!=normal}
+            screenshot("glass-light",dark=false)
+            node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.DARK}
+            screenshot("glass-dark",dark=true)
+            node("nav.settings").click();node("appearance.glass",Direction.UP).click()
+            eventually{!AppPreferences(context).liquidGlass}
+            activity.recreate();settled()
+            assertFalse(node("appearance.glass",Direction.UP).isChecked)
+            node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.LIGHT}
+            node("nav.home").click();eventually{margin()==normal}
+            assertEquals(before,protectedPrefs.all)
+            assertEquals(DnsMode.SYSTEM,AppPreferences(context).dns)
+            assertFalse(ProxyState.snapshot.running)
         }
     }
 }

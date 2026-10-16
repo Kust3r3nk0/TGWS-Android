@@ -2,6 +2,14 @@
 
 All notable changes will be documented in this file. Versions of this Android port do not correspond directly to upstream Flowseal releases.
 
+## [0.3.2-alpha] — 2026-10-16 (debug)
+
+- Optional Liquid Glass beta: frosted panels/navigation, blue/teal backdrop, edge highlights and refraction in both themes. Settings → Appearance → Liquid Glass.
+- Off by default, including upgrades. Persists separately from protected proxy configuration and applies immediately without restarting the service.
+- Native Android RuntimeShader; no new dependency, screen capture or continuous animation loop. Refraction samples a procedural backdrop, not arbitrary content behind panels.
+- Native UI test covers default off, actual rendering, light/dark, Activity recreation, disabling/restoring normal appearance and unchanged proxy/DNS settings.
+- versionCode 8, Android 15+, existing applicationId/debug key; physical appearance/performance validation pending. App remains alpha.
+
 ## [0.1.2-alpha] — 2026-10-15 (debug)
 
 - Owner logo in the app/README, adaptive launcher icon and monochrome notification icon.

@@ -166,4 +166,6 @@
     <string name="about_title">О приложении</string>
     <string name="save_settings">Сохранить настройки прокси</string>
     <string name="settings_saved">Настройки прокси сохранены.</string>
+    <string name="liquid_glass_title">Liquid Glass · бета</string>
+    <string name="liquid_glass_description">Стеклянные панели с мягким фоном и бликами. Экспериментальное оформление; по умолчанию выключено.</string>
 </resources>

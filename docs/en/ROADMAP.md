@@ -2,6 +2,14 @@
 
 Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 2026. Historical reports remain unchanged. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
+## 0.3.2-alpha — Liquid Glass beta
+
+- [x] Optional glass panels/navigation in light and dark themes
+- [x] Persistent appearance switch, off by default, separate from MTProxy configuration
+- [x] Native UI test for actual rendering, persistence and disabling
+- [ ] Final API 35/36/37 CI verification and debug APK publication
+- [ ] Owner physical appearance/performance validation
+
 ## 0.3.1-alpha — interface and DNS
 
 - [x] Final CI: 181 JVM and 22 Android cases each on API 35/36/37, actual light/dark screenshots
