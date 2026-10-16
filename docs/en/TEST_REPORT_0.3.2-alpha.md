@@ -25,3 +25,9 @@ SHA-256 `d599e19e29ce201e9577eb89d8297c0d9a9a337e411c561ca1797a7ebe90ce3e`; pres
 Owner physical validation pending: real GPU appearance/performance/battery, new Telegram/carrier,
 external CF/Worker/H2 and IPv6-only E2E. Existing Worker cap remains 16 MiB/session.
 Debug signing is not production signing or a stable release gate.
+
+[Publication workflow 38859005807](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38859005807)
+succeeded. The [GitHub prerelease](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.2-alpha-debug)
+is not a draft; tag targets the checked source and published APK digest matches the SHA above.
+[Owner Drive copy](https://drive.google.com/file/d/1NODXWBqZpo0Xhdp4K5Q1467F5iACFoOE/view?usp=drivesdk)
+was verified by metadata; sharing unchanged.

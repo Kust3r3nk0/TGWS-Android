@@ -52,3 +52,9 @@ Glass light/dark и экран настройки просмотрены; тек
 Liquid Glass на реальном GPU не измерены. Новые Telegram E2E, Wi-Fi/мобильная сеть,
 внешние CF/Worker/H2 и IPv6-only не подтверждены этой версией. Более ранние сообщения
 владельца о рабочем Telegram не подменяют проверку 0.3.2. Worker сохраняет лимит 16 MiB/сессию.
+
+Публикация: [workflow 38859005807](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38859005807)
+успешен; [Pre-release](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.2-alpha-debug)
+не draft. Tag указывает на проверяемый commit, digest опубликованного APK совпадает с указанным выше.
+[Копия на Google Drive владельца](https://drive.google.com/file/d/1NODXWBqZpo0Xhdp4K5Q1467F5iACFoOE/view?usp=drivesdk)
+проверена по имени, MIME и размеру; доступ к файлу не менялся.
