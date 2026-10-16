@@ -103,7 +103,7 @@
     <string name="network_families">IPv4: %1$s · IPv6: %2$s · NAT64: %3$s</string>
     <string name="network_dns">System DNS: %1$s · Private DNS: %2$s · Name: %3$s</string>
     <string name="operator_details">Registered: %1$s (%2$s) · Data SIM: %3$s (%4$s) · Radio: %5$s</string>
-    <string name="traffic_counts">MTProto data: %1$d bytes sent · %2$d bytes received</string>
+    <string name="traffic_counts">MTProto bytes: from Telegram %1$d · delivered to Telegram %2$d</string>
     <string name="diagnostics_notice">Results describe the last check/session. Handshake and setup time are not Telegram E2E or Telegram ping. IPv6 presence does not prove reachability. Filtering cause remains undetermined without verification.</string>
     <string name="probe_routes">Check configured routes</string>
     <string name="probe_limit">Manual check: at most once per 30s, up to 3 endpoints. No Telegram messages are sent.</string>
@@ -123,7 +123,7 @@
     <string name="stage_dns">DNS</string>
     <string name="stage_tls">TLS</string>
     <string name="stage_closed">Closed</string>
-    <string name="route_details">Route #%1$d · DC %2$d · %3$s\n%4$s · stage: %5$s\nChecked: %6$s · setup: %7$s ms\nLast failure: %8$s</string>
+    <string name="route_details">Route #%1$d · DC %2$d · %3$s\n%4$s · stage: %5$s\nChecked: %6$s · setup: %7$s ms\nLast failure: %8$s · route attempts: %9$d</string>
     <string name="carrier_reference">Carrier reference</string>
     <string name="carrier_reference_notice">PLMN/APN are references, not bypass profiles. TGWS does not change APN, DNS or SIM. Android observations take priority for MNP, MVNO and roaming.</string>
     <string name="carrier_megafon">MegaFon</string>
@@ -135,4 +135,5 @@
     <string name="report_copy">Copy report</string>
     <string name="probe_requested">Check requested; the 30s limit applies. Actual results appear in diagnostics.</string>
     <string name="kind_worker">Cloudflare Worker</string>
+    <string name="phase_timings">Measured phases, ms: DNS %1$s · TCP %2$s · TLS %3$s · HTTP %4$s. Reused phases are not measured again.</string>
 </resources>

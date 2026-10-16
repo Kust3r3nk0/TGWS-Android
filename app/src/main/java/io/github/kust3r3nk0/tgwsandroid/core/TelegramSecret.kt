@@ -22,7 +22,7 @@ object TelegramSecret {
         require(prefix=="ee" && normalized.length>34)
         val domainBytes=normalized.drop(34).chunked(2).map{it.toInt(16).toByte()}.toByteArray()
         require(domainBytes.all{it.toInt() in 33..126})
-        val domain=domainBytes.toString(Charsets.US_ASCII)
+        val domain=domainBytes.toString(Charsets.US_ASCII).lowercase(java.util.Locale.ROOT)
         require(validDomain(domain))
         return Decoded(normalized.substring(2,34),domain)
     }

@@ -14,8 +14,8 @@ android {
         applicationId = "io.github.kust3r3nk0.tgwsandroid"
         minSdk = 35
         targetSdk = 37
-        versionCode = 5
-        versionName = "0.2.0-alpha"
+        versionCode = 6
+        versionName = "0.3.0-alpha"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }
@@ -44,4 +44,5 @@ dependencies {
     androidTestImplementation("androidx.test:core:1.7.0")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("com.squareup.okhttp3:mockwebserver3:5.5.0")
 }

@@ -11,6 +11,8 @@ class TelegramSecretTest {
         assertEquals("ee${secret}636c6f7564666c6172652e636f6d",encoded)
         assertEquals(secret,TelegramSecret.decode(encoded).secret)
         assertEquals("cloudflare.com",TelegramSecret.decode(encoded).domain)
+        val uppercaseDomain="CLOUDFLARE.COM".toByteArray(Charsets.US_ASCII).joinToString(""){"%02x".format(it)}
+        assertEquals("cloudflare.com",TelegramSecret.decode("ee$secret$uppercaseDomain").domain)
         assertFalse(TelegramSecret.decode(encoded).toString().contains(secret))
     }
     @Test fun malformedSecretsAndDomainsAreRejected(){

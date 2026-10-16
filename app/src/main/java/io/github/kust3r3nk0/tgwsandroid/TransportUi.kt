@@ -90,7 +90,9 @@ internal data class TransportDraft(val mode:TransportMode=TransportMode.DIRECT,v
             val stage=when(route.stage){RouteStage.SETUP->R.string.stage_setup;RouteStage.HANDSHAKE->R.string.stage_handshake;RouteStage.READY->R.string.stage_ready;RouteStage.DNS->R.string.stage_dns;RouteStage.TLS->R.string.stage_tls;RouteStage.CLOSED->R.string.stage_closed}
             val checked=if(route.checkedAtMillis==0L)unknown else java.text.DateFormat.getTimeInstance().format(java.util.Date(route.checkedAtMillis))
             Text(stringResource(R.string.route_details,route.id,if(route.media)-route.dc else route.dc,stringResource(transport),stringResource(status),
-                stringResource(stage),checked,route.setupMillis?.toString()?:unknown,route.issue?.let{stringResource(diagnosticIssueResource(it))}?:stringResource(R.string.no)))
+                stringResource(stage),checked,route.setupMillis?.toString()?:unknown,route.issue?.let{stringResource(diagnosticIssueResource(it))}?:stringResource(R.string.no),route.attempts))
+            route.timings?.let{timing->Text(stringResource(R.string.phase_timings,timing.dnsMillis?.toString()?:unknown,
+                timing.tcpMillis?.toString()?:unknown,timing.tlsMillis?.toString()?:unknown,timing.httpMillis?.toString()?:unknown))}
         }
         TextButton(onClick={carriers=!carriers}){Text(stringResource(R.string.carrier_reference))}
         if(carriers){

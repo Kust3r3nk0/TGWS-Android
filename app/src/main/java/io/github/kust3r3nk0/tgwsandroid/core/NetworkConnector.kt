@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit
 
 internal fun interface SocketConnector {
     fun connect(host:String,port:Int,timeoutMillis:Int,own:(Socket)->Unit):Socket
+    fun takeTiming(socket:Socket):SetupTimings?=null
 }
 internal interface NetworkAccess {
     val validated:Boolean
@@ -22,6 +23,7 @@ internal class NetworkUnavailable : IOException("Active network unavailable")
 internal class NetworkConnector(private val current:()->NetworkAccess?) : SocketConnector,Closeable {
     private val dns=BoundedDns()
     @Volatile private var closed=false
+    private val timings=java.util.Collections.synchronizedMap(java.util.WeakHashMap<Socket,SetupTimings>())
     fun capture():NetworkAccess = current()?.takeIf{!closed && it.usable} ?: throw NetworkUnavailable()
     fun addresses(access:NetworkAccess,host:String,timeoutMillis:Int):List<InetAddress>{
         checkCurrent(access)
@@ -34,7 +36,9 @@ internal class NetworkConnector(private val current:()->NetworkAccess?) : Socket
     override fun connect(host:String,port:Int,timeoutMillis:Int,own:(Socket)->Unit):Socket {
         val access=capture()
         val deadline=System.nanoTime()+TimeUnit.MILLISECONDS.toNanos(timeoutMillis.toLong())
+        val dnsStart=System.nanoTime()
         val addresses=addresses(access,host,timeoutMillis).take(8)
+        val dnsMillis=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-dnsStart)
         var last:IOException?=null
         for((index,address) in addresses.withIndex()){
             checkCurrent(access)
@@ -43,14 +47,16 @@ internal class NetworkConnector(private val current:()->NetworkAccess?) : Socket
             val socket=access.socket()
             try{
                 own(socket);socket.tcpNoDelay=true
+                val tcpStart=System.nanoTime()
                 // Leave a bounded share for alternate IPv4/IPv6 answers; no fixed-IP family assumption.
                 socket.connect(InetSocketAddress(address,port),(left/(addresses.size-index)).coerceIn(1,Int.MAX_VALUE.toLong()).toInt())
-                checkCurrent(access);return socket
+                checkCurrent(access);timings[socket]=SetupTimings(dnsMillis,TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-tcpStart));return socket
             }catch(error:Exception){socket.close();if(error !is IOException)throw error;last=error}
         }
         throw last ?: java.net.SocketTimeoutException("Connection deadline")
     }
     fun invalidate()=dns.invalidate()
+    override fun takeTiming(socket:Socket):SetupTimings?=timings.remove(socket)
     override fun close(){closed=true;dns.close()}
 }
 
@@ -62,4 +68,5 @@ internal object SystemSocketConnector:SocketConnector {
     }
     private val connector=NetworkConnector{access}
     override fun connect(host:String,port:Int,timeoutMillis:Int,own:(Socket)->Unit)=connector.connect(host,port,timeoutMillis,own)
+    override fun takeTiming(socket:Socket)=connector.takeTiming(socket)
 }

@@ -23,6 +23,7 @@ import okhttp3.Response
 /** HTTP/2 /api, not WebSocket-over-H2. Two outstanding requests per native session. */
 internal class Http2MediaTransport(private val client:OkHttpClient,private val endpoint:HttpUrl,private val tag:ByteArray):RemoteTransport {
     override val kind=TransportKind.HTTP2
+    override var setupTimings:SetupTimings?=null;private set
     private val lock=java.lang.Object()
     @Volatile private var closed=false
     @Volatile private var failure=false
@@ -40,12 +41,14 @@ internal class Http2MediaTransport(private val client:OkHttpClient,private val e
     private fun ctr(key:ByteArray,iv:ByteArray)=Cipher.getInstance("AES/CTR/NoPadding").apply{init(Cipher.ENCRYPT_MODE,SecretKeySpec(key,"AES"),IvParameterSpec(iv))}
 
     fun preflight(){
-        val call=client.newCall(Request.Builder().url(endpoint).head().build())
+        val recorder=HttpSetupRecorder()
+        val call=client.newBuilder().eventListener(recorder).build().newCall(Request.Builder().url(endpoint).head().build())
         setup=call;call.timeout().timeout(8,TimeUnit.SECONDS)
         try{call.execute().use{response->
             if(response.protocol!=Protocol.HTTP_2 || !(response.code in 200..299 || response.code in setOf(405,501)))
                 throw IOException("HTTP2 preflight failed")
             if(closed)throw IOException("HTTP2 closed")
+            setupTimings=recorder.snapshot()
         }}finally{setup=null}
     }
     override fun send(data:ByteArray){

@@ -103,7 +103,7 @@
     <string name="network_families">IPv4: %1$s · IPv6: %2$s · NAT64: %3$s</string>
     <string name="network_dns">Системный DNS: %1$s · Private DNS: %2$s · Имя: %3$s</string>
     <string name="operator_details">Регистрация: %1$s (%2$s) · Data-SIM: %3$s (%4$s) · Радиосеть: %5$s</string>
-    <string name="traffic_counts">Данные MTProto: отправлено %1$d байт · получено %2$d байт</string>
+    <string name="traffic_counts">MTProto: принято от Telegram %1$d байт · передано в Telegram %2$d байт</string>
     <string name="diagnostics_notice">Результаты относятся к последней проверке/сессии. Успешный handshake и время setup — не Telegram E2E и не ping Telegram. Наличие IPv6 не доказывает доступность узла. Причина сетевой фильтрации без проверки не определена.</string>
     <string name="probe_routes">Проверить настроенные маршруты</string>
     <string name="probe_limit">Ручная проверка: не чаще раза в 30 с, до 3 узлов. Сообщения Telegram не отправляются.</string>
@@ -123,7 +123,7 @@
     <string name="stage_dns">DNS</string>
     <string name="stage_tls">TLS</string>
     <string name="stage_closed">Закрыт</string>
-    <string name="route_details">Маршрут #%1$d · DC %2$d · %3$s\n%4$s · этап: %5$s\nПроверка: %6$s · setup: %7$s мс\nПоследний сбой: %8$s</string>
+    <string name="route_details">Маршрут #%1$d · DC %2$d · %3$s\n%4$s · этап: %5$s\nПроверка: %6$s · setup: %7$s мс\nПоследний сбой: %8$s · попыток маршрута: %9$d</string>
     <string name="carrier_reference">Справочник операторов</string>
     <string name="carrier_reference_notice">PLMN/APN — справочные значения, не профили обхода. TGWS не меняет APN, DNS или SIM. При MNP, MVNO и роуминге данные Android имеют приоритет.</string>
     <string name="carrier_megafon">МегаФон</string>
@@ -135,4 +135,5 @@
     <string name="report_copy">Скопировать отчёт</string>
     <string name="probe_requested">Проверка запрошена; действует лимит 30 с. Фактические результаты появятся в диагностике.</string>
     <string name="kind_worker">Cloudflare Worker</string>
+    <string name="phase_timings">Замеры этапов, мс: DNS %1$s · TCP %2$s · TLS %3$s · HTTP %4$s. Повторно использованные этапы не измеряются заново.</string>
 </resources>

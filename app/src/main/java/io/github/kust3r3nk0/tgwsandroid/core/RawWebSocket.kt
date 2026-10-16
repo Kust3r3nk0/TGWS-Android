@@ -57,6 +57,7 @@ internal class RawWebSocket private constructor(
     private var fragmentBuffer = ByteArray(0)
     private var fragmentBytes = 0
     private var fragmented = false
+    var setupTimings=SetupTimings();private set
 
     companion object {
         private const val HEADER_LIMIT = 16 * 1024
@@ -92,6 +93,7 @@ internal class RawWebSocket private constructor(
             try {
                 val connected=connector.connect(address,port,limits.connectMillis,socketOwner)
                 tcp=connected
+                val timing=connector.takeTiming(connected)?:SetupTimings()
                 connected.soTimeout = limits.handshakeMillis
                 val ssl = context.socketFactory.createSocket(connected, domain, port, true) as SSLSocket
                 tls = ssl
@@ -99,8 +101,12 @@ internal class RawWebSocket private constructor(
                 ssl.sslParameters = ssl.sslParameters.apply { endpointIdentificationAlgorithm = "HTTPS" }
                 // soTimeout alone permits a peer to drip handshake records forever.
                 val deadline = deadlines.schedule({ quietlyClose(ssl) }, limits.handshakeMillis.toLong(), TimeUnit.MILLISECONDS)
+                val tlsStart=System.nanoTime()
                 try { ssl.startHandshake() } finally { deadline.cancel(false) }
-                return upgrade(ssl, domain, path, limits)
+                val tlsMillis=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-tlsStart)
+                val httpStart=System.nanoTime()
+                return upgrade(ssl, domain, path, limits).also{it.setupTimings=timing.copy(tlsMillis=tlsMillis,
+                    httpMillis=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-httpStart))}
             } catch (e: Exception) {
                 (tls ?: tcp)?.let(::quietlyClose)
                 throw e

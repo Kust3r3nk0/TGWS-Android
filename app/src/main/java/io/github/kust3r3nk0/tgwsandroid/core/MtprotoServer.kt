@@ -35,6 +35,7 @@ enum class TransportKind { WSS, TCP, RELAY, WORKER, CLOUDFLARE, HTTP2 }
 /** A future transport can implement this interface without depending on Android or Compose. */
 interface RemoteTransport : Closeable {
     val kind: TransportKind
+    val setupTimings:SetupTimings? get()=null
     fun send(data: ByteArray)
     fun receive(): ByteArray?
     /** Only transports advertising warm support must implement a bounded idle probe. */
@@ -66,6 +67,7 @@ private object DirectTransportFactory : TransportFactory {
 
     private fun wrap(websocket: RawWebSocket, transportKind: TransportKind) = object : RemoteTransport {
             override val kind = transportKind
+            override val setupTimings get()=websocket.setupTimings
             override fun send(data: ByteArray) = websocket.send(data)
             override fun receive() = websocket.receive()
             override fun verifyIdle() = websocket.probeIdle()
@@ -447,7 +449,7 @@ class MtprotoServer(
                     session.checkOpen()
                     session.run.retries.success(permit)
                     session.routeKey=key
-                    session.run.diagnostics.mark(key,handshake.dc,handshake.media,candidate.kind,RouteStatus.AVAILABLE)
+                    session.run.diagnostics.mark(key,handshake.dc,handshake.media,candidate.kind,RouteStatus.AVAILABLE,timings=candidate.setupTimings)
                     emit(session.run,ServerEvent.Routes(session.run.diagnostics.snapshot()))
                 }
                 return candidate
@@ -638,16 +640,16 @@ class MtprotoServer(
                     synchronized(lifecycle){if(current!==run || run.stopping.get() || run.networkGeneration!=generation)return@execute;run.probes+=attempt}
                     val timeout=run.watchdog.schedule({attempt.expire()},limits.wssAttemptTimeoutMillis.toLong(),TimeUnit.MILLISECONDS)
                     try{
-                        synchronized(lifecycle){if(attempt.closed.get())return@execute;run.diagnostics.mark(candidate.key,2,false,candidate.kind,RouteStatus.CONNECTING)}
+                        synchronized(lifecycle){if(attempt.closed.get())return@execute;run.diagnostics.mark(candidate.key,2,candidate.kind==TransportKind.HTTP2,candidate.kind,RouteStatus.CONNECTING)}
                         emit(run,ServerEvent.Routes(run.diagnostics.snapshot()))
                         val remote=candidate.open(attempt::own);attempt.own(remote)
                         if(attempt.closed.get())throw java.net.SocketTimeoutException("Probe deadline")
                         synchronized(lifecycle){if(!attempt.closed.get() && current===run && !run.stopping.get() && run.networkGeneration==generation){
-                            run.diagnostics.mark(candidate.key,2,false,candidate.kind,RouteStatus.AVAILABLE)
+                            run.diagnostics.mark(candidate.key,2,candidate.kind==TransportKind.HTTP2,candidate.kind,RouteStatus.AVAILABLE,timings=remote.setupTimings)
                             emit(run,ServerEvent.Routes(run.diagnostics.snapshot()))}}
                     }catch(error:Exception){synchronized(lifecycle){if(current===run && !run.stopping.get() && run.networkGeneration==generation){
                         val issue=if(attempt.timedOut)ServerIssue.TIMEOUT else when(error){is SSLException->ServerIssue.TLS;is java.net.UnknownHostException->ServerIssue.DNS;is NetworkUnavailable->ServerIssue.NETWORK;else->if(candidate.kind==TransportKind.HTTP2)ServerIssue.HTTP2 else ServerIssue.WSS_HANDSHAKE}
-                        run.diagnostics.mark(candidate.key,2,false,candidate.kind,RouteStatus.UNAVAILABLE,issue)
+                        run.diagnostics.mark(candidate.key,2,candidate.kind==TransportKind.HTTP2,candidate.kind,RouteStatus.UNAVAILABLE,issue)
                         emit(run,ServerEvent.Routes(run.diagnostics.snapshot()))}}}
                     finally{timeout.cancel(false);attempt.close();run.probes.remove(attempt)}
                 }

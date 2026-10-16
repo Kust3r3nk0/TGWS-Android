@@ -19,7 +19,11 @@ internal object DiagnosticReport {
                 .append(", \"media\": ").append(route.media).append(", \"kind\": \"").append(route.kind.name)
                 .append("\", \"state\": \"").append(route.status.name).append("\", \"stage\": \"").append(route.stage.name)
                 .append("\", \"issue\": \"").append(route.issue?.name?:"NONE").append("\", \"checked_at\": ").append(route.checkedAtMillis)
-                .append(", \"setup_ms\": ").append(route.setupMillis?:"null").append('}')
+                .append(", \"setup_ms\": ").append(route.setupMillis?:"null").append(", \"attempts\": ").append(route.attempts)
+                .append(", \"dns_ms\": ").append(route.timings?.dnsMillis?:"null")
+                .append(", \"tcp_ms\": ").append(route.timings?.tcpMillis?:"null")
+                .append(", \"tls_ms\": ").append(route.timings?.tlsMillis?:"null")
+                .append(", \"http_ms\": ").append(route.timings?.httpMillis?:"null").append('}')
         }
         append("\n  ]\n}\n")
     }

@@ -21,6 +21,7 @@ internal class NetworkTransportFactory(private val current:()->NetworkAccess?):T
     @Volatile private var closed=false
     private fun wrap(ws:RawWebSocket,kind:TransportKind)=object:RemoteTransport {
         override val kind=kind
+        override val setupTimings get()=ws.setupTimings
         override fun send(data:ByteArray)=ws.send(data)
         override fun receive()=ws.receive()
         override fun verifyIdle()=ws.probeIdle()
@@ -38,8 +39,10 @@ internal class NetworkTransportFactory(private val current:()->NetworkAccess?):T
     override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport {
         val socket=connector.connect(address,443,8000){own(it)}
         socket.soTimeout=0
+        val timing=connector.takeTiming(socket)
         return object:RemoteTransport {
             override val kind=TransportKind.TCP
+            override val setupTimings=timing
             override fun send(data:ByteArray){socket.getOutputStream().write(data);socket.getOutputStream().flush()}
             override fun receive():ByteArray?{val bytes=ByteArray(65536);val n=socket.getInputStream().read(bytes);return if(n<0)null else bytes.copyOf(n)}
             override fun close()=socket.close()

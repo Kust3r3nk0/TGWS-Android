@@ -51,6 +51,8 @@ class Http2MediaTransportTest {
             return MockResponse().setBody(request.body.clone()).throttleBody(8,2,TimeUnit.MILLISECONDS)
         }}
         val transports=(0..1).map{Http2MediaTransport.open(client,endpoint(server),tag){}}
+        assertNotNull(transports[0].setupTimings?.tlsMillis)
+        assertNull(transports[1].setupTimings?.tlsMillis)
         try{
             val cryptos=(0..1).map{crypto()}
             val payloads=(0..1).map{worker->ByteArray(24){(it+worker+1).toByte()}}
@@ -114,4 +116,30 @@ class Http2MediaTransportTest {
             finally{transport.close();executor.shutdownNow();assertTrue(executor.awaitTermination(1,TimeUnit.SECONDS))}
         }
     }
+    @Test fun largeBodyCrossesH2FlowControlWindowsWithoutChangingBytes(){fixture{server,client->
+        val body=ByteArray(256*1024){(it+1).toByte()}
+        server.enqueue(MockResponse().setResponseCode(200))
+        server.enqueue(MockResponse().setBody(Buffer().write(body)).throttleBody(8192,1,TimeUnit.MILLISECONDS))
+        Http2MediaTransport.open(client,endpoint(server),tag){}.use{transport->
+            val c=crypto();transport.send(c.init);val size=body.size
+            val frame=byteArrayOf(size.toByte(),(size shr 8).toByte(),(size shr 16).toByte(),(size shr 24).toByte())+body
+            transport.send(c.send.update(frame));assertArrayEquals(frame,c.receive.update(transport.receive()!!))
+            assertEquals("HEAD",server.takeRequest().method);assertArrayEquals(body,server.takeRequest().body.readByteArray())
+        }
+    }}
+    @Test fun pendingRequestBackpressureIsReleasedByCancellation(){fixture{server,client->
+        server.enqueue(MockResponse().setResponseCode(200))
+        repeat(2){server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE))}
+        val transport=Http2MediaTransport.open(client,endpoint(server),tag){}
+        val executor=Executors.newSingleThreadExecutor()
+        try{
+            val c=crypto();transport.send(c.init);val packet=byteArrayOf(24,0,0,0)+ByteArray(24){1}
+            repeat(2){transport.send(c.send.update(packet))}
+            val started=CountDownLatch(1)
+            val third=executor.submit<Boolean>{started.countDown();try{transport.send(c.send.update(packet));false}catch(_:IOException){true}}
+            assertTrue(started.await(1,TimeUnit.SECONDS))
+            assertThrows(java.util.concurrent.TimeoutException::class.java){third.get(50,TimeUnit.MILLISECONDS)}
+            transport.close();assertTrue(third.get(1,TimeUnit.SECONDS))
+        }finally{transport.close();executor.shutdownNow();assertTrue(executor.awaitTermination(1,TimeUnit.SECONDS))}
+    }}
 }

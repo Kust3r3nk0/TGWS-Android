@@ -101,6 +101,10 @@ def main():
     soak_gate = importlib.util.module_from_spec(soak_spec)
     soak_spec.loader.exec_module(soak_gate)
     soak = soak_gate.verify('jvm-reports', 60)
+    h2_spec = importlib.util.spec_from_file_location('h2_gate', '.github/scripts/verify_http2_soak.py')
+    h2_gate = importlib.util.module_from_spec(h2_spec)
+    h2_spec.loader.exec_module(h2_gate)
+    h2_soak = h2_gate.verify('jvm-reports', 60)
     command('gh', 'run', 'download', inputs['device_run'], '--repo', repository,
             '--pattern', 'Android-device-test-reports-*', '--dir', 'device-reports')
     spec = importlib.util.spec_from_file_location('gate', '.github/scripts/verify_android_tests.py')
@@ -113,7 +117,7 @@ def main():
             raise ValueError('Missing or duplicate device artifact')
         devices[api] = gate.verify('app/src/androidTest/java', directories[0])
     meta = json.loads(single_file('ci-apk', 'build-info.json').read_text())
-    meta.update(source_commit=source, jvm_tests=counts, android_instrumentation=devices, local_soak=soak,
+    meta.update(source_commit=source, jvm_tests=counts, android_instrumentation=devices, local_soak=soak, http2_soak=h2_soak,
                 min_sdk=35, signer_certificate_sha256=inputs['signer_sha256'],
                 signature='Preserved workspace debug key; not production signing',
                 apk_sha256=inputs['apk_sha256'], payload_matches_ci=True)
