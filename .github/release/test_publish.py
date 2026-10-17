@@ -10,6 +10,15 @@ spec.loader.exec_module(publisher)
 
 
 class PublicationGuardsTest(unittest.TestCase):
+    def test_upgrade_requires_matching_version_and_every_persistence_check(self):
+        report = dict(result='passed', baseline_version='0.3.4-alpha', target_version_code=11,
+                      install_replace=True, secret_preserved=True, ciphertext_unchanged=True,
+                      keystore_preserved=True, settings_preserved=True)
+        publisher.verify_upgrade(report, 11)
+        for change in [dict(result='failed'), dict(target_version_code=10), dict(secret_preserved=False),
+                       dict(keystore_preserved=None), dict(install_replace=False), dict(baseline_version='unknown')]:
+            with self.assertRaises(ValueError):
+                publisher.verify_upgrade(dict(report, **change), 11)
     def test_artifact_file_is_found_under_gh_pattern_directory_but_duplicates_fail(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

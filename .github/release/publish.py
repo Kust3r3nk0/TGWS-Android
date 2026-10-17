@@ -40,6 +40,14 @@ def verify_payload(original, candidate):
                 raise ValueError('APK payload differs from CI')
 
 
+def verify_upgrade(report, version_code):
+    required = ['install_replace', 'secret_preserved', 'ciphertext_unchanged', 'keystore_preserved', 'settings_preserved']
+    if (report.get('result') != 'passed' or report.get('target_version_code') != version_code or
+            report.get('baseline_version') != '0.3.4-alpha' or
+            any(report.get(key) is not True for key in required)):
+        raise ValueError('Missing or unsuccessful APK upgrade regression')
+
+
 def command(*args):
     return subprocess.check_output(args, text=True).strip()
 
@@ -64,8 +72,10 @@ def main():
     for key, name in [('build_run', 'Android CI'), ('device_run', 'Android device tests')]:
         run = json.loads(command('gh', 'api', f'repos/{repository}/actions/runs/{inputs[key]}'))
         verify_run(run, source, name, repository)
-    version = re.search(r'versionName\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+-alpha)"',
-                        Path('app/build.gradle.kts').read_text()).group(1)
+    gradle = Path('app/build.gradle.kts').read_text()
+    version = re.search(r'versionName\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+-alpha)"', gradle).group(1)
+    version_code = int(re.search(r'versionCode\s*=\s*(\d+)', gradle).group(1))
+    min_sdk = int(re.search(r'minSdk\s*=\s*(\d+)', gradle).group(1))
     output = Path('debug-release-assets')
     output.mkdir()
     candidate = output / f'TGWS-Android-{version.removesuffix("-alpha")}-debug.apk'
@@ -88,7 +98,7 @@ def main():
     signers = sorted(Path(os.environ['ANDROID_HOME']).glob('build-tools/*/apksigner'))
     if not signers:
         raise ValueError('Android signature verifier is unavailable')
-    certificate = command(str(signers[-1]), 'verify', '--print-certs', '--min-sdk-version', '35', str(candidate))
+    certificate = command(str(signers[-1]), 'verify', '--print-certs', '--min-sdk-version', str(min_sdk), str(candidate))
     if f'certificate SHA-256 digest: {inputs["signer_sha256"]}' not in certificate:
         raise ValueError('APK signing certificate mismatch')
     command('gh', 'run', 'download', inputs['build_run'], '--repo', repository,
@@ -111,14 +121,17 @@ def main():
     gate = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(gate)
     devices = {}
-    for api in ['35', '36', '37.0']:
+    upgrades = {}
+    for api in ['36', '37.0']:
         directories = list(Path('device-reports').glob(f'Android-device-test-reports-API-{api}-*'))
         if len(directories) != 1:
             raise ValueError('Missing or duplicate device artifact')
         devices[api] = gate.verify('app/src/androidTest/java', directories[0])
+        upgrades[api] = json.loads(single_file(directories[0], 'result.json').read_text())
+        verify_upgrade(upgrades[api], version_code)
     meta = json.loads(single_file('ci-apk', 'build-info.json').read_text())
     meta.update(source_commit=source, jvm_tests=counts, android_instrumentation=devices, local_soak=soak, http2_soak=h2_soak,
-                min_sdk=35, signer_certificate_sha256=inputs['signer_sha256'],
+                min_sdk=min_sdk, apk_upgrade=upgrades, signer_certificate_sha256=inputs['signer_sha256'],
                 signature='Preserved workspace debug key; not production signing',
                 apk_sha256=inputs['apk_sha256'], payload_matches_ci=True)
     (output / 'build-info.json').write_text(json.dumps(meta, indent=2) + '\n')
@@ -131,7 +144,7 @@ def main():
     with zipfile.ZipFile(output / 'test-reports.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
         for folder in ['jvm-reports', 'device-reports']:
             for path in Path(folder).rglob('*'):
-                if path.is_file() and (path.suffix == '.xml' or 'lint-results-debug' in path.name):
+                if path.is_file() and (path.suffix in ('.xml', '.json') or 'lint-results-debug' in path.name):
                     archive.write(path)
     (output / 'SHA256SUMS').write_text(''.join(
         f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n'
@@ -140,7 +153,7 @@ def main():
     notes = Path(f'docs/releases/{version.removesuffix("-alpha")}-debug.md')
     command('gh', 'release', 'create', tag, *map(str, sorted(output.iterdir())), '--repo', repository,
             '--target', source, '--prerelease', '--latest=false', '--title',
-            f'TGWS-Android {version.removesuffix("-alpha")} — Debug (Android 15+)', '--notes-file', str(notes))
+            f'TGWS-Android {version.removesuffix("-alpha")} — Debug (Android 16+)', '--notes-file', str(notes))
     print(f'Published checked debug release: https://github.com/{repository}/releases/tag/{tag}')
 
 
