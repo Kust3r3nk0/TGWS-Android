@@ -38,8 +38,20 @@ data class ProxySnapshot(
         lastHandshakeRejection = reason,
     )
 
+    /** Current errors end with the service; retain bounded counters for the last-run report. */
+    internal fun afterServiceStop(failed: Boolean): ProxySnapshot = copy(
+        phase = if (failed) ProxyPhase.ERROR else ProxyPhase.STOPPED,
+        issue = if (failed) issue else null,
+        sessions = 0, pending = 0, wssSessions = 0, tcpSessions = 0, relaySessions = 0,
+        cfSessions = 0, h2Sessions = 0, network = NetworkView(), routes = emptyList(),
+    )
+
     fun withSessions(established: Int, connecting: Int, wss: Int = 0, tcp: Int = 0, relay: Int = 0,cf:Int=0,h2:Int=0): ProxySnapshot {
         require(established >= 0 && connecting >= 0 && wss >= 0 && tcp >= 0 && relay >= 0 && cf>=0 && h2>=0 && wss + tcp + relay + cf+h2 <= established)
+        if (phase == ProxyPhase.STOPPED || phase == ProxyPhase.ERROR || phase == ProxyPhase.STOPPING) {
+            return copy(sessions = 0, pending = 0, wssSessions = 0, tcpSessions = 0, relaySessions = 0,
+                cfSessions = 0, h2Sessions = 0)
+        }
         val nextPhase = if (localAvailable) {
             if (established == 0) ProxyPhase.LISTENING else ProxyPhase.ACTIVE
         } else phase

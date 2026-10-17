@@ -112,4 +112,35 @@ class SettingsStoreInstrumentedTest {
         assertThrows(SettingsException::class.java) { store.save(1443, "invalid") }
         assertEquals(previous, prefs.all)
     }
+
+    @Test fun missingSecretInExistingInstallationNeverGeneratesOrSilentlySavesReplacement() {
+        val store = SettingsStore(context)
+        store.save(8443, sample)
+        prefs.edit().remove("secret_encrypted").commit()
+        val remaining = prefs.all.toMap()
+        assertEquals(SettingsIssue.SECRET_UNAVAILABLE, assertThrows(SettingsException::class.java) { store.load() }.issue)
+        assertEquals(SettingsIssue.SECRET_UNAVAILABLE, assertThrows(SettingsException::class.java) { store.save(8443, sample) }.issue)
+        assertEquals(remaining, prefs.all)
+        // Even if the preference file is lost entirely, the old key is evidence of prior use.
+        prefs.edit().clear().commit()
+        assertThrows(SettingsException::class.java) { store.load() }
+        assertTrue(prefs.all.isEmpty())
+        store.recover(8443, sample)
+        assertEquals(sample, store.load().secret)
+    }
+
+    @Test fun legacyEncryptedSettingsSurviveRepeatedLoadsWithoutReencryptionOrSecretRotation() {
+        val store = SettingsStore(context)
+        store.save(8443, sample, "wss://relay.example/test-key/apiws")
+        // Pre-0.3 files have no transport record. Migration is in memory, with no secret write.
+        prefs.edit().remove("transport_encrypted").commit()
+        val previous = prefs.all.toMap()
+        repeat(20) {
+            val saved = SettingsStore(context).load()
+            assertEquals(sample, saved.secret)
+            assertEquals(8443, saved.port)
+            assertEquals("wss://relay.example/test-key/apiws", saved.relayUrl)
+        }
+        assertEquals(previous, prefs.all)
+    }
 }

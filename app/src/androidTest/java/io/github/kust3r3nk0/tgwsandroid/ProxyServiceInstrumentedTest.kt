@@ -163,6 +163,55 @@ class ProxyServiceInstrumentedTest {
         }
     }
 
+    @Test fun explicitStopClearsCurrentSessionErrorAndRestartClearsLastRunHistory() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            start()
+            eventually { snapshot().localAvailable }
+            val port = SettingsStore(context).port
+            Socket(loopback, port).use { client ->
+                client.getOutputStream().write(ByteArray(64))
+                client.getOutputStream().flush()
+                client.soTimeout = 2_000
+                assertEquals(-1, client.getInputStream().read())
+            }
+            eventually { snapshot().rejectedHandshakes == 1 && snapshot().pending == 0 }
+            // Seed a transport diagnostic only; this test exercises Android stop/restart,
+            // independently of the availability of an external Telegram route.
+            instrumentation.runOnMainSync {
+                ProxyState.snapshot = ProxyState.snapshot.copy(issue = ProxyIssue.SESSION)
+                context.startService(Intent(context, ProxyService::class.java).setAction(ProxyService.ACTION_STOP))
+            }
+            eventually { snapshot().phase == ProxyPhase.STOPPED }
+            eventually { notifications.activeNotifications.none { it.id == 1443 } }
+            assertNull(snapshot().issue)
+            assertEquals(1, snapshot().rejectedHandshakes)
+            assertEquals(HandshakeRejection.RESERVED_PREFIX, snapshot().lastHandshakeRejection)
+            assertPortReleased(port)
+            start()
+            eventually { snapshot().localAvailable }
+            assertNull(snapshot().issue)
+            assertEquals(0, snapshot().rejectedHandshakes)
+            assertNull(snapshot().lastHandshakeRejection)
+        }
+    }
+
+    @Test fun probeWithoutRunningServerStopsTheEmptyService() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            instrumentation.runOnMainSync {
+                context.startService(Intent(context, ProxyService::class.java).setAction(ProxyService.ACTION_PROBE))
+            }
+            instrumentation.waitForIdleSync()
+            assertFalse(snapshot().running)
+            assertTrue(notifications.activeNotifications.none { it.id == 1443 })
+            var serviceWasStillRunning = false
+            instrumentation.runOnMainSync {
+                serviceWasStillRunning = context.stopService(Intent(context, ProxyService::class.java))
+            }
+            assertFalse("A route probe must not leave a service running without its listener", serviceWasStillRunning)
+            assertPortReleased(SettingsStore(context).port)
+        }
+    }
+
     @Test fun userStopDuringStartupCancelsPendingListenerAndNotification() {
         ActivityScenario.launch(MainActivity::class.java).use {
             val port = SettingsStore(context).port

@@ -354,21 +354,9 @@ class MtprotoServer(
         }
     }
 
-    private fun readInit(session: Session): ByteArray {
-        if (fakeTlsDomain.isNotEmpty()) {
-            session.client.soTimeout = limits.handshakeTimeoutMillis
-            val input = java.io.DataInputStream(session.input)
-            val header = ByteArray(5).also(input::readFully)
-            val size = ((header[3].toInt() and 255) shl 8) or (header[4].toInt() and 255)
-            if (header[0] != 0x16.toByte() || size !in 38..4096) throw java.net.ProtocolException("Invalid Fake TLS hello")
-            val body = ByteArray(size).also(input::readFully)
-            val hello = FakeTls.verify(header + body, secret) ?: throw java.net.ProtocolException("Fake TLS verification failed")
-            session.output.write(FakeTls.response(secret, hello))
-            session.output.flush()
-            session.input = FakeTls.Reader(session.input)
-            session.output = FakeTls.Writer(session.output)
-        }
-        val buffer = ByteArray(64)
+    /** An empty local TCP probe is not an authenticated MTProto attempt. */
+    private fun readHandshakeBytes(session: Session, size: Int, allowEmpty: Boolean = false): ByteArray? {
+        val buffer = ByteArray(size)
         var read = 0
         while (read < buffer.size) {
             session.checkOpen()
@@ -376,9 +364,28 @@ class MtprotoServer(
             if (remaining <= 0) throw java.net.SocketTimeoutException("Handshake deadline")
             session.client.soTimeout = TimeUnit.NANOSECONDS.toMillis(remaining).coerceAtLeast(1).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             val count = session.input.read(buffer, read, buffer.size - read)
-            if (count < 0) throw EOFException("Client closed during handshake")
+            if (count < 0) {
+                if (read == 0 && allowEmpty) return null
+                throw EOFException("Truncated client handshake")
+            }
             read += count
         }
+        return buffer
+    }
+
+    private fun readInit(session: Session): ByteArray? {
+        if (fakeTlsDomain.isNotEmpty()) {
+            val header = readHandshakeBytes(session, 5, allowEmpty = true) ?: return null
+            val size = ((header[3].toInt() and 255) shl 8) or (header[4].toInt() and 255)
+            if (header[0] != 0x16.toByte() || size !in 38..4096) throw java.net.ProtocolException("Invalid Fake TLS hello")
+            val body = requireNotNull(readHandshakeBytes(session, size))
+            val hello = FakeTls.verify(header + body, secret) ?: throw java.net.ProtocolException("Fake TLS verification failed")
+            session.output.write(FakeTls.response(secret, hello))
+            session.output.flush()
+            session.input = FakeTls.Reader(session.input)
+            session.output = FakeTls.Writer(session.output)
+        }
+        val buffer = readHandshakeBytes(session, 64, allowEmpty = true) ?: return null
         // The watchdog, rather than read-only socket deadlines, measures bidirectional activity.
         session.client.soTimeout = 0
         return buffer
@@ -386,8 +393,13 @@ class MtprotoServer(
 
     private fun serve(session: Session) {
         session.client.tcpNoDelay = true
-        val initial = try { readInit(session) } catch (error: java.io.IOException) {
-            if (fakeTlsDomain.isEmpty()) throw error
+        val initial = try { readInit(session) ?: return } catch (_: java.net.SocketTimeoutException) {
+            if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.TIMEOUT))
+            return
+        } catch (_: EOFException) {
+            if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.HANDSHAKE, HandshakeRejection.INVALID_LENGTH))
+            return
+        } catch (_: java.net.ProtocolException) {
             if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.HANDSHAKE, HandshakeRejection.SECRET_OR_TRANSPORT))
             return
         }
@@ -458,7 +470,7 @@ class MtprotoServer(
                 if (session.closed.get()) session.run.retries.cancel(permit)
                 else {
                     session.run.retries.failure(permit)
-                    val failure=setupFailure(error,issue)
+                    val failure=if(attempt.timedOut)ServerIssue.TIMEOUT else setupFailure(error,issue)
                     synchronized(lifecycle){if(!session.closed.get())mark(key,issue,RouteStatus.UNAVAILABLE,failure)}
                     emit(session.run, ServerEvent.Diagnostic(failure))
                 }

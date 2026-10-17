@@ -337,7 +337,83 @@ class MtprotoServerTest {
                 client.getOutputStream().write(byteArrayOf(1))
                 assertClosed(client)
                 await("Handshake capacity leaked") { events.sessions(0, 0) }
+                assertTrue(events.issue(ServerIssue.TIMEOUT))
+                assertFalse(events.issue(ServerIssue.HANDSHAKE))
+                assertFalse(events.issue(ServerIssue.SESSION))
             }
+        }
+    }
+
+    @Test fun emptyLocalProbesDoNotBecomeSessionErrorsOrWrongSecretRejections() {
+        for (domain in listOf("", "example.com")) {
+            val port = freePort()
+            val events = Events()
+            val factory = FakeFactory()
+            MtprotoServer(port, secretHex, events.all::add, transports = factory,
+                limits = limits, fakeTlsDomain = domain).use { server ->
+                server.start()
+                await("Listener not ready") { events.phase(ServerPhase.LISTENING) }
+                repeat(16) {
+                    connect(port).use { client ->
+                        await("Probe was not accepted") { events.sessions(0, 1) }
+                        client.shutdownOutput()
+                        assertClosed(client)
+                        await("Probe retained capacity") { events.sessions(0, 0) }
+                    }
+                }
+                assertTrue(events.all.filterIsInstance<ServerEvent.Diagnostic>().isEmpty())
+                assertTrue(factory.wss.isEmpty())
+                assertTrue(factory.tcp.isEmpty())
+                assertFalse(events.phase(ServerPhase.ERROR))
+                assertFalse(events.phase(ServerPhase.STOPPED))
+            }
+            assertPortReleased(port)
+        }
+    }
+
+    @Test fun truncatedPlainAndFakeTlsHandshakesAreRejectedAsIncompleteWithoutRemoteDial() {
+        for (domain in listOf("", "example.com")) {
+            val port = freePort()
+            val events = Events()
+            val factory = FakeFactory()
+            MtprotoServer(port, secretHex, events.all::add, transports = factory,
+                limits = limits, fakeTlsDomain = domain).use { server ->
+                server.start()
+                await("Listener not ready") { events.phase(ServerPhase.LISTENING) }
+                connect(port).use { client ->
+                    client.getOutputStream().write(byteArrayOf(0x16, 3))
+                    client.shutdownOutput()
+                    assertClosed(client)
+                    await("Truncated handshake retained capacity") { events.sessions(0, 0) }
+                }
+                val failures = events.all.filterIsInstance<ServerEvent.Diagnostic>()
+                assertEquals(listOf(ServerEvent.Diagnostic(ServerIssue.HANDSHAKE, HandshakeRejection.INVALID_LENGTH)), failures)
+                assertTrue(factory.wss.isEmpty())
+                assertTrue(factory.tcp.isEmpty())
+                assertFalse(events.phase(ServerPhase.ERROR))
+            }
+        }
+    }
+
+    @Test fun fakeTlsHelloDeadlineIsTimeoutInsteadOfWrongSecret() {
+        val port = freePort()
+        val events = Events()
+        val factory = FakeFactory()
+        MtprotoServer(port, secretHex, events.all::add, transports = factory,
+            limits = limits.copy(handshakeTimeoutMillis = 100), fakeTlsDomain = "example.com").use { server ->
+            server.start()
+            await("Listener not ready") { events.phase(ServerPhase.LISTENING) }
+            connect(port).use { client ->
+                // A valid-sized but incomplete record must wait only for the original handshake budget.
+                client.getOutputStream().write(byteArrayOf(0x16, 3, 3, 0, 38, 1))
+                assertClosed(client)
+                await("Fake TLS deadline retained capacity") { events.sessions(0, 0) }
+            }
+            assertTrue(events.issue(ServerIssue.TIMEOUT))
+            assertFalse(events.issue(ServerIssue.HANDSHAKE))
+            assertFalse(events.issue(ServerIssue.SESSION))
+            assertTrue(factory.wss.isEmpty())
+            assertTrue(factory.tcp.isEmpty())
         }
     }
 
@@ -677,7 +753,8 @@ class MtprotoServerTest {
                 client.getOutputStream().write(init().bytes)
                 await("Slow WSS prevented TCP fallback") { events.sessions(1, 0) }
                 assertEquals(0L, timedOut.count)
-                assertTrue(events.issue(ServerIssue.WSS_HANDSHAKE))
+                assertTrue(events.issue(ServerIssue.TIMEOUT))
+                assertFalse(events.issue(ServerIssue.WSS_HANDSHAKE))
                 assertEquals(1, tcp.sent.size)
                 server.stop()
                 assertClosed(client)
