@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
                 val isDark=darkTheme(themeMode)
                 val windowBackground=MaterialTheme.colorScheme.background.toArgb()
                 SideEffect{
-                    // Android 15 can expose the native window beneath transparent system bars.
+                    // Transparent system bars can expose the native window on Android 16+.
                     window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(windowBackground))
                     val bars=if(isDark)SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                         else SystemBarStyle.light(android.graphics.Color.TRANSPARENT,android.graphics.Color.TRANSPARENT)

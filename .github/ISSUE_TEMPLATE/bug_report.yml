@@ -16,7 +16,7 @@ body:
     id: android
     attributes:
       label: Device / Android version
-      placeholder: Android 14, 15, 16, etc.
+      placeholder: Android 16, 17, etc. (Android 14/15 are unsupported)
     validations:
       required: true
   - type: textarea

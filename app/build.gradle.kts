@@ -12,7 +12,7 @@ android {
     }
     defaultConfig {
         applicationId = "io.github.kust3r3nk0.tgwsandroid"
-        minSdk = 35
+        minSdk = 36
         targetSdk = 37
         versionCode = 11
         versionName = "0.3.5-alpha"

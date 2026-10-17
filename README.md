@@ -4,14 +4,14 @@
   <img src="docs/images/tgws-github-cover-ru.svg" width="100%" alt="TGWS-Android — нативный MTProto-прокси для Android, русский баннер" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/15) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.4--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.4--alpha-orange)
 
-**Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 15+.** Разработка: **Makarov Lab's 3.0™**.
+**Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 16+.** Разработка: **Makarov Lab's 3.0™**.
 
 **[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.5-alpha-debug/TGWS-Android-0.3.5-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Результаты тестов](docs/TEST_REPORT_0.3.4-alpha.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.3.4-alpha — тестовая сборка с debug-подписью.** Автотесты проходят на Android 15–17. Проверка этой версии с Telegram и мобильным оператором на физическом устройстве ожидается.
+> **0.3.4-alpha — тестовая сборка с debug-подписью.** Исторические прогоны CI проводились на Android 15–17; новая матрица поддержки — Android 16–17, требует повторного запуска CI. Проверка этой версии с Telegram и мобильным оператором на физическом устройстве ожидается.
 
 ## Языки и технологии
 
@@ -29,7 +29,7 @@
 Gradle-сборка; YAML/JSON — workflows и серверные настройки. Java используется как JDK 17,
 отдельных Java-исходников в текущем проекте нет.
 
-**Платформа:** Android 15+, Jetpack Compose / Material 3, Kotlin Coroutines, OkHttp,
+**Платформа:** Android 16+, Jetpack Compose / Material 3, Kotlin Coroutines, OkHttp,
 Android Keystore, Gradle и GitHub Actions. [Источники изображений и лицензии](docs/images/ASSETS.md).
 
 ## Приложение в кадре
@@ -47,7 +47,7 @@ Android Keystore, Gradle и GitHub Actions. [Источники изображе
   </tr>
 </table>
 
-Реальные снимки **0.3.3-alpha** из CI: Android API 35/36/37, английская локализация,
+Исторические снимки **0.3.3-alpha** из CI (не матрица текущей поддержки): Android API 35/36/37, английская локализация,
 программный GPU. Для демонстрации включены бета-эффекты; по умолчанию они выключены.
 Снимки не подтверждают соединение Telegram. [Источник и проверенные SHA-256](docs/images/ASSETS.md).
 
@@ -101,7 +101,7 @@ TGWS-Android — нативное Android-приложение на Kotlin и Je
 
 ## Версии Android и сборочные инструменты
 
-- **Android:** minSdk 35 (Android 15); compileSdk 37.0 / targetSdk 37.
+- **Android:** minSdk 36 (Android 16); compileSdk 37.0 / targetSdk 37. Android 14/15 не поддерживаются.
 - **Kotlin:** 2.4.21; **AGP:** 9.4.1; **Gradle Wrapper:** 9.8.1 с проверкой SHA-256.
 - **UI:** Jetpack Compose / Material 3; Java bytecode target 17.
 - **Без Python в APK:** Python из оригинального проекта используется только для эталонных тестов совместимости.
@@ -119,12 +119,12 @@ TGWS-Android — нативное Android-приложение на Kotlin и Je
 6. Debug APK доступен в **Actions → Android CI → запуск → Artifacts**. [Инструкции Codex](AGENTS.md).
 
 > [!NOTE]
-> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет также инструментальные тесты на API 35–37. [Результаты и ограничения обновления](docs/TEST_REPORT_0.3.4-alpha.md).
+> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет инструментальные тесты и проверку обновления APK на API 36–37. [Результаты и ограничения](docs/TEST_REPORT_0.3.5-alpha.md).
 
 CI запускается при push в `main`, Pull Request и вручную. Успешная проверка
 публикует debug APK, `SHA256SUMS`, версию и commit, changelog; отчёты JVM/Lint
 сохраняются отдельно. Actions и Wrapper закреплены по проверенным SHA.
-Отдельный workflow при PR и вручную проверяет Android API 35, 36, 37.0.
+Отдельный workflow при PR и вручную проверяет Android API 36 и 37.0.
 
 [Скачать 0.3.5 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.5-alpha-debug/TGWS-Android-0.3.5-debug.apk)
 

@@ -4,13 +4,13 @@
   <img src="docs/images/tgws-github-cover-en.svg" width="100%" alt="TGWS-Android — native MTProto proxy for Android, English cover" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/15) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.4--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.4--alpha-orange)
 
 **[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.4-alpha-debug/TGWS-Android-0.3.4-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Test results](docs/en/TEST_REPORT_0.3.4-alpha.md) · [Contributing](docs/en/CONTRIBUTING.md)**
 
-**Unofficial, open-source Android 15+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
+**Unofficial, open-source Android 16+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
-> **0.3.4-alpha is a debug-signed test build.** Automated checks pass on Android 15–17. Physical Telegram/carrier validation of this version is pending.
+> **0.3.4-alpha is a debug-signed test build.** Historical CI runs covered Android 15–17; the new supported Android 16–17 matrix needs a fresh CI run. Physical Telegram/carrier validation of this version is pending.
 
 ## Languages & technology
 
@@ -28,7 +28,7 @@
 for Gradle; YAML/JSON for workflows/server configuration. Java provides JDK 17; this project
 currently has no separate Java source files.
 
-**Platform:** Android 15+, Jetpack Compose / Material 3, Kotlin Coroutines, OkHttp,
+**Platform:** Android 16+, Jetpack Compose / Material 3, Kotlin Coroutines, OkHttp,
 Android Keystore, Gradle and GitHub Actions. [Image sources & licenses](docs/en/IMAGE_ASSETS.md).
 
 ## Inside the app
@@ -46,7 +46,7 @@ Android Keystore, Gradle and GitHub Actions. [Image sources & licenses](docs/en/
   </tr>
 </table>
 
-Actual **0.3.3-alpha** CI captures: Android API 35/36/37, English locale, software GPU.
+Historical **0.3.3-alpha** CI captures (not the current support matrix): Android API 35/36/37, English locale, software GPU.
 Beta effects are enabled for this demonstration; they are off by default. These captures
 do not establish Telegram connectivity. [Sources and verified SHA-256](docs/en/IMAGE_ASSETS.md).
 
@@ -74,7 +74,7 @@ Wi-Fi/cellular and address families even while stopped.
 
 ## Goal
 
-Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 35+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
+Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 36+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
 
 [Download 0.3.4 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.4-alpha-debug/TGWS-Android-0.3.4-debug.apk)
 
@@ -132,13 +132,13 @@ Run `:app:connectedDebugAndroidTest` with a device or emulator. CI checks pushes
 `main`, Pull Requests and manual runs; successful builds publish the debug APK,
 checksum, build version/commit and changelog, with JVM/Lint reports separately.
 Action versions are pinned to verified commit SHAs. A separate PR/manual workflow
-executes all 25 instrumentation tests on each API 35, 36 and 37.0.
+is configured to run instrumentation tests on API 36 and 37.0; verify new run results.
 JVM tests, Lint and APK assembly are required checks. See [testing](docs/en/TESTING.md) and the
 [update test report](docs/en/TEST_REPORT_0.3.4-alpha.md).
 
 ## Versions
 
-Kotlin 2.4.21, AGP 9.4.1, Gradle 9.8.1, minimum Android 15 / API 35,
+Kotlin 2.4.21, AGP 9.4.1, Gradle 9.8.1, minimum Android 16 / API 36,
 compile SDK 37.0, target SDK 37, JDK/bytecode target 17. Python is used only
 as an upstream test reference and is not included in the APK.
 

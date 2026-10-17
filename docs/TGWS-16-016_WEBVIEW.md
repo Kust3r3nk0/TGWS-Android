@@ -1,7 +1,7 @@
 # TGWS-16-016 — WebView Stable / Beta
 
 Приоритет P1. Требование владельца от 16.10.2026. Матрица Android 16+, AOSP и Samsung
-One UI 8.5/9.0; минимум всего приложения остаётся Android 15 / API 35.
+One UI 8.5/9.0; минимум всего приложения — Android 16 / API 36 (Android 14/15 исключены).
 [English](en/WEBVIEW_COMPATIBILITY.md) · [порядок физических проверок](TGWS-16-017_PHYSICAL_TESTING.md).
 
 ## Применимость к текущему приложению
