@@ -85,9 +85,42 @@ class ProxySnapshotTest {
 
     @Test fun lateSessionUpdatesCannotResurrectStoppedOrFailedListener() {
         listOf(ProxyPhase.STOPPED, ProxyPhase.ERROR, ProxyPhase.STOPPING).forEach { phase ->
-            val state = ProxySnapshot(phase = phase).withSessions(0, 0)
+            val state = ProxySnapshot(phase = phase).withSessions(1, 2, tcp = 1)
             assertEquals(phase, state.phase)
             assertFalse(state.localAvailable)
+            assertEquals(0, state.sessions)
+            assertEquals(0, state.pending)
+            assertEquals(0, state.tcpSessions)
+        }
+    }
+
+    @Test fun normalStopClearsCurrentFailureAndTransportsButKeepsLastRunCounters() {
+        val active = ProxySnapshot(phase = ProxyPhase.ACTIVE, sessions = 5, pending = 2,
+            wssSessions = 1, tcpSessions = 1, relaySessions = 1, cfSessions = 1, h2Sessions = 1,
+            issue = ProxyIssue.SESSION, rejectedHandshakes = 2529,
+            lastHandshakeRejection = HandshakeRejection.SECRET_OR_TRANSPORT, sent = 100, received = 200,
+            network = NetworkView(kind = AccessKind.WIFI, ipv4 = true))
+        val stopped = active.afterServiceStop(failed = false)
+        assertEquals(ProxyPhase.STOPPED, stopped.phase)
+        assertNull(stopped.issue)
+        assertFalse(stopped.running)
+        assertEquals(0, stopped.sessions + stopped.pending + stopped.wssSessions + stopped.tcpSessions +
+            stopped.relaySessions + stopped.cfSessions + stopped.h2Sessions)
+        assertEquals(NetworkView(), stopped.network)
+        assertEquals(2529, stopped.rejectedHandshakes)
+        assertEquals(HandshakeRejection.SECRET_OR_TRANSPORT, stopped.lastHandshakeRejection)
+        assertEquals(100L, stopped.sent)
+        assertEquals(200L, stopped.received)
+    }
+
+    @Test fun fatalStopPreservesActualStartupFailureUntilNextUserStart() {
+        for (issue in listOf(ProxyIssue.PORT, ProxyIssue.SECRET_UNAVAILABLE, ProxyIssue.SERVICE_START)) {
+            val stopped = ProxySnapshot(phase = ProxyPhase.ERROR, issue = issue, pending = 1)
+                .afterServiceStop(failed = true)
+            assertEquals(ProxyPhase.ERROR, stopped.phase)
+            assertEquals(issue, stopped.issue)
+            assertEquals(0, stopped.pending)
+            assertFalse(stopped.running)
         }
     }
 

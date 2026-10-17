@@ -72,6 +72,7 @@ class SettingsStore(context: Context) {
         val transport=loadTransport(relay)
         val saved = record()
         if (saved != null) return@synchronized StoredSettings(localPort, decrypt(saved), relay,transport)
+        requireFirstUse()
         val generated = SettingsValidation.generateSecret()
         persist(localPort, generated, recovery = false, relayUrl = relay,transport=transport)
         StoredSettings(localPort, generated, relay,transport)
@@ -96,7 +97,7 @@ class SettingsStore(context: Context) {
             previous.cloudflareDomains,previous.workerUrls,false)
         validate(port, secret, relay)
         // A UI edit cannot silently overwrite settings after loss of the Keystore key.
-        record()?.let(::decrypt)
+        record()?.let(::decrypt) ?: requireFirstUse()
         loadRelay() // An unreadable relay must never silently switch to direct routes.
         if(config.mode==TransportMode.RELAY_ONLY && relay.isEmpty())throw SettingsException(SettingsIssue.INVALID_CONFIGURATION)
         persist(port, secret, recovery = false, relayUrl = relay,transport=config)
@@ -150,4 +151,13 @@ class SettingsStore(context: Context) {
     }
 
     companion object { private val lock = Any() }
+
+    /** A missing record in an existing installation is data loss, not first launch. */
+    private fun requireFirstUse() {
+        val existing = try {
+            prefs.contains("port") || prefs.contains("relay_encrypted") ||
+                prefs.contains("transport_encrypted") || keyStore().containsAlias(alias)
+        } catch (_: Exception) { throw SettingsException(SettingsIssue.SECRET_UNAVAILABLE) }
+        if (existing) throw SettingsException(SettingsIssue.SECRET_UNAVAILABLE)
+    }
 }

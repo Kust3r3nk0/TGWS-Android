@@ -2,6 +2,17 @@
 
 Current minimum: **Android 15 / API 35**, per owner instruction on 15 October 2026. Historical reports remain unchanged. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
+
+## 0.3.5-alpha — credential continuity and session reliability
+
+- Decode pasted `dd`/`ee` secrets without truncating the key; preserve the Fake TLS domain.
+- Persist configuration before sharing a Telegram link or secret; stop export on Keystore failure.
+- A missing secret record with existing settings/key now requires explicit recovery instead of generating a replacement.
+- Empty local TCP probes are quiet; truncated handshakes and timeouts are classified separately, including Fake TLS.
+- Clear current session errors on stop and ignore late callbacks. Keep rejection counters as last-run history.
+- Add UI, Keystore, lifecycle and in-place 0.3.4 APK upgrade regressions.
+- Stable release still requires owner physical validation, usable cellular routes and trusted production signing.
+
 ## 0.3.4-alpha — network compatibility
 
 - [x] Remove Cloudflare DNS from APK/UI, system DNS migration without configuration loss

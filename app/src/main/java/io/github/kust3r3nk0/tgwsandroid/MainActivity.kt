@@ -110,6 +110,34 @@ class MainActivity : ComponentActivity() {
                     (advancedConfig.mode!=io.github.kust3r3nk0.tgwsandroid.core.TransportMode.RELAY_ONLY || relayUrl.isNotEmpty()) &&
                     runCatching { RelayEndpoint.parse(relayUrl) }.isSuccess
 
+                // A shared link must survive recreation and match the next service start.
+                // Persist first; a failed Keystore write must never export a draft secret.
+                fun shareSavedSettings(action: (StoredSettings) -> Unit) {
+                    if (busy || !validConfiguration) return
+                    val draft = StoredSettings(portText.toInt(), secretText, relayUrl, requireNotNull(advancedConfig))
+                    busy = true
+                    feedbackResource = null
+                    scope.launch {
+                        try {
+                            val saved = withContext(Dispatchers.IO) {
+                                if (!snapshot.running) store.save(draft.port, draft.secret, draft.relayUrl, draft.transport)
+                                store.load()
+                            }
+                            secretText = saved.secret
+                            errorResource = null
+                            revealSecret = false
+                            action(saved)
+                        } catch (error: SettingsException) {
+                            errorResource = settingsError(error.issue)
+                            if (error.issue == SettingsIssue.SECRET_UNAVAILABLE) secretUnavailable = true
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (_: RuntimeException) {
+                            errorResource = R.string.error_storage
+                        } finally { busy = false }
+                    }
+                }
+
                 LaunchedEffect(Unit) {
                     try {
                         val saved = withContext(Dispatchers.IO) { store.load() }
@@ -167,7 +195,7 @@ class MainActivity : ComponentActivity() {
                         else -> R.string.remote_transport_unconfirmed
                     }),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     if (snapshot.rejectedHandshakes > 0) {
-                        Text(stringResource(R.string.handshake_rejections, snapshot.rejectedHandshakes),
+                        Text(stringResource(if (snapshot.running) R.string.handshake_rejections else R.string.handshake_rejections_previous, snapshot.rejectedHandshakes),
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         snapshot.lastHandshakeRejection?.let {
                             Text(stringResource(rejectionResource(it)), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -207,18 +235,23 @@ class MainActivity : ComponentActivity() {
                         }
                         NetworkCard(observedNetwork)
                         SectionCard(stringResource(R.string.telegram_actions)){
-                    OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = validConfiguration && !busy, onClick = {
-                        copySensitive(getString(R.string.clipboard_link), SettingsValidation.telegramLink(portText.toInt(), secretText,requireNotNull(advancedConfig).fakeTlsDomain))
-                        feedbackResource = R.string.link_copied
+                    Text(stringResource(R.string.telegram_link_notice), style=MaterialTheme.typography.bodySmall)
+                    OutlinedButton(modifier = Modifier.fillMaxWidth().testTag("telegram.copy_link"), enabled = validConfiguration && !busy, onClick = {
+                        shareSavedSettings { saved ->
+                            copySensitive(getString(R.string.clipboard_link), SettingsValidation.telegramLink(saved.port, saved.secret, saved.transport.fakeTlsDomain))
+                            feedbackResource = R.string.link_copied
+                        }
                     }) { Text(stringResource(R.string.copy_link)) }
-                    OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = validConfiguration && !busy, onClick = {
-                        try {
-                            val link = SettingsValidation.telegramLink(portText.toInt(), secretText,requireNotNull(advancedConfig).fakeTlsDomain)
-                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
-                        } catch (_: ActivityNotFoundException) {
-                            errorResource = R.string.error_telegram_missing
-                        } catch (_: SecurityException) {
-                            errorResource = R.string.error_telegram_missing
+                    OutlinedButton(modifier = Modifier.fillMaxWidth().testTag("telegram.open"), enabled = validConfiguration && !busy, onClick = {
+                        shareSavedSettings { saved ->
+                            try {
+                                val link = SettingsValidation.telegramLink(saved.port, saved.secret, saved.transport.fakeTlsDomain)
+                                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                            } catch (_: ActivityNotFoundException) {
+                                errorResource = R.string.error_telegram_missing
+                            } catch (_: SecurityException) {
+                                errorResource = R.string.error_telegram_missing
+                            }
                         }
                     }) { Text(stringResource(R.string.open_telegram)) }
                         }
@@ -247,13 +280,27 @@ class MainActivity : ComponentActivity() {
                     )
                     OutlinedTextField(
                         value = secretText,
-                        onValueChange = { secretText = it.take(32); feedbackResource = null },
+                        onValueChange = { input ->
+                            // Never truncate dd/ee prefixes into an apparently valid but wrong key.
+                            val text = input.trim()
+                            val decoded = runCatching { io.github.kust3r3nk0.tgwsandroid.core.TelegramSecret.decode(text) }.getOrNull()
+                            if (decoded != null && text.length > 32) {
+                                secretText = decoded.secret
+                                transportDraft = transportDraft.copy(fakeDomain = decoded.domain)
+                                feedbackResource = R.string.import_success
+                            } else {
+                                secretText = text.take(2048)
+                                feedbackResource = null
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth().testTag("settings.secret"),
                         label = { Text(stringResource(R.string.secret_label)) },
                         visualTransformation = if (revealSecret) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         enabled = editable && !secretUnavailable,
                         singleLine = true,
+                        isError = secretText.isNotEmpty() && !SettingsValidation.validSecret(secretText),
+                        supportingText = { Text(stringResource(R.string.secret_input_help)) },
                         trailingIcon = {
                             TextButton(onClick = { revealSecret = !revealSecret }, enabled = secretText.isNotEmpty() || relayUrl.isNotEmpty()) {
                                 Text(stringResource(if (revealSecret) R.string.secret_hide else R.string.secret_show))
@@ -315,9 +362,12 @@ class MainActivity : ComponentActivity() {
                     }, enabled = editable) {
                         Text(stringResource(if (secretUnavailable) R.string.secret_replace else R.string.secret_generate))
                     }
-                    OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = SettingsValidation.validSecret(secretText) && !busy, onClick = {
-                        copySensitive(getString(R.string.clipboard_secret), SettingsValidation.normalizeSecret(secretText))
-                        feedbackResource = R.string.secret_copied
+                    Text(stringResource(R.string.secret_change_notice), style=MaterialTheme.typography.bodySmall)
+                    OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = validConfiguration && !busy, onClick = {
+                        shareSavedSettings { saved ->
+                            copySensitive(getString(R.string.clipboard_secret), saved.secret)
+                            feedbackResource = R.string.secret_copied
+                        }
                     }) { Text(stringResource(R.string.copy_secret)) }
                         Button(modifier=Modifier.fillMaxWidth().testTag("settings.save"),enabled=editable && validConfiguration,onClick={
                             scope.launch{

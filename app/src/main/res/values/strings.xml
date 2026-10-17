@@ -13,6 +13,10 @@
     <string name="settings_loading">Обработка защищённых настроек…</string>
     <string name="local_port">Локальный порт</string>
     <string name="secret_label">MTProto secret (32 HEX)</string>
+    <string name="secret_input_help">32 HEX-символа. При вставке dd/ee-секрета префикс и домен распознаются автоматически.</string>
+    <string name="secret_change_notice">При обновлении APK секрет сохраняется. Новый секрет нужен только для его явной замены; после замены обновите запись прокси в Telegram.</string>
+    <string name="telegram_link_notice">Перед передачей ссылки настройки сохраняются. Если меняли секрет, порт или Fake TLS, отключите старую запись прокси в Telegram и добавьте текущую ссылку.</string>
+    <string name="handshake_rejections_previous">За последний запуск отклонено клиентских заголовков: %1$d. Прокси сейчас остановлен.</string>
     <string name="secret_show">Показать</string>
     <string name="secret_hide">Скрыть</string>
     <string name="secret_generate">Сгенерировать новый секрет</string>
