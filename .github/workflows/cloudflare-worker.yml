@@ -75,8 +75,8 @@ jobs:
           output = Path('worker-release')
           root = ET.parse(output / 'test-results.xml').getroot()
           cases = list(root.iter('testcase'))
-          if len(cases) != 15 or len({c.get('name') for c in cases}) != 15:
-              raise SystemExit('Expected all 15 distinct Worker tests')
+          if len(cases) != 17 or len({c.get('name') for c in cases}) != 17:
+              raise SystemExit('Expected all 17 distinct Worker tests')
           if any(c.find(k) is not None for c in cases for k in ['failure', 'error', 'skipped']):
               raise SystemExit('Worker tests did not all pass')
           for suite in root.iter():
@@ -90,7 +90,7 @@ jobs:
           (output / 'dist').rmdir()
           shutil.copy2('LICENSE', output / 'LICENSE')
           info = dict(component='cloudflare-worker', version=f'{version}-alpha',
-              commit=os.environ['GITHUB_SHA'], tests=15,
+              commit=os.environ['GITHUB_SHA'], tests=17,
               worker_sha256=hashlib.sha256((output / 'worker.js').read_bytes()).hexdigest(),
               run=f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
               deployed=False, telegram_e2e='unverified', cellular_e2e='unverified',
