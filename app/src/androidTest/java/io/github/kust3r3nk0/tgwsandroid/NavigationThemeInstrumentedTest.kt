@@ -175,6 +175,8 @@ class NavigationThemeInstrumentedTest {
             val version=context.packageManager.getPackageInfo(context.packageName,0).versionName
             assertEquals("Android 16+ · $version",node("about.version",Direction.DOWN).text)
             screenshot("about-dark",dark=true)
+            assertEquals(context.getString(R.string.alpha_notice),node("about.notice",Direction.DOWN).text)
+            screenshot("about-notice-dark",dark=true)
             assertEquals(before,prefs.getString("secret_encrypted",null))
         }
     }

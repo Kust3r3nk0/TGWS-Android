@@ -3,15 +3,23 @@
 Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Only API 36 and newer are supported. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
 
+## Current priority — 0.3.9-alpha
+
+- [x] Compatible plain Obfuscated2 while Fake TLS is enabled, preserving secret validation.
+- [x] Progressing large uploads/downloads without false expiration of one short window; memory and stall bounds retained.
+- [x] Reset stale transports when the same network is suspended or blocked; bound unacknowledged TCP data.
+- [x] Personal reports removed; automated protocol, lifecycle and persistence checks remain mandatory.
+- [ ] Compatible Worker flow control replacing the existing 16 MiB/session cap.
+- [ ] Investigate additional failures using anonymous reproduction steps; do not claim every external network/endpoint fixed.
+
 ## 0.3.6-alpha — Android 16+ only
 
 - Correct the RU/EN About label to Android 16+; APK minimum remains API 36.
 - Remove retired platform reports, release-note files and images from the current tree; preserve Git history. Use verified API 36/37 screenshots and update SVG labels/instructions.
 - CI checks minSdk, localized branding, resources, documentation and the emulator matrix. Android regressions check both locales and the actual About screen.
 - Upgrade regression now uses the SHA-pinned Android 16+ 0.3.5 baseline, preserving credentials, Keystore and settings.
-- versionCode 12, unchanged applicationId/debug certificate. Transports and Worker limits are unchanged; physical validation belongs to the owner.
 
-- [x] [0.3.6 verification](TEST_REPORT_0.3.6-alpha.md): 203 JVM tests, zero Lint errors, 34 Android cases and successful 0.3.5 → 0.3.6 upgrade on each API 36/37.
+- [x] [Проверки для разработчиков](../TESTING.md): 203 JVM tests, zero Lint errors, 34 Android cases and successful 0.3.5 → 0.3.6 upgrade on each API 36/37.
 
 ## 0.3.5-alpha — credential continuity and session reliability
 
@@ -23,7 +31,7 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 - Add UI, Keystore, lifecycle and in-place 0.3.4 APK upgrade regressions.
 - Include PR #16 media-route and allowlisted WSS close diagnostics; keep normal close distinct from failure and retain the Worker 16 MiB budget.
 - Fix concurrent collection snapshots during stop and network changes.
-- [x] [Final verification](TEST_REPORT_0.3.5-alpha.md): 203 JVM tests, zero Lint errors, 17 Worker tests; 33 Android cases and a passing in-place 0.3.4 upgrade on each of API 36/37.
+- [x] [Проверки для разработчиков](../TESTING.md): 203 JVM tests, zero Lint errors, 17 Worker tests; 33 Android cases and a passing in-place 0.3.4 upgrade on each of API 36/37.
 - Stable release still requires owner physical validation, usable cellular routes and trusted production signing.
 
 ## 0.3.4-alpha — network compatibility
@@ -71,7 +79,7 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 - [x] DNS/network tests, Android UI/theme/persistence and CI screenshots
 - [ ] Owner physical UI/DNS/cellular/Telegram validation
 
-[Behavior and limits](DNS_AND_APPEARANCE.md) · [Report](TEST_REPORT.md).
+[Behavior and limits](DNS_AND_APPEARANCE.md) · [Проверки для разработчиков](../TESTING.md).
 
 ## 0.3.0-alpha — extended transports and Android
 
@@ -92,7 +100,7 @@ Checks below refer to implementation and automated validation, not physical acce
 - [ ] Owner physical RU-01–14 matrix on available SIMs; not a debug Pre-release blocker
 - [ ] Full experimental Worker flow control replacing its current 16 MiB/session budget
 
-[Transports and limits](TRANSPORTS_0.3.md) · [Carrier matrix](RU_MOBILE_OPERATORS.md) · [Report](TEST_REPORT.md).
+[Transports and limits](TRANSPORTS_0.3.md) · [Carrier matrix](RU_MOBILE_OPERATORS.md) · [Проверки для разработчиков](../TESTING.md).
 No automatic remote-list refresh is enabled: configuration changes are explicit. Seamless migration and test DCs are not claimed.
 
 ## 0.2.0-alpha — reliability and compatibility
@@ -105,7 +113,7 @@ No automatic remote-list refresh is enabled: configuration changes are explicit.
 - [ ] Prolonged real Wi-Fi/LTE and physical Telegram 0.2.0 E2E
 - [ ] Extend vectors when upstream is separately upgraded; this version retains v1.11.2
 
-[Policy and limits](RELIABILITY_0.2.md) · [Actual results](TEST_REPORT.md).
+[Policy and limits](RELIABILITY_0.2.md) · [Проверки для разработчиков](../TESTING.md).
 
 ## 0.1.3-alpha — alternate route for IP-filtered networks
 
@@ -128,7 +136,6 @@ Prioritized at the owner's request; not full Cloudflare support or a guaranteed 
 - [x] Ping/Pong and partial-message deadlines
 - [x] Buffered TLS writes and TCP_NODELAY
 - [x] WSS/TCP counts and recovery from obsolete fallback errors
-- [x] User reported Telegram working; 6–8 ms is client-reported, not independently measured
 - [ ] Complete repeated E2E and long-running network tests
 
 **Objective:** functional compatibility with the Flowseal TG-WS-Proxy baseline, with Android-native runtime, UI, and power/network lifecycle.

@@ -402,7 +402,8 @@ class MainActivity : ComponentActivity() {
                         }
                         SectionCard(stringResource(R.string.about_title)){
                             Text(stringResource(R.string.version_label,version),modifier=Modifier.testTag("about.version"))
-                            Text(stringResource(R.string.alpha_notice),style=MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.alpha_notice),style=MaterialTheme.typography.bodySmall,
+                                modifier=Modifier.testTag("about.notice"))
                         }
                     }
                 }
@@ -459,4 +460,5 @@ private fun rejectionResource(reason: HandshakeRejection): Int = when (reason) {
     HandshakeRejection.RESERVED_PREFIX -> R.string.rejection_prefix
     HandshakeRejection.SECRET_OR_TRANSPORT -> R.string.rejection_secret_or_transport
     HandshakeRejection.UNSUPPORTED_DC -> R.string.rejection_dc
+    HandshakeRejection.FAKE_TLS -> R.string.rejection_fake_tls
 }

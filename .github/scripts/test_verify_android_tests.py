@@ -38,6 +38,15 @@ class AndroidReportGateTest(unittest.TestCase):
         self.report('<testsuites tests="2"><testsuite>' + self.cases() + '</testsuite></testsuites>')
         self.assertEqual(2, gate.verify(self.source, self.results))
 
+    def test_timeout_annotation_still_requires_actual_execution(self):
+        source = self.source / 'ExampleTest.kt'
+        source.write_text(source.read_text().replace('@Test fun second', '@Test(timeout = 12000) fun second'))
+        self.report('<testsuite><testcase classname="example.ExampleTest" name="first"/></testsuite>')
+        with self.assertRaises(ValueError):
+            gate.verify(self.source, self.results)
+        self.report('<testsuite>' + self.cases() + '</testsuite>')
+        self.assertEqual(2, gate.verify(self.source, self.results))
+
     def test_rejects_partial_execution(self):
         self.report('<testsuite><testcase classname="example.ExampleTest" name="first"/></testsuite>')
         with self.assertRaises(ValueError):

@@ -57,6 +57,6 @@ A debug APK is **not a production-signed release**, and passing CI does **not** 
 
 Follow the [WebView applicability contract](WEBVIEW_COMPATIBILITY.md) and
 [owner physical-testing process](PHYSICAL_TESTING.md). Current app is native, no WebView.
-CI ZIP includes a populated `OWNER_HANDOFF.md`: version, source/tree SHA and Actions URL.
+CI ZIP includes a populated `BUILD.md`: version, source/tree SHA and Actions URL.
 Only actual owner reports confirm phone/One UI/Stable-Beta/carrier results; never seek phone access.
 Debug publication remains allowed after automated gates while owner testing is pending.

@@ -43,7 +43,7 @@ def verify_payload(original, candidate):
 def verify_upgrade(report, version_code):
     required = ['install_replace', 'secret_preserved', 'ciphertext_unchanged', 'keystore_preserved', 'settings_preserved', 'payload_matches_build']
     if (report.get('result') != 'passed' or report.get('target_version_code') != version_code or
-            report.get('baseline_version') != '0.3.5-alpha' or
+            report.get('baseline_version') != '0.3.8-alpha' or
             not re.fullmatch(r'[a-f0-9]{64}', report.get('ci_signer_sha256', '')) or
             any(report.get(key) is not True for key in required)):
         raise ValueError('Missing or unsuccessful APK upgrade regression')
@@ -136,17 +136,8 @@ def main():
                 signature='Preserved workspace debug key; not production signing',
                 apk_sha256=inputs['apk_sha256'], payload_matches_ci=True)
     (output / 'build-info.json').write_text(json.dumps(meta, indent=2) + '\n')
-    report = Path(f'docs/TEST_REPORT_{version}.md').read_text()
-    report += f'\nCI: https://github.com/{repository}/actions/runs/{inputs["build_run"]}\n'
-    report += f'\nAndroid: https://github.com/{repository}/actions/runs/{inputs["device_run"]}\n'
-    report += f'\nVerified device test counts: {devices}; source: {source}.\n'
-    (output / 'REPORT.md').write_text(report)
+    (output / 'BUILD.md').write_text(f'TGWS-Android {version}\nSource: {source}\nCI: https://github.com/{repository}/actions/runs/{inputs["build_run"]}\n')
     (output / 'CHANGELOG.md').write_text(Path('CHANGELOG.md').read_text())
-    with zipfile.ZipFile(output / 'test-reports.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
-        for folder in ['jvm-reports', 'device-reports']:
-            for path in Path(folder).rglob('*'):
-                if path.is_file() and (path.suffix in ('.xml', '.json') or 'lint-results-debug' in path.name):
-                    archive.write(path)
     (output / 'SHA256SUMS').write_text(''.join(
         f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n'
         for p in sorted(output.iterdir()) if p.is_file()))

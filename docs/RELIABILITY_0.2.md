@@ -62,7 +62,7 @@ Java AES-CTR peer, четыре одновременных клиента, ef/ee
 ./gradlew --no-daemon -PsoakSeconds=180 :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
 ```
 
-Отчёт с фактическими результатами: [TEST_REPORT.md](TEST_REPORT.md).
+Отчёт с фактическими результатами: [Проверки для разработчиков](TESTING.md).
 Физическое устройство, длительные реальные Wi-Fi/LTE испытания, внешний relay
 и мобильный оператор остаются отдельными непроверенными сценариями.
 

@@ -20,8 +20,7 @@ Measure RAM/CPU/startup/battery; MTProto payload and sockets remain native, outs
 
 Required owner matrix: Android 16 Stable/Beta; One UI 8.5 Stable/Beta when available;
 One UI 9.0 Stable/Beta when a test environment exists. Dev is optional, Canary experimental.
-Exact provider package/version, manufacturer/model, OS/API and actual One UI version are required.
-All physical rows are pending, not inferred from passing CI or provider package naming.
+This matrix applies when an embedded WebView component is introduced. Current renderer/page scenarios are not applicable.
 
 Before/after emulator runs CI saves allowlisted environment JSON, including selected provider
 metadata. AOSP/unknown/unavailable differ; package naming does not prove latest channel version.

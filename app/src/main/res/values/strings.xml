@@ -32,7 +32,7 @@
     <string name="clipboard_secret">Секрет прокси Telegram</string>
     <string name="link_copied">Ссылка скопирована.</string>
     <string name="secret_copied">Секрет скопирован.</string>
-    <string name="alpha_notice">Экспериментальная версия. Новые транспорты проверены автоматическими тестами; проверка владельцем на физическом устройстве ожидается. Для Worker/CF нужен совместимый внешний узел.</string>
+    <string name="alpha_notice">Экспериментальная версия. Для Worker/CF нужен совместимый внешний узел.</string>
     <string name="local_notice">Прокси доступен только на этом устройстве, через 127.0.0.1. Это не VPN. Открытие порта не подтверждает доступность Telegram.</string>
     <string name="status_stopped">Остановлен</string>
     <string name="status_starting">Запускается</string>
@@ -63,6 +63,7 @@
     <string name="rejection_prefix">Последний отказ: заголовок не соответствует поддерживаемому Obfuscated2.</string>
     <string name="rejection_secret_or_transport">Последний отказ: секрет или формат MTProto не прошёл проверку. Сверьте секрет и ссылку прокси в Telegram.</string>
     <string name="rejection_dc">Последний отказ: неподдерживаемый DC. Основные DC 1–5 поддерживаются; тестовые DC не включены.</string>
+    <string name="rejection_fake_tls">Последний отказ: Fake TLS не прошёл проверку. Сверьте режим и ссылку Telegram, секрет и время устройства.</string>
     <string name="relay_label">WSS-реле (необязательно)</string>
     <string name="relay_direct_notice">Пустое поле: прямые WSS/TCP-маршруты Telegram. Если оператор блокирует их IP, нужен собственный доступный WSS-узел.</string>
     <string name="relay_enabled_notice">Только реле: wss://домен/путь, порт 443. Совместимый Worker должен поддерживать dst/dc. Без прямого fallback. Адрес скрыт и зашифрован; показать можно кнопкой выше. Не используйте чужие непроверенные узлы.</string>
@@ -80,7 +81,7 @@
     <string name="worker_endpoints">Worker WSS URL, по одному в строке</string>
     <string name="use_saved_relay">Добавить сохранённое реле в Workers</string>
     <string name="h2_media">HTTP/2 для media через CF /api</string>
-    <string name="h2_notice">Только серверы с совместимым /api. ALPN h2 проверяется до пользовательских данных. Внешний E2E ожидает проверки владельцем.</string>
+    <string name="h2_notice">Только серверы с совместимым /api. ALPN h2 проверяется до пользовательских данных. Доступность зависит от внешнего узла.</string>
     <string name="cf_configuration_invalid">Проверьте список: до 8 доменов и 8 WSS URL. Для автоматического режима нужен хотя бы один узел.</string>
     <string name="fake_tls_domain">Домен Fake TLS; пусто — выключено</string>
     <string name="fake_tls_notice">Fake TLS маскирует локальное подключение Telegram → TGWS. Не заменяет проверку сертификата внешнего WSS и не гарантирует обход ограничений. При включении обновите ссылку в Telegram.</string>

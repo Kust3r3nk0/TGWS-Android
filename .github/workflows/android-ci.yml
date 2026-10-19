@@ -32,7 +32,9 @@ jobs:
       - name: Check the declared native UI contract (TGWS-16-016)
         run: python3 .github/scripts/verify_native_ui.py --output app/build/reports/native-ui.json
       - name: Check Android 16+ sources, resources and documentation
-        run: python3 .github/scripts/verify_android_platform.py
+        run: |
+          python3 .github/scripts/verify_android_platform.py
+          python3 .github/scripts/verify_public_metadata.py
       - name: Run tests, lint and debug build
         run: ./gradlew --no-daemon -PsoakSeconds=60 :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Check retired Cloudflare DNS is absent from the app APK
@@ -89,7 +91,6 @@ jobs:
               'commit': os.environ['GITHUB_SHA'],
               'source_commit': os.environ['TGWS_SOURCE_COMMIT'],
               'workflow_url': run_url,
-              'physical_testing': 'owner_pending',
               'native_ui': native_ui,
               'build_type': 'debug',
               'signature': 'Android debug key; not a trusted distribution release',
@@ -99,7 +100,6 @@ jobs:
               'gradle': '9.8.1',
               'compile_sdk': '37.0',
               'build_tools': '36.0.0',
-              'telegram_e2e': f'{version}: owner physical validation pending; cellular/external transports unverified',
               'local_soak': json.loads(Path('app/build/reports/soak-summary.json').read_text()),
               'http2_soak': json.loads(Path('app/build/reports/http2-soak-summary.json').read_text()),
           }
@@ -107,13 +107,13 @@ jobs:
               env_file.write(f'TGWS_VERSION={version}\n')
           (output / 'build-info.json').write_text(json.dumps(info, indent=2) + '\n')
           shutil.copy2('CHANGELOG.md', output / 'CHANGELOG.md')
-          handoff = Path('docs/OWNER_TEST_REPORT_TEMPLATE.md').read_text()
+          handoff = Path('docs/BUILD_INFO_TEMPLATE.md').read_text()
           for key, value in {'VERSION': version, 'BUILD_COMMIT': os.environ['GITHUB_SHA'],
                              'SOURCE_COMMIT': os.environ['TGWS_SOURCE_COMMIT'], 'RUN_URL': run_url}.items():
               handoff = handoff.replace('{{' + key + '}}', value)
           if re.search(r'\{\{[A-Z_]+\}\}', handoff):
-              raise SystemExit('Owner handoff contains unresolved build placeholders')
-          (output / 'OWNER_HANDOFF.md').write_text(handoff)
+              raise SystemExit('Build provenance contains unresolved placeholders')
+          (output / 'BUILD.md').write_text(handoff)
           shutil.copy2('app/build/reports/native-ui.json', output / 'native-ui.json')
           shutil.copy2('app/build/reports/android-platform.json', output / 'android-platform.json')
           PY

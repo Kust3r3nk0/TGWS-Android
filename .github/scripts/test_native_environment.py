@@ -76,6 +76,7 @@ class EnvironmentInventoryTest(unittest.TestCase):
         self.assertEqual(36, value['api'])
         self.assertEqual('Test manufacturer', value['manufacturer'])
         self.assertIsNone(value['one_ui_version'])
+        self.assertEqual('not_applicable_ci_emulator', value['physical_validation'])
         self.assertNotIn('private-junk', json.dumps(value))
         self.assertEqual(5, len(calls))
 

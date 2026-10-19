@@ -1,9 +1,9 @@
 # Техническое задание для Codex
 ## TGWS-Android 0.3.0-alpha — Extended Transport & Android Optimization
 
-**Репозиторий:** https://github.com/Kust3r3nk0/TGWS-Android  
-**Базовая версия:** `0.2.0-alpha` (проверить актуальный HEAD перед работой)  
-**Эталон:** https://github.com/Flowseal/tg-ws-proxy, закреплённая в проекте версия v1.11.2, commit `307a384ab7f522e34bb1a045884d0bd90f40bee5`.  
+**Репозиторий:** https://github.com/Kust3r3nk0/TGWS-Android
+**Базовая версия:** `0.2.0-alpha` (проверить актуальный HEAD перед работой)
+**Эталон:** https://github.com/Flowseal/tg-ws-proxy, закреплённая в проекте версия v1.11.2, commit `307a384ab7f522e34bb1a045884d0bd90f40bee5`.
 **Платформа:** Android 16+ (minSdk 36), Kotlin, Jetpack Compose / Material 3.
 
 ### 1. Цель и границы

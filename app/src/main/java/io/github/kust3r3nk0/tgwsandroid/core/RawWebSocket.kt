@@ -53,7 +53,8 @@ internal class RawWebSocket private constructor(
     // one-byte write can become a separate TLS record and trigger delayed ACKs.
     private val output = BufferedOutputStream(socket.getOutputStream(), 16 * 1024)
     private val rng = SecureRandom()
-    private val sendLock = ReentrantLock()
+    private val sendLock = ReentrantLock(true)
+    private val messageLock = ReentrantLock()
     private val readLock = ReentrantLock()
     private val closing = AtomicBoolean()
     private val closed = AtomicBoolean()
@@ -200,15 +201,18 @@ internal class RawWebSocket private constructor(
         return input.read().also { if (it < 0) throw EOFException("Unexpected WebSocket EOF") }
     }
 
-    private fun exactly(count: Int, deadline: Long): ByteArray {
+    private fun exactly(count: Int, deadline: Long) = exactly(count, { deadline }) {}
+
+    private fun exactly(count: Int, deadline: () -> Long, progress: (Int) -> Unit): ByteArray {
         val bytes = ByteArray(count)
         var position = 0
         while (position < count) {
-            socket.soTimeout = remaining(deadline)
+            socket.soTimeout = remaining(deadline())
             val n = input.read(bytes, position, count - position)
             if (n < 0) throw EOFException("Unexpected WebSocket EOF")
             if (n == 0) continue
             position += n
+            progress(n)
         }
         return bytes
     }
@@ -232,16 +236,33 @@ internal class RawWebSocket private constructor(
         }
     }
 
-    fun send(data: ByteArray) {
+    fun send(data: ByteArray) = send(data) {}
+
+    /** One MTProto packet stays one WS message; control frames may interleave fragments. */
+    fun send(data: ByteArray, progress: () -> Unit) {
         require(data.size <= limits.messageBytes) { "WebSocket message exceeds limit" }
-        try { writeFrame(2, data) } catch (e: Exception) { abort(); throw e }
+        if (!messageLock.tryLock(limits.writeMillis.toLong(), TimeUnit.MILLISECONDS)) {
+            abort()
+            throw SocketTimeoutException("WebSocket message writer deadline exceeded")
+        }
+        try {
+            var offset = 0
+            do {
+                val count = minOf(TRANSFER_CHUNK_BYTES, data.size - offset)
+                writeFrame(if (offset == 0) 2 else 0, data,
+                    fin = offset + count == data.size, offset = offset, count = count)
+                offset += count
+                progress()
+            } while (offset < data.size)
+        } catch (e: Exception) { abort(); throw e }
+        finally { messageLock.unlock() }
     }
 
-    private fun writeFrame(opcode: Int, body: ByteArray, allowClosing: Boolean = false, timeoutMillis: Int = limits.writeMillis) {
+    private fun writeFrame(opcode: Int, body: ByteArray, allowClosing: Boolean = false, timeoutMillis: Int = limits.writeMillis,
+        fin: Boolean = true, offset: Int = 0, count: Int = body.size) {
         writeBounded(timeoutMillis) {
             if (closing.get() && !allowClosing) throw EOFException("WebSocket closing")
-            output.write(0x80 or opcode)
-            val count = body.size
+            output.write((if (fin) 0x80 else 0) or opcode)
             when {
                 count < 126 -> output.write(0x80 or count)
                 count <= 65535 -> { output.write(0xfe); output.write(count ushr 8); output.write(count) }
@@ -256,7 +277,7 @@ internal class RawWebSocket private constructor(
             var position = 0
             while (position < count) {
                 val length = minOf(chunk.size, count - position)
-                for (i in 0 until length) chunk[i] = (body[position + i].toInt() xor mask[(position + i) % 4].toInt()).toByte()
+                for (i in 0 until length) chunk[i] = (body[offset + position + i].toInt() xor mask[(position + i) % 4].toInt()).toByte()
                 output.write(chunk, 0, length)
                 position += length
             }
@@ -288,6 +309,8 @@ internal class RawWebSocket private constructor(
     private fun readMessage(deadline: Long, discardMessages: Boolean = false, probeNonce: ByteArray? = null): ByteArray? {
         var nextFrameDeadline = deadline
         var messageDeadline: Long? = null
+        var messageHardDeadline = 0L
+        var dataSinceRenewal = 0
         var pendingPing: ByteArray? = null
         var pongDeadline = 0L
         while (!closed.get()) {
@@ -327,7 +350,21 @@ internal class RawWebSocket private constructor(
                 if (size < 65536) protocolError("Noncanonical WebSocket length")
             }
             if (size > limits.messageBytes || opcode < 8 && size > limits.messageBytes - fragmentBytes) protocolError("WebSocket message exceeds limit", 1009)
-            val body = exactly(size.toInt(), frameDeadline)
+            val body = if (opcode < 8 && !discardMessages && probeNonce == null) {
+                if (messageDeadline == null) {
+                    messageDeadline = frameDeadline
+                    messageHardDeadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(limits.readMillis.toLong() * 5)
+                }
+                exactly(size.toInt(), { requireNotNull(messageDeadline) }) { bytes ->
+                    dataSinceRenewal += bytes
+                    // Tiny drips and control traffic never renew a partial message.
+                    // A useful data quantum can renew the window, within a hard cap.
+                    if (dataSinceRenewal >= TRANSFER_CHUNK_BYTES) {
+                        dataSinceRenewal %= TRANSFER_CHUNK_BYTES
+                        messageDeadline = minOf(messageHardDeadline, deadlineAfter(limits.readMillis))
+                    }
+                }
+            } else exactly(size.toInt(), frameDeadline)
             when (opcode) {
                 8 -> {
                     validateClose(body)

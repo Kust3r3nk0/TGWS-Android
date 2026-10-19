@@ -13,6 +13,21 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class BrandingInstrumentedTest {
+    @Test fun aboutContainsOnlyProductNoticeInBothLanguages() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        for (language in listOf("ru", "en")) {
+            val configuration = Configuration(context.resources.configuration).apply {
+                setLocales(LocaleList(Locale.forLanguageTag(language)))
+            }
+            val localized = context.createConfigurationContext(configuration)
+            val notice = localized.getString(R.string.alpha_notice)
+            assertTrue(notice.contains("Worker/CF"))
+            for (word in listOf("owner", "tested", "владел", "проверк", "One UI", "Telegram 13")) {
+                assertFalse(notice.contains(word, ignoreCase = true))
+            }
+            assertEquals(0, localized.resources.getIdentifier("owner_validation_summary", "string", context.packageName))
+        }
+    }
     @Test fun aboutLabelMatchesInstalledMinimumInBothLanguages() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals(36, context.applicationInfo.minSdkVersion)
