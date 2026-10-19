@@ -145,8 +145,9 @@ class GithubUpdates(private val context: Context) {
 
     private fun onWifi(): Boolean {
         val conn = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        return conn.getNetworkCapabilities(conn.activeNetwork)
-            ?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+        return conn.allNetworks.any { network ->
+            conn.getNetworkCapabilities(network)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+        }
     }
 
     /** SHA-256 AND installed package signing certificate AND monotonically newer versionCode. */
@@ -221,7 +222,7 @@ class GithubUpdates(private val context: Context) {
         })
     }
 
-    fun configureWorker() {
+    fun configureWorker(replace: Boolean = false) {
         val options = UpdateOptionsStore(context).read()
         val manager = WorkManager.getInstance(context)
         if (!options.auto) {
@@ -229,7 +230,8 @@ class GithubUpdates(private val context: Context) {
         } else {
             val request = PeriodicWorkRequestBuilder<UpdateWorker>(options.minutes, TimeUnit.MINUTES)
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build()
-            manager.enqueueUniquePeriodicWork("tgws-update-check", ExistingPeriodicWorkPolicy.UPDATE, request)
+            manager.enqueueUniquePeriodicWork("tgws-update-check",
+                if (replace) ExistingPeriodicWorkPolicy.UPDATE else ExistingPeriodicWorkPolicy.KEEP, request)
         }
     }
 
