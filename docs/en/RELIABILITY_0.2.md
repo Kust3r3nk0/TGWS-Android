@@ -39,5 +39,5 @@ statistics only. It does not connect to Telegram.
 
 Run the full Wrapper command with `-PsoakSeconds=180` for an extended run. The
 default is 2 seconds; CI uses 60; supported values are 1–3600.
-[Actual results](TEST_REPORT.md). Physical-device, prolonged public
+[Проверки для разработчиков](../TESTING.md). Physical-device, prolonged public
 Wi-Fi/LTE, external relay and carrier tests remain unverified.

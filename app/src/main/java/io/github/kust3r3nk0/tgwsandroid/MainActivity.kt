@@ -382,9 +382,8 @@ class MainActivity : ComponentActivity() {
                         }
                         SectionCard(stringResource(R.string.about_title)){
                             Text(stringResource(R.string.version_label,version),modifier=Modifier.testTag("about.version"))
-                            Text(stringResource(R.string.alpha_notice),style=MaterialTheme.typography.bodySmall)
-                            Text(stringResource(R.string.owner_validation_summary),style=MaterialTheme.typography.bodySmall,
-                                modifier=Modifier.testTag("about.owner_validation"))
+                            Text(stringResource(R.string.alpha_notice),style=MaterialTheme.typography.bodySmall,
+                                modifier=Modifier.testTag("about.notice"))
                         }
                     }
                 }

@@ -5,8 +5,7 @@
 
 An [experimental Cloudflare Worker template](CLOUDFLARE_WORKER.md) is available
 for testing without a VPS. It needs your Cloudflare account and works with APK
-0.2.0. SNI is the actual Worker name, not `cloudflare.com`. Megafon Moscow-region
-reachability is unverified. A **16 MiB per-session** safety budget may interrupt
+0.2.0. SNI is the actual Worker name, not `cloudflare.com`. Endpoint reachability depends on the active network. A **16 MiB per-session** safety budget may interrupt
 large downloads; this is a route/text test template, not a stability claim.
 
 Direct mode uses Telegram IPs for both WSS and TCP fallback. If a carrier blocks
