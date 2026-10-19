@@ -4,9 +4,9 @@ enum class AccessKind { NONE, WIFI, CELLULAR, OTHER }
 enum class RadioKind { UNKNOWN, G2, G3, LTE, LTE_PLUS, NR }
 enum class IpSupport { UNKNOWN, IPV4, IPV6, DUAL }
 /** Transport availability is distinct from Android's public-internet validation. */
-internal data class NetworkAvailability(val internet:Boolean,val captivePortal:Boolean,val suspended:Boolean){
-    val usable get()=internet && !captivePortal
-    val signature get()="$internet|$captivePortal"
+internal data class NetworkAvailability(val internet:Boolean,val captivePortal:Boolean,val suspended:Boolean,val blocked:Boolean=false){
+    val usable get()=internet && !captivePortal && !suspended && !blocked
+    val signature get()="$internet|$captivePortal|$suspended|$blocked"
 }
 internal fun internetAddress(address:java.net.InetAddress)=!address.isLoopbackAddress && !address.isLinkLocalAddress && !address.isAnyLocalAddress
 enum class CarrierBrand { MEGAFON, MTS, BEELINE, T2 }

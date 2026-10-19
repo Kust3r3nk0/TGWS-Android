@@ -22,13 +22,21 @@ internal class AndroidNetworkMonitor(private val context:Context,private val han
     @Volatile private var closed=false
     private val queries=java.util.concurrent.ConcurrentHashMap.newKeySet<CancellationSignal>()
     private var registered=false
+    private var blockedNetwork:Network?=null
+    private var networkBlocked=false
     @Volatile var access:NetworkAccess?=null;private set
     private val callback=object:ConnectivityManager.NetworkCallback(){
         override fun onAvailable(network:Network)=refresh(network)
         override fun onCapabilitiesChanged(network:Network,capabilities:NetworkCapabilities)=refresh(network)
         override fun onLinkPropertiesChanged(network:Network,properties:LinkProperties)=refresh(network)
+        override fun onBlockedStatusChanged(network:Network,blocked:Boolean){
+            if(closed || network!=connectivity.activeNetwork)return
+            blockedNetwork=network;networkBlocked=blocked
+            refresh(network)
+        }
         override fun onLost(network:Network){
             if(closed || state.current!=network)return
+            if(blockedNetwork==network){blockedNetwork=null;networkBlocked=false}
             val next=connectivity.activeNetwork
             if(next!=null && next!=network)refresh(next)
             else if(state.lost(network)){access=null;queries.forEach{it.cancel()};changed(true,NetworkView())}
@@ -49,7 +57,8 @@ internal class AndroidNetworkMonitor(private val context:Context,private val han
         availability:NetworkAvailability=NetworkAvailability(
             caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)==true,
             caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL)==true,
-            caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_SUSPENDED)!=true)){
+            caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_SUSPENDED)!=true,
+            network==blockedNetwork && networkBlocked)){
         if(closed)return
         if(network==null){
             state.current?.let{if(state.lost(it)){access=null;queries.forEach{it.cancel()};changed(true,NetworkView())}}
@@ -91,7 +100,7 @@ internal class AndroidNetworkMonitor(private val context:Context,private val han
                         return result.get(8,java.util.concurrent.TimeUnit.SECONDS)
                     }finally{cancel.cancel();queries-=cancel}
                 }
-                override fun socket()=network.socketFactory.createSocket()
+                override fun socket()=network.socketFactory.createSocket().also{AndroidSocketPolicy.configure(it)}
             }
         }
         changed(replaced,NetworkView(kind,validated,portal,
@@ -115,6 +124,7 @@ internal class AndroidNetworkMonitor(private val context:Context,private val han
     override fun close(){
         if(closed)return
         closed=true;state.stop();access=null
+        blockedNetwork=null;networkBlocked=false
         queries.forEach{it.cancel()};queries.clear()
         if(registered){connectivity.unregisterNetworkCallback(callback);registered=false}
     }

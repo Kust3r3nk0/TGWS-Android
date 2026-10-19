@@ -37,6 +37,7 @@ interface RemoteTransport : Closeable {
     val kind: TransportKind
     val setupTimings:SetupTimings? get()=null
     fun send(data: ByteArray)
+    fun send(data: ByteArray, progress: () -> Unit) { send(data); progress() }
     fun receive(): ByteArray?
     /** Only transports advertising warm support must implement a bounded idle probe. */
     fun verifyIdle() { throw java.io.IOException("Idle verification unsupported") }
@@ -69,6 +70,7 @@ private object DirectTransportFactory : TransportFactory {
             override val kind = transportKind
             override val setupTimings get()=websocket.setupTimings
             override fun send(data: ByteArray) = websocket.send(data)
+            override fun send(data: ByteArray, progress: () -> Unit) = websocket.send(data, progress)
             override fun receive() = websocket.receive()
             override fun verifyIdle() = websocket.probeIdle()
             override fun close() = websocket.close()
@@ -89,6 +91,7 @@ private object DirectTransportFactory : TransportFactory {
                     socket.getOutputStream().write(data)
                     socket.getOutputStream().flush()
                 }
+                override fun send(data: ByteArray, progress: () -> Unit) = writeWithProgress(socket.getOutputStream(), data, progress)
                 override fun receive() = socket.getInputStream().readChunk()
                 override fun close() = socket.close()
             }
@@ -378,18 +381,34 @@ class MtprotoServer(
     }
 
     private fun readInit(session: Session): ByteArray? {
-        if (fakeTlsDomain.isNotEmpty()) {
-            val header = readHandshakeBytes(session, 5, allowEmpty = true) ?: return null
-            val size = ((header[3].toInt() and 255) shl 8) or (header[4].toInt() and 255)
-            if (header[0] != 0x16.toByte() || size !in 38..4096) throw java.net.ProtocolException("Invalid Fake TLS hello")
-            val body = requireNotNull(readHandshakeBytes(session, size))
-            val hello = FakeTls.verify(header + body, secret) ?: throw java.net.ProtocolException("Fake TLS verification failed")
-            session.output.write(FakeTls.response(secret, hello))
-            session.output.flush()
-            session.input = FakeTls.Reader(session.input)
-            session.output = FakeTls.Writer(session.output)
+        val prefix = readHandshakeBytes(session, 5, allowEmpty = true) ?: return null
+        val size = ((prefix[3].toInt() and 255) shl 8) or (prefix[4].toInt() and 255)
+        val tlsCandidate = fakeTlsDomain.isNotEmpty() && prefix[0] == 0x16.toByte() &&
+            prefix[1] == 3.toByte() && prefix[2].toInt() in 1..3 && size in 38..4096
+        val buffer = if (!tlsCandidate) {
+            prefix + requireNotNull(readHandshakeBytes(session, 59))
+        } else {
+            // Obfuscated2 randomness may resemble a TLS record. Authenticate a full
+            // 64-byte plain init before committing to the longer TLS interpretation.
+            val start = prefix + requireNotNull(readHandshakeBytes(session, minOf(size, 59)))
+            if (start.size == 64 && MtprotoCrypto.parseClientInit(start, secret) != null) start
+            else {
+                val helloBytes = if (size > 59) start + requireNotNull(readHandshakeBytes(session, size - 59)) else start
+                val hello = FakeTls.verify(helloBytes, secret)
+                if (hello == null && helloBytes.size < 64) {
+                    // A short TLS-looking prefix can still belong to an authenticated
+                    // plain init. The common handshake deadline bounds this read.
+                    helloBytes + requireNotNull(readHandshakeBytes(session, 64 - helloBytes.size))
+                } else {
+                    if (hello == null) throw java.net.ProtocolException("Fake TLS verification failed")
+                    session.output.write(FakeTls.response(secret, hello))
+                    session.output.flush()
+                    session.input = FakeTls.Reader(session.input)
+                    session.output = FakeTls.Writer(session.output)
+                    requireNotNull(readHandshakeBytes(session, 64))
+                }
+            }
         }
-        val buffer = readHandshakeBytes(session, 64, allowEmpty = true) ?: return null
         // The watchdog, rather than read-only socket deadlines, measures bidirectional activity.
         session.client.soTimeout = 0
         return buffer
@@ -404,7 +423,8 @@ class MtprotoServer(
             if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.HANDSHAKE, HandshakeRejection.INVALID_LENGTH))
             return
         } catch (_: java.net.ProtocolException) {
-            if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.HANDSHAKE, HandshakeRejection.SECRET_OR_TRANSPORT))
+            if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.HANDSHAKE,
+                if (fakeTlsDomain.isNotEmpty()) HandshakeRejection.FAKE_TLS else HandshakeRejection.SECRET_OR_TRANSPORT))
             return
         }
         val result = MtprotoCrypto.inspectClientInit(initial, secret)
@@ -575,7 +595,13 @@ class MtprotoServer(
                 emit(session.run,ServerEvent.Diagnostic(issue))
             }}
         }
-        fun send(data:ByteArray){try{remote.send(data)}catch(error:Exception){remoteFailure(error);throw error}}
+        fun send(data:ByteArray){try{
+            remote.send(data){
+                session.checkOpen()
+                session.upstreamWriteDeadline = writeDeadline()
+                session.touch()
+            }
+        }catch(error:Exception){remoteFailure(error);throw error}}
         val downstream = session.run.downstream.submit {
             try {
                 while (!session.closed.get()) {
@@ -585,8 +611,11 @@ class MtprotoServer(
                     val plain = context.fromTelegram.update(data)
                     session.downstreamWriteDeadline = writeDeadline()
                     try {
-                        session.output.write(context.toClient.update(plain))
-                        session.output.flush()
+                        writeWithProgress(session.output,context.toClient.update(plain)){
+                            session.checkOpen()
+                            session.downstreamWriteDeadline = writeDeadline()
+                            session.touch()
+                        }
                         session.run.received.addAndGet(data.size.toLong());session.run.diagnostics.traffic(session.routeKey,received=data.size)
                     } finally { session.downstreamWriteDeadline = 0L }
                     session.touch()

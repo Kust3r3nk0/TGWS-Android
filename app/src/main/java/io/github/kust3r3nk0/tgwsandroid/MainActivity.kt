@@ -439,4 +439,5 @@ private fun rejectionResource(reason: HandshakeRejection): Int = when (reason) {
     HandshakeRejection.RESERVED_PREFIX -> R.string.rejection_prefix
     HandshakeRejection.SECRET_OR_TRANSPORT -> R.string.rejection_secret_or_transport
     HandshakeRejection.UNSUPPORTED_DC -> R.string.rejection_dc
+    HandshakeRejection.FAKE_TLS -> R.string.rejection_fake_tls
 }

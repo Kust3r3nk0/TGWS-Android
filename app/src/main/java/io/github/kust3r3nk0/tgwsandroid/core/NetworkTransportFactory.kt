@@ -23,6 +23,7 @@ internal class NetworkTransportFactory(private val current:()->NetworkAccess?):T
         override val kind=kind
         override val setupTimings get()=ws.setupTimings
         override fun send(data:ByteArray)=ws.send(data)
+        override fun send(data:ByteArray,progress:()->Unit)=ws.send(data,progress)
         override fun receive()=ws.receive()
         override fun verifyIdle()=ws.probeIdle()
         override fun close()=ws.abort()
@@ -44,6 +45,7 @@ internal class NetworkTransportFactory(private val current:()->NetworkAccess?):T
             override val kind=TransportKind.TCP
             override val setupTimings=timing
             override fun send(data:ByteArray){socket.getOutputStream().write(data);socket.getOutputStream().flush()}
+            override fun send(data:ByteArray,progress:()->Unit)=writeWithProgress(socket.getOutputStream(),data,progress)
             override fun receive():ByteArray?{val bytes=ByteArray(65536);val n=socket.getInputStream().read(bytes);return if(n<0)null else bytes.copyOf(n)}
             override fun close()=socket.close()
         }

@@ -900,6 +900,48 @@ class MtprotoServerTest {
         }
     }
 
+    @Test fun progressingMediaWritesRenewTheWriteDeadlineWithoutDisablingStallDetection() {
+        val port=freePort()
+        val events=Events()
+        val closed=CountDownLatch(1)
+        val delivered=CountDownLatch(1)
+        val channel=object:RemoteTransport {
+            override val kind=TransportKind.TCP
+            override fun send(data:ByteArray) { send(data){} }
+            override fun send(data:ByteArray,progress:()->Unit) {
+                if(data.size==64)return
+                var offset=0
+                while(offset<data.size){
+                    if(closed.await(35,TimeUnit.MILLISECONDS))throw EOFException("Canceled")
+                    offset+=minOf(65536,data.size-offset)
+                    progress()
+                }
+                delivered.countDown()
+            }
+            override fun receive():ByteArray?{closed.await(3,TimeUnit.SECONDS);return null}
+            override fun close(){closed.countDown()}
+        }
+        val factory=object:TransportFactory {
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport=throw IOException("No WSS")
+            override fun openTcp(address:String,own:(Closeable)->Unit)=channel.also(own)
+        }
+        server(port,events,factory,limits.copy(writeTimeoutMillis=100)).use { server ->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use { client ->
+                val hello=init()
+                val length=512*1024
+                val packet=byteArrayOf(length.toByte(),(length shr 8).toByte(),(length shr 16).toByte(),0)+ByteArray(length)
+                client.getOutputStream().write(hello.bytes+hello.encrypt.update(packet))
+                assertTrue("Active transfer was aborted",delivered.await(3,TimeUnit.SECONDS))
+                assertFalse(events.issue(ServerIssue.TIMEOUT))
+                assertTrue(events.sessions(1,0))
+                client.soTimeout=50
+                assertThrows(java.net.SocketTimeoutException::class.java){client.getInputStream().read()}
+                server.stop();assertClosed(client)
+            }
+        }
+    }
+
     @Test fun rapidStartStopCyclesDoNotLeaveListenersOrClientWorkers() {
         val port = freePort()
         val events = Events()

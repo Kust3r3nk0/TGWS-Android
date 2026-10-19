@@ -23,4 +23,16 @@ class NetworkRecoveryTest {
         assertFalse(NetworkAvailability(false,false,false).usable)
         assertFalse(NetworkAvailability(true,false,true).usable)
     }
+    @Test fun perAppBlockAndUnblockOfSameNetworkCannotReuseTheStaleAccess(){
+        val state=DefaultNetworkState<String>()
+        val ready=NetworkAvailability(true,false,false)
+        assertTrue(state.update("network","network",ready.signature))
+        val blocked=ready.copy(blocked=true)
+        assertFalse(blocked.usable)
+        assertTrue(state.update("network","network",blocked.signature))
+        assertFalse(state.update("network","network",blocked.signature))
+        assertTrue(state.update("network","network",ready.signature))
+        state.stop()
+        assertFalse(state.update("network","network",blocked.signature))
+    }
 }

@@ -10,8 +10,8 @@ import urllib.request
 import zipfile
 from verify_android_platform import verify_apk
 
-BASELINE_URL = 'https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.6-alpha-debug/TGWS-Android-0.3.6-debug.apk'
-BASELINE_SHA = '063373a78944f23265fcee73558d7c5e5a0c2a8b08199ced920faac0fdc75cab'
+BASELINE_URL = 'https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.8-alpha-debug/TGWS-Android-0.3.8-debug.apk'
+BASELINE_SHA = '6c5e0ec8a1a5bbb746b1cd5d21f0a78b1b475649d26e0711088390f1153ac9c1'
 PACKAGE = 'io.github.kust3r3nk0.tgwsandroid'
 RUNNER = PACKAGE + '.UpgradeInstrumentation'
 
@@ -126,13 +126,13 @@ def main():
     run(*adb, 'install', '--no-incremental', '-t', str(tests))
     runner = PACKAGE + '.test/' + PACKAGE + '.UpgradeInstrumentation'
     checked_phase(run(*adb, 'shell', 'am', 'instrument', '-w', '-r', '-e', 'phase', 'seed',
-                      '-e', 'version', '12', runner), 'seed')
+                      '-e', 'version', '14', runner), 'seed')
     run(*adb, 'install', '--no-incremental', '-r', '-t', str(current))
     checked_phase(run(*adb, 'shell', 'am', 'instrument', '-w', '-r', '-e', 'phase', 'verify',
                       '-e', 'version', version, runner), 'verify')
     output.mkdir(parents=True, exist_ok=True)
     (output / 'result.json').write_text(json.dumps({
-        'baseline_version': '0.3.6-alpha', 'baseline_sha256': BASELINE_SHA,
+        'baseline_version': '0.3.8-alpha', 'baseline_sha256': BASELINE_SHA,
         'target_version_code': int(version), 'install_replace': True,
         'secret_preserved': True, 'ciphertext_unchanged': True, 'keystore_preserved': True,
         'settings_preserved': True, 'signing': 'temporary CI debug key on both APKs',

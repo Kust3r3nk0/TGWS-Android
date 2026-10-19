@@ -4,14 +4,14 @@
   <img src="docs/images/tgws-github-cover-ru.svg" width="100%" alt="TGWS-Android — нативный MTProto-прокси для Android, русский баннер" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.8--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.9--alpha-orange)
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 16+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.8-alpha-debug/TGWS-Android-0.3.8-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
+**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.9-alpha-debug/TGWS-Android-0.3.9-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.3.8-alpha — Android 16+.** Ведётся работа над Obfuscated2, HD-фото/видеокружками и восстановлением сети. Личные отчёты и сведения о проверявших проект устройствах/операторах не публикуются.
+> **0.3.9-alpha — Android 16+.** Исправлены совместимость Obfuscated2/Fake TLS, сроки активных медиа-передач и реакция на изменение доступности сети. Личные отчёты не публикуются.
 
 ## Языки и технологии
 
@@ -84,11 +84,12 @@ flowchart LR
 
 TGWS-Android — нативное Android-приложение на Kotlin и Jetpack Compose для запуска локального MTProto WebSocket-прокси. Планируется функциональная совместимость с сетевым ядром Flowseal TG-WS-Proxy, включая WebSocket, TCP fallback, Fake TLS, Cloudflare-маршруты и HTTP/2. Приложение **не является VPN** и не перехватывает системный трафик.
 
-## Известные проблемы
+## Сетевое поведение и ограничения
 
-- Obfuscated2 при повторном подключении: причина исследуется; проверка секрета не ослабляется.
-- HD-фото и видеокружки: возможны сбои в прямом режиме и через реле.
-- Восстановление сети: в отдельных случаях требуется ручной перезапуск прокси.
+- Fake TLS и обычный Obfuscated2 с тем же секретом доступны на одном локальном listener; неверные секреты отклоняются.
+- Крупные передачи в обоих направлениях обновляют сроки по полезному продвижению; границы памяти и зависания сохранены.
+- Приостановка и блокировка той же Android-сети закрывают старые сессии, чтобы Telegram мог подключиться заново.
+- Прежний экспериментальный Worker сохраняет лимит 16 МиБ/сессию. Доступность внешнего узла зависит от сети.
 
 [План исправлений](ROADMAP.md). Встроенного WebView нет; сетевое ядро нативное.
 
@@ -119,7 +120,7 @@ CI запускается при push в `main`, Pull Request и вручную.
 сохраняются отдельно. Actions и Wrapper закреплены по проверенным SHA.
 Отдельный workflow при PR и вручную проверяет Android API 36 и 37.0.
 
-[Скачать 0.3.8 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.8-alpha-debug/TGWS-Android-0.3.8-debug.apk)
+[Скачать 0.3.9 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.9-alpha-debug/TGWS-Android-0.3.9-debug.apk)
 
 ## Транспорты 0.3.0
 

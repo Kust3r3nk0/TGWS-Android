@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.9-alpha — network fixes
+
+- Enabling Fake TLS keeps plain Obfuscated2 with the same secret compatible with Flowseal. TLS-looking random init bytes are authenticated as Obfuscated2 first; Fake TLS rejections have their own category.
+- A large MTProto packet remains one WebSocket message, fragmented at 64 KiB. Actual write progress renews deadlines; stalled writes still expire. Ping/Pong can interleave fragments.
+- Partial-message download deadlines renew only after 64 KiB of data, with a hard lifetime of five read windows. Control frames and tiny slow drips cannot renew the budget.
+- Suspension/resume and per-app block/unblock of the same Android network clear old connections, DNS, pool and backoff. TCP_USER_TIMEOUT bounds unacknowledged data to 30 seconds; the local listener remains available for Telegram reconnects.
+- VersionCode 15, Android 16+, unchanged application ID, signing certificate and protected settings. No personal reports. The existing Worker 16 MiB/session limit remains; this update does not remove every external network restriction.
+
 ## 0.3.8-alpha — privacy
 
 - Remove personal validation reports, device/carrier details, About report and build metadata copies.

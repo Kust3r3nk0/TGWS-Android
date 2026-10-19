@@ -35,6 +35,12 @@ class NetworkMonitorInstrumentedTest {
                 assertNotSame(during,monitor.access)
                 monitor.update(network,network,null,android.net.LinkProperties(),available)
                 assertFalse(changes.last())
+                val resumed=monitor.access
+                monitor.update(network,network,null,android.net.LinkProperties(),available.copy(blocked=true))
+                assertTrue(changes.last());assertFalse(requireNotNull(monitor.access).usable)
+                monitor.update(network,network,null,android.net.LinkProperties(),available)
+                assertTrue(changes.last());assertTrue(requireNotNull(monitor.access).usable)
+                assertNotSame(resumed,monitor.access)
             }
         }
     }
