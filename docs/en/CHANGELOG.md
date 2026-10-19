@@ -1,12 +1,13 @@
 # Changelog
 
-## 0.3.7-alpha — owner verification results
+## 0.3.8-alpha — privacy
 
-- Record the owner's physical 0.3.6 report: Android 16 / One UI 8.5, direct and relay-only. Text, standard photos/voice, settings and appearance persistence confirmed.
-- Record the Obfuscated2 message, HD/video failures, automatic recovery and sustained stability failures. Causes unresolved; no fix is claimed.
-- RU/EN About shows the versioned report instead of a blanket untested label; add actual rendered-report and localized regression checks.
-- Align README, roadmap, stable gate and handoff with observed results. Future WebView components are not current failed native tests.
-- Separate owner 0.3.6 data from CI emulator evidence. Upgrade baseline 0.3.6, versionCode 13; native core/settings unchanged.
+- Remove personal validation reports, device/carrier details, About report and build metadata copies.
+- Preserve automated tests, settings and application ID. Network/media issues remain under active investigation.
+
+## 0.3.7-alpha — reporting update
+
+- Superseded by the privacy update; its debug APK was withdrawn.
 
 ## 0.3.6-alpha — Android 16+ only
 
@@ -14,7 +15,7 @@
 - Remove retired platform reports, release-note files and images from the current tree; preserve Git history. Use verified API 36/37 screenshots and update SVG labels/instructions.
 - CI checks minSdk, localized branding, resources, documentation and the emulator matrix. Android regressions check both locales and the actual About screen.
 - Upgrade regression now uses the SHA-pinned Android 16+ 0.3.5 baseline, preserving credentials, Keystore and settings.
-- versionCode 12, unchanged applicationId/debug certificate. Transports and Worker limits are unchanged. The subsequent [partial owner report](OWNER_VALIDATION_0.3.6.md) records confirmed scenarios and failures.
+- versionCode 12, unchanged applicationId/debug certificate. Transports and Worker limits are unchanged.
 
 ## 0.3.5-alpha — credential continuity and session reliability
 
@@ -68,7 +69,6 @@ All notable changes will be documented in this file. Versions of this Android po
 - Installed label TGWS-Android without Alpha; versionCode 3, alpha stage retained in version metadata.
 - Safe handshake rejection categories and counter separate from service/network errors; validation and routes preserved.
 - Updated persistent instructions/specification baseline/roadmap; explicitly labelled debug Pre-releases are authorized.
-- User reports 0.1.1-alpha working and Telegram showing 6–8 ms; no independent latency or complete E2E claim.
 
 ## [0.1.1-alpha] — 2026-10-15 (test build)
 
@@ -81,8 +81,7 @@ All notable changes will be documented in this file. Versions of this Android po
 - Increment versionCode to 2 and derive CI artifact version from versionName.
 
 ### Verification and limits
-- The user confirmed text send/receive and downloads in **0.1.0-alpha**, Android 16, Telegram 13.0.2, Wi-Fi, with brief disconnections. This does not verify the update.
-- Version 0.1.1-alpha requires a new physical-device test; all causes of real disconnections have not been established. See the [report](TEST_REPORT.md).
+- Version 0.1.1-alpha requires a new physical-device test; all causes of real disconnections have not been established. See the [Проверки для разработчиков](../TESTING.md).
 
 ## [0.1.0-alpha] — 2026-10-14 (source snapshot, unreleased)
 

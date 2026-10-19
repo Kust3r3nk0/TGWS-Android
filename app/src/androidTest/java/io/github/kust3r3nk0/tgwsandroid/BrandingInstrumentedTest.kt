@@ -13,19 +13,19 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class BrandingInstrumentedTest {
-    @Test fun ownerResultsRemainAnchoredToTheTestedVersionInBothLanguages() {
+    @Test fun aboutContainsOnlyProductNoticeInBothLanguages() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         for (language in listOf("ru", "en")) {
             val configuration = Configuration(context.resources.configuration).apply {
                 setLocales(LocaleList(Locale.forLanguageTag(language)))
             }
             val localized = context.createConfigurationContext(configuration)
-            val report = localized.getString(R.string.owner_validation_summary)
-            assertTrue(report.contains("0.3.6"))
-            assertTrue(report.contains("Android 16 / One UI 8.5"))
-            assertTrue(report.contains("Galaxy A16") && report.contains("13.0.3") && report.contains("Obfuscated2"))
-            assertFalse(localized.getString(R.string.alpha_notice).contains("pending", ignoreCase = true))
-            assertFalse(localized.getString(R.string.alpha_notice).contains("ожидается", ignoreCase = true))
+            val notice = localized.getString(R.string.alpha_notice)
+            assertTrue(notice.contains("Worker/CF"))
+            for (word in listOf("owner", "tested", "владел", "проверк", "One UI", "Telegram 13")) {
+                assertFalse(notice.contains(word, ignoreCase = true))
+            }
+            assertEquals(0, localized.resources.getIdentifier("owner_validation_summary", "string", context.packageName))
         }
     }
     @Test fun aboutLabelMatchesInstalledMinimumInBothLanguages() {

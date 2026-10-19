@@ -9,9 +9,7 @@ DC IPs from Flowseal v1.11.2. TLS SNI and HTTP Host are your actual
 Substituting `cloudflare.com` cannot create a relay or change a blocked IP.
 Workers domains/edge IPs can also be filtered.
 
-Status: locally tested and bundled; **not deployed or tested with Telegram on
-Megafon (Moscow/Moscow region)**. The filtering mechanism is unconfirmed. No
-Cloudflare account or endpoint is connected to this environment.
+Deployment requires your Cloudflare account and a reachable endpoint.
 
 Create your [Cloudflare account](https://dash.cloudflare.com/), verify email,
 and review current terms, quotas and pricing. With Node 22+:

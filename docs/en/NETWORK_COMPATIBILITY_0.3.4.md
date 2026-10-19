@@ -2,10 +2,7 @@
 
 [Русский](../NETWORK_COMPATIBILITY_0.3.4.md). Research: 16 October 2026.
 
-The owner reports failure in **all three modes**, on cellular and some Wi-Fi. Megafon Moscow
-was previously identified. This establishes a symptom, not a proven filtering mechanism.
-Cloudflare DNS removal and client fixes **do not prove that carrier access is restored**.
-Physical validation belongs to the owner.
+Cellular and Wi-Fi networks can restrict route reachability. Identify the failing stage; DNS changes alone do not restore blocked routes.
 
 The app now uses the active Android Network's resolver, system Private DNS and supplied DNS64
 answers. It removes only the obsolete DNS preference; encrypted configuration and configured
@@ -36,7 +33,7 @@ After installing the preserved-certificate Debug pre-release, keep existing port
 no new MTProto or Worker token is needed. Test cellular with Wi-Fi off, repeat on affected Wi-Fi,
 run the bounded explicit route probe, record safe categories/version/SHA/network/date, then test
 bidirectional text, downloads and screen-off stability. A handshake probe is not Telegram E2E.
-Use the [owner report](../OWNER_TEST_REPORT_TEMPLATE.md), without endpoints/keys/SIM IDs/messages.
+Use the [Проверки для разработчиков](../TESTING.md), without endpoints/keys/SIM IDs/messages.
 
 Primary sources, read via Firecrawl; GitHub provides repository/CI evidence:
 [Android DnsResolver](https://developer.android.com/reference/android/net/DnsResolver),

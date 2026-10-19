@@ -17,7 +17,7 @@ class NetworkViewTest {
         assertEquals("25099",value.registeredPlmn);assertEquals("25001",value.simPlmn);assertEquals(RadioKind.LTE,value.radio)
         val missing=OperatorView.fromActiveDataSim(false,"Wrong SIM","25002","Wrong SIM","25002",20)
         assertEquals(OperatorView(),missing)
-        val unknown=OperatorView.fromActiveDataSim(true,"Mega5G","","","bad",null)
+        val unknown=OperatorView.fromActiveDataSim(true,"Example 5G","","","bad",null)
         assertEquals(RadioKind.UNKNOWN,unknown.radio);assertNull(unknown.registeredPlmn);assertNull(unknown.simName)
         assertEquals("Other MVNO",OperatorView.fromActiveDataSim(true,"Other MVNO","25077",null,null,20).registeredName)
     }

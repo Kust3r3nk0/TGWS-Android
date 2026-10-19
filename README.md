@@ -4,14 +4,14 @@
   <img src="docs/images/tgws-github-cover-ru.svg" width="100%" alt="TGWS-Android — нативный MTProto-прокси для Android, русский баннер" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.7--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.8--alpha-orange)
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 16+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.7-alpha-debug/TGWS-Android-0.3.7-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Результаты тестов](docs/TEST_REPORT_0.3.7-alpha.md) · [Участие](CONTRIBUTING.md)**
+**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.8-alpha-debug/TGWS-Android-0.3.8-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.3.7-alpha — обновление статусов проверки, Android 16+.** Владелец проверил базовые функции 0.3.6 на One UI 8.5; сообщено об ошибке Obfuscated2, сбоях HD/видеокружков и восстановления сети. Результаты и границы перечислены ниже.
+> **0.3.8-alpha — Android 16+.** Ведётся работа над Obfuscated2, HD-фото/видеокружками и восстановлением сети. Личные отчёты и сведения о проверявших проект устройствах/операторах не публикуются.
 
 ## Языки и технологии
 
@@ -84,24 +84,13 @@ flowchart LR
 
 TGWS-Android — нативное Android-приложение на Kotlin и Jetpack Compose для запуска локального MTProto WebSocket-прокси. Планируется функциональная совместимость с сетевым ядром Flowseal TG-WS-Proxy, включая WebSocket, TCP fallback, Fake TLS, Cloudflare-маршруты и HTTP/2. Приложение **не является VPN** и не перехватывает системный трафик.
 
-## Результаты владельца: 0.3.6-alpha
+## Известные проблемы
 
-**Android 16 / One UI 8.5, прямой режим и только реле. Частично проверено; есть сбои.**
+- Obfuscated2 при повторном подключении: причина исследуется; проверка секрета не ослабляется.
+- HD-фото и видеокружки: возможны сбои в прямом режиме и через реле.
+- Восстановление сети: в отдельных случаях требуется ручной перезапуск прокси.
 
-| Сценарий | Фактический результат |
-|---|---|
-| Секрет, порт и настройки после обновления | Сохранились |
-| Текст Telegram: отправка и получение | Работает |
-| Обычные фото и голосовые | Работают; направление и разбивка по режимам уточняются |
-| HD-фото и видеокружки | Ошибка в direct и relay; причина не установлена |
-| Wi-Fi и мобильный Мега5G | Работают, но в поездках бывают нерабочие участки |
-| Повторный запуск/остановка | Сообщение «Ошибка Obfuscated2»; остановка listener не подтверждена |
-| Смена Wi-Fi ↔ мобильная сеть | Требуется ручной перезапуск прокси |
-| Длительная работа | Иногда переподключается, иногда нужен ручной перезапуск |
-| Темы, Liquid Glass и прозрачность | Работают и сохраняются |
-| Файл 1–5 МиБ | Не проверен |
-
-[Полный отчёт владельца](docs/OWNER_VALIDATION_0.3.6.md) отделён от [автоматических проверок](docs/TEST_REPORT_0.3.7-alpha.md). 0.3.7 обновляет статус проверки; перечисленные сетевые/медиа-сбои ещё не объявлены исправленными. Native MTProto/Fake TLS/H2 и RFC 6455 проверяются локальными тестами; это не подтверждение всех внешних транспортов. Встроенного WebView нет, поэтому тесты renderer/page API неприменимы.
+[План исправлений](ROADMAP.md). Встроенного WebView нет; сетевое ядро нативное.
 
 ## Версии Android и сборочные инструменты
 
@@ -123,14 +112,14 @@ TGWS-Android — нативное Android-приложение на Kotlin и Je
 6. Debug APK доступен в **Actions → Android CI → запуск → Artifacts**. [Инструкции Codex](AGENTS.md).
 
 > [!NOTE]
-> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет инструментальные тесты и проверку обновления APK на API 36–37. [Результаты и ограничения](docs/TEST_REPORT_0.3.7-alpha.md).
+> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет инструментальные тесты и проверку обновления APK на API 36–37. [Проверки для разработчиков](docs/TESTING.md).
 
 CI запускается при push в `main`, Pull Request и вручную. Успешная проверка
 публикует debug APK, `SHA256SUMS`, версию и commit, changelog; отчёты JVM/Lint
 сохраняются отдельно. Actions и Wrapper закреплены по проверенным SHA.
 Отдельный workflow при PR и вручную проверяет Android API 36 и 37.0.
 
-[Скачать 0.3.7 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.7-alpha-debug/TGWS-Android-0.3.7-debug.apk)
+[Скачать 0.3.8 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.8-alpha-debug/TGWS-Android-0.3.8-debug.apk)
 
 ## Транспорты 0.3.0
 
@@ -181,7 +170,7 @@ WSS использует обычную проверку доверия TLS и �
 
 При смене сети существующие сессии закрываются; Telegram должен создать новые.
 Бесшовной миграции нет. Полные критерии, ограничения и фактически выполненные
-проверки приведены в [отчёте обновления](docs/TEST_REPORT_0.3.7-alpha.md).
+проверки приведены в [Проверки для разработчиков](docs/TESTING.md).
 
 ## Архитектура исходников
 
@@ -209,7 +198,7 @@ app/src/main/java/io/github/kust3r3nk0/tgwsandroid/
 
 Код распространяется по лицензии **MIT**. Приветствуются сообщения об ошибках, тестирование и Pull Requests. Перед внесением изменений ознакомьтесь с [CONTRIBUTING.md](CONTRIBUTING.md) и [SECURITY.md](SECURITY.md).
 
-**Разработчик / инициатор проекта:** Makarov Lab's 3.0™.  
+**Разработчик / инициатор проекта:** Makarov Lab's 3.0™.
 **Репозиторий:** `Kust3r3nk0/TGWS-Android`.
 
 
@@ -218,5 +207,5 @@ app/src/main/java/io/github/kust3r3nk0/tgwsandroid/
 Интерфейс нативный Compose: встроенного WebView и зависимости WebKit нет. Инвентаризация
 провайдера в CI не подтверждает latest Stable/Beta. [WebView-контракт](docs/TGWS-16-016_WEBVIEW.md)
 и [порядок физических проверок](docs/TGWS-16-017_PHYSICAL_TESTING.md) закрепляют обязанности.
-Успешные CI-артефакты содержат версию, source/tree SHA и `OWNER_HANDOFF.md`; результаты
+Успешные CI-артефакты содержат версию, source/tree SHA и `BUILD.md`; результаты
 на смартфоне, One UI, у оператора, в Telegram и Stable/Beta подтверждает владелец.
