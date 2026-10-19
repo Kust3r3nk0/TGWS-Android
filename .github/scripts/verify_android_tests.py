@@ -12,7 +12,7 @@ def expected_tests(source):
         text = path.read_text()
         package = re.search(r'^package\s+(\S+)', text, re.M)
         classname = re.search(r'^class\s+(\w+)', text, re.M)
-        methods = re.findall(r'^\s*@Test\s+fun\s+(\w+)\s*\(', text, re.M)
+        methods = re.findall(r'^\s*@Test(?:\s*\([^)]*\))?\s+fun\s+(\w+)\s*\(', text, re.M)
         if methods and (not package or not classname):
             raise ValueError('Cannot identify instrumentation class: ' + str(path))
         for method in methods:
