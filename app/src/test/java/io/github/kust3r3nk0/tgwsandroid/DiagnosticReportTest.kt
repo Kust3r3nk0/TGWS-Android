@@ -5,6 +5,16 @@ import org.junit.Test
 import io.github.kust3r3nk0.tgwsandroid.core.*
 
 class DiagnosticReportTest {
+    @Test fun mediaRouteIncludesTrafficAndSafeWorkerCloseCategory(){
+        val snapshot=ProxySnapshot(routes=listOf(RouteObservation(1,1,true,TransportKind.RELAY,
+            RouteStatus.UNAVAILABLE,RouteStage.CLOSED,ServerIssue.RELAY,sent=4096,received=512,
+            closeCode=1008,closeCategory=WebSocketCloseCategory.BYTE_LIMIT)))
+        val report=DiagnosticReport.render(snapshot)
+        assertTrue(report.contains("\"route_sent\": 4096"))
+        assertTrue(report.contains("\"route_received\": 512"))
+        assertTrue(report.contains("\"close_code\": 1008"))
+        assertTrue(report.contains("\"close_reason\": \"BYTE_LIMIT\""))
+    }
     @Test fun exportNeverIncludesNetworkAddressesPlmnPrivateDnsOrRawOperatorNames(){
         val snapshot=ProxySnapshot(network=NetworkView(kind=AccessKind.CELLULAR,ipv6=true,nat64Prefix="64:ff9b::/96",
             dnsServers=listOf("192.0.2.123"),privateDnsName="private.example",operator=OperatorView("private-name","25002","sim-name","25001",RadioKind.NR)),

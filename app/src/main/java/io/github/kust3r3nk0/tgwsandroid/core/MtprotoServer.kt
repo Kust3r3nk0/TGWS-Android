@@ -552,8 +552,14 @@ class MtprotoServer(
         fun remoteFailure(error:Exception){
             synchronized(lifecycle){if(!session.closed.get()){
                 session.remoteFailureReported=true
-                val issue=if(error is SSLException)ServerIssue.TLS else if(remote.kind==TransportKind.HTTP2)ServerIssue.HTTP2 else ServerIssue.SESSION
-                session.run.diagnostics.failed(session.routeKey,issue)
+                val issue=when{
+                    error is SSLException->ServerIssue.TLS
+                    remote.kind==TransportKind.HTTP2->ServerIssue.HTTP2
+                    remote.kind==TransportKind.RELAY || remote.kind==TransportKind.WORKER->ServerIssue.RELAY
+                    else->ServerIssue.SESSION
+                }
+                val peerClose=error as? WebSocketPeerCloseException
+                session.run.diagnostics.failed(session.routeKey,issue,peerClose?.statusCode,peerClose?.category)
                 emit(session.run,ServerEvent.Routes(session.run.diagnostics.snapshot()))
                 emit(session.run,ServerEvent.Diagnostic(issue))
             }}
@@ -577,6 +583,15 @@ class MtprotoServer(
             } catch (_: Exception) {
                 if (!session.closed.get() && !session.remoteFailureReported) emit(session.run, ServerEvent.Diagnostic(ServerIssue.SESSION))
             } finally {
+                // A READY setup is not proof that the media stream is still alive.
+                synchronized(lifecycle){
+                    if(!session.closed.get() && !session.remoteFailureReported &&
+                        session.run.sessions.none{other->other!==session && !other.closed.get() &&
+                            other.established && other.routeKey==session.routeKey}){
+                        session.run.diagnostics.closed(session.routeKey)
+                        emit(session.run,ServerEvent.Routes(session.run.diagnostics.snapshot()))
+                    }
+                }
                 session.close()
             }
         }
