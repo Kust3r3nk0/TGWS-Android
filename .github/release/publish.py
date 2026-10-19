@@ -43,7 +43,7 @@ def verify_payload(original, candidate):
 def verify_upgrade(report, version_code):
     required = ['install_replace', 'secret_preserved', 'ciphertext_unchanged', 'keystore_preserved', 'settings_preserved', 'payload_matches_build']
     if (report.get('result') != 'passed' or report.get('target_version_code') != version_code or
-            report.get('baseline_version') != '0.3.6-alpha' or
+            report.get('baseline_version') != '0.3.8-alpha' or
             not re.fullmatch(r'[a-f0-9]{64}', report.get('ci_signer_sha256', '')) or
             any(report.get(key) is not True for key in required)):
         raise ValueError('Missing or unsuccessful APK upgrade regression')

@@ -63,6 +63,7 @@
     <string name="rejection_prefix">Last rejection: the header does not match supported Obfuscated2.</string>
     <string name="rejection_secret_or_transport">Last rejection: secret or MTProto format validation failed. Check the secret and proxy link in Telegram.</string>
     <string name="rejection_dc">Last rejection: unsupported DC. Main DCs 1–5 are supported; test DCs are not enabled.</string>
+    <string name="rejection_fake_tls">Last rejection: Fake TLS verification failed. Check the mode and Telegram link, secret and device time.</string>
     <string name="relay_label">WSS relay (optional)</string>
     <string name="relay_direct_notice">Empty: direct Telegram WSS/TCP routes. If your carrier blocks their IPs, a reachable relay that you control is required.</string>
     <string name="relay_enabled_notice">Relay only: wss://domain/path, port 443. A compatible Worker must support dst/dc. No direct fallback. The address is hidden and encrypted; use Show above to reveal it. Avoid untrusted relays.</string>

@@ -3,13 +3,14 @@
 Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Only API 36 and newer are supported. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
 
-## Current priority — 0.3.8-alpha
+## Current priority — 0.3.9-alpha
 
-- Remove personal validation reports from the app, documentation and build metadata.
-- P0: diagnose Obfuscated2 on repeated start/stop without weakening authentication.
-- P0: recover after Wi-Fi/cellular changes and stalled sessions.
-- P1: diagnose HD/video failures in direct and relay paths.
-- Keep automated protocol, lifecycle and persistence regressions mandatory.
+- [x] Compatible plain Obfuscated2 while Fake TLS is enabled, preserving secret validation.
+- [x] Progressing large uploads/downloads without false expiration of one short window; memory and stall bounds retained.
+- [x] Reset stale transports when the same network is suspended or blocked; bound unacknowledged TCP data.
+- [x] Personal reports removed; automated protocol, lifecycle and persistence checks remain mandatory.
+- [ ] Compatible Worker flow control replacing the existing 16 MiB/session cap.
+- [ ] Investigate additional failures using anonymous reproduction steps; do not claim every external network/endpoint fixed.
 
 ## 0.3.6-alpha — Android 16+ only
 

@@ -8,7 +8,7 @@ import javax.crypto.spec.SecretKeySpec
 import kotlin.math.abs
 
 /** Categories only; no header bytes, secret, key material or decrypted packet. */
-enum class HandshakeRejection { INVALID_LENGTH, RESERVED_PREFIX, SECRET_OR_TRANSPORT, UNSUPPORTED_DC }
+enum class HandshakeRejection { INVALID_LENGTH, RESERVED_PREFIX, SECRET_OR_TRANSPORT, UNSUPPORTED_DC, FAKE_TLS }
 
 internal sealed interface ClientInitResult {
     data class Accepted(val handshake: Handshake) : ClientInitResult

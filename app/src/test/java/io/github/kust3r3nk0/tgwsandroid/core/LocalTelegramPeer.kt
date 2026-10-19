@@ -68,22 +68,33 @@ internal class LocalTelegramPeer : Closeable {
         }
         var decrypt: Cipher? = null
         var encrypt: Cipher? = null
+        var fragmented = false
+        var fragments = java.io.ByteArrayOutputStream()
         while (!closed) {
             val data = if (websocket) {
                 val first = input.byte()
                 val second = input.byte()
-                check(first and 0xf0 == 0x80 && second and 0x80 != 0)
+                check(first and 0x70 == 0 && second and 0x80 != 0)
+                val fin = first and 0x80 != 0
                 val opcode = first and 15
-                var count = second and 127
-                if (count == 126) count = input.byte() shl 8 or input.byte()
-                check(count in 0..65_536 && count != 127)
+                var count = (second and 127).toLong()
+                if (count == 126L) count = (input.byte() shl 8 or input.byte()).toLong()
+                else if (count == 127L) { count = 0; repeat(8) { count = (count shl 8) or input.byte().toLong() } }
+                check(count in 0..(4 * 1024 * 1024 + 4).toLong())
                 val mask = input.exact(4)
-                val body = input.exact(count).apply { for (i in indices) this[i] = (this[i].toInt() xor mask[i % 4].toInt()).toByte() }
+                val body = input.exact(count.toInt()).apply { for (i in indices) this[i] = (this[i].toInt() xor mask[i % 4].toInt()).toByte() }
+                if (opcode >= 8) check(fin && count <= 125)
                 if (opcode == 9) { output.write(frame(10, body)); output.flush(); continue }
                 if (opcode == 10) continue
                 if (opcode == 8) { output.write(frame(8, body)); output.flush(); break }
-                check(opcode == 2)
-                body
+                check(opcode == if (fragmented) 0 else 2)
+                if (!fin || fragmented) {
+                    check(fragments.size() + body.size <= 4 * 1024 * 1024 + 4)
+                    fragments.write(body)
+                    fragmented = !fin
+                    if (!fin) continue
+                    fragments.toByteArray().also { fragments = java.io.ByteArrayOutputStream() }
+                } else body
             } else if (decrypt == null) input.exact(64) else {
                 val buffer = ByteArray(65_536)
                 val size = input.read(buffer)
@@ -107,8 +118,16 @@ internal class LocalTelegramPeer : Closeable {
         init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"), IvParameterSpec(iv))
     }
     private fun frame(opcode: Int, bytes: ByteArray): ByteArray {
-        check(bytes.size <= 125)
-        return byteArrayOf((0x80 or opcode).toByte(), bytes.size.toByte()) + bytes
+        check(bytes.size <= 4 * 1024 * 1024 + 4)
+        val output = java.io.ByteArrayOutputStream()
+        output.write(0x80 or opcode)
+        when {
+            bytes.size < 126 -> output.write(bytes.size)
+            bytes.size <= 65535 -> { output.write(126); output.write(bytes.size ushr 8); output.write(bytes.size) }
+            else -> { output.write(127); for (shift in 56 downTo 0 step 8) output.write((bytes.size.toLong() ushr shift).toInt()) }
+        }
+        output.write(bytes)
+        return output.toByteArray()
     }
     private fun InputStream.byte(): Int = read().also { if (it < 0) throw EOFException() }
     private fun InputStream.exact(size: Int): ByteArray = ByteArray(size).also { bytes ->

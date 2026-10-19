@@ -63,6 +63,7 @@
     <string name="rejection_prefix">Последний отказ: заголовок не соответствует поддерживаемому Obfuscated2.</string>
     <string name="rejection_secret_or_transport">Последний отказ: секрет или формат MTProto не прошёл проверку. Сверьте секрет и ссылку прокси в Telegram.</string>
     <string name="rejection_dc">Последний отказ: неподдерживаемый DC. Основные DC 1–5 поддерживаются; тестовые DC не включены.</string>
+    <string name="rejection_fake_tls">Последний отказ: Fake TLS не прошёл проверку. Сверьте режим и ссылку Telegram, секрет и время устройства.</string>
     <string name="relay_label">WSS-реле (необязательно)</string>
     <string name="relay_direct_notice">Пустое поле: прямые WSS/TCP-маршруты Telegram. Если оператор блокирует их IP, нужен собственный доступный WSS-узел.</string>
     <string name="relay_enabled_notice">Только реле: wss://домен/путь, порт 443. Совместимый Worker должен поддерживать dst/dc. Без прямого fallback. Адрес скрыт и зашифрован; показать можно кнопкой выше. Не используйте чужие непроверенные узлы.</string>

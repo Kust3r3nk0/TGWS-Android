@@ -22,13 +22,21 @@ internal class AndroidNetworkMonitor(private val context:Context,private val han
     @Volatile private var closed=false
     private val queries=java.util.concurrent.ConcurrentHashMap.newKeySet<CancellationSignal>()
     private var registered=false
+    private var blockedNetwork:Network?=null
+    private var networkBlocked=false
     @Volatile var access:NetworkAccess?=null;private set
     private val callback=object:ConnectivityManager.NetworkCallback(){
         override fun onAvailable(network:Network)=refresh(network)
         override fun onCapabilitiesChanged(network:Network,capabilities:NetworkCapabilities)=refresh(network)
         override fun onLinkPropertiesChanged(network:Network,properties:LinkProperties)=refresh(network)
+        override fun onBlockedStatusChanged(network:Network,blocked:Boolean){
+            if(closed || network!=connectivity.activeNetwork)return
+            blockedNetwork=network;networkBlocked=blocked
+            refresh(network)
+        }
         override fun onLost(network:Network){
             if(closed || state.current!=network)return
+            if(blockedNetwork==network){blockedNetwork=null;networkBlocked=false}
             val next=connectivity.activeNetwork
             if(next!=null && next!=network)refresh(next)
             else if(state.lost(network)){access=null;queries.forEach{it.cancel()};changed(true,NetworkView())}
@@ -42,30 +50,37 @@ internal class AndroidNetworkMonitor(private val context:Context,private val han
     fun refresh(network:Network?=connectivity.activeNetwork){
         if(closed)return
         val actual=connectivity.activeNetwork
+        update(network,actual,network?.let(connectivity::getNetworkCapabilities),network?.let(connectivity::getLinkProperties))
+    }
+    /** Apply one OS snapshot; acquisition stays separate from lifecycle decisions. */
+    internal fun update(network:Network?,actual:Network?,caps:NetworkCapabilities?,links:LinkProperties?,
+        availability:NetworkAvailability=NetworkAvailability(
+            caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)==true,
+            caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL)==true,
+            caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_SUSPENDED)!=true,
+            network==blockedNetwork && networkBlocked)){
+        if(closed)return
         if(network==null){
             state.current?.let{if(state.lost(it)){access=null;queries.forEach{it.cancel()};changed(true,NetworkView())}}
             if(state.current==null)changed(false,NetworkView())
             return
         }
         if(network!=actual)return
-        val caps=connectivity.getNetworkCapabilities(network)
-        val links=connectivity.getLinkProperties(network)
         val kind=when{caps==null->AccessKind.NONE;caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)->AccessKind.WIFI
             caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)->AccessKind.CELLULAR;else->AccessKind.OTHER}
         val validated=caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)==true
-        val portal=caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL)==true
-        val internet=caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)==true
+        val portal=availability.captivePortal
         val dns=links?.dnsServers.orEmpty().mapNotNull{it.hostAddress}.take(8)
         val ipv4=links?.linkAddresses.orEmpty().any{it.address is Inet4Address && internetAddress(it.address)}
         val ipv6=links?.linkAddresses.orEmpty().any{it.address is Inet6Address && internetAddress(it.address)}
-        val signature=listOf(internet,portal,links?.linkAddresses,links?.routes,dns,links?.nat64Prefix,links?.privateDnsServerName).joinToString("|")
+        val signature=listOf(availability.signature,links?.linkAddresses,links?.routes,dns,links?.nat64Prefix,links?.privateDnsServerName).joinToString("|")
         val replaced=state.update(network,actual,signature)
         if(replaced){
             queries.forEach{it.cancel()}
             access=object:NetworkAccess {
                 override val validated=validated
                 // Lack of Android validation does not prove that a configured relay is unreachable.
-                override val usable=internet && !portal
+                override val usable=availability.usable
                 override fun addresses(host:String):List<java.net.InetAddress>{
                     if(android.net.InetAddresses.isNumericAddress(host))return listOf(android.net.InetAddresses.parseNumericAddress(host))
                     val result=java.util.concurrent.CompletableFuture<List<java.net.InetAddress>>()
@@ -85,7 +100,7 @@ internal class AndroidNetworkMonitor(private val context:Context,private val han
                         return result.get(8,java.util.concurrent.TimeUnit.SECONDS)
                     }finally{cancel.cancel();queries-=cancel}
                 }
-                override fun socket()=network.socketFactory.createSocket()
+                override fun socket()=network.socketFactory.createSocket().also{AndroidSocketPolicy.configure(it)}
             }
         }
         changed(replaced,NetworkView(kind,validated,portal,
@@ -109,6 +124,7 @@ internal class AndroidNetworkMonitor(private val context:Context,private val han
     override fun close(){
         if(closed)return
         closed=true;state.stop();access=null
+        blockedNetwork=null;networkBlocked=false
         queries.forEach{it.cancel()};queries.clear()
         if(registered){connectivity.unregisterNetworkCallback(callback);registered=false}
     }
