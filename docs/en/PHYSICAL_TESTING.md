@@ -25,6 +25,4 @@ observed behavior. Do not send secrets/keys/private relay URLs/messages/SIM/IMEI
 Review anonymous diagnostic exports before sharing. No invented fixes for unclear failures:
 keep them open with environment-specific evidence, implement a targeted fix and retest.
 
-Statuses: not tested / passed / failed / unsupported / not applicable. Until the owner confirms:
-**Owner physical-device validation pending.** Current native TGWS has no embedded WebView;
-provider inventory is not a browser component/channel certification.
+Statuses: not tested / passed / failed / unsupported / not applicable, scoped to the build and scenario. [0.3.6 owner answers are recorded](OWNER_VALIDATION_0.3.6.md): partial success with concrete failures. Do not keep a blanket untested label after this response or automatically inherit a pass for later builds. Native TGWS has no embedded WebView; renderer/page tests are not applicable and provider inventory is not channel certification.

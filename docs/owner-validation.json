@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "tested_version": "0.3.6-alpha",
+  "reported_at": "2026-10-19",
+  "source": "owner_chat_questionnaire",
+  "status": "owner_reported_with_failures",
+  "environment": {
+    "manufacturer": "Samsung",
+    "model": "Galaxy A16",
+    "android": 16,
+    "one_ui": "8.5",
+    "telegram_version": "13.0.3",
+    "carrier_label": "Мега5G"
+  },
+  "modes": [
+    "direct",
+    "relay_only"
+  ],
+  "passed": [
+    "settings_preserved_after_upgrade",
+    "android16_about_label",
+    "text_send_receive",
+    "standard_photo",
+    "voice_message",
+    "appearance_persistence"
+  ],
+  "failed": [
+    "obfuscated2_error_during_repeated_start_stop",
+    "hd_photo",
+    "video_message",
+    "automatic_network_recovery",
+    "sustained_connection_recovery"
+  ],
+  "not_tested": [
+    "file_1_to_5_mib"
+  ],
+  "network_result": "wifi_and_cellular_work_with_reported_failures_while_travelling",
+  "unresolved_details": [
+    "obfuscated2_source_exact_text_listener_state",
+    "media_direction",
+    "test_duration",
+    "travelling_failure_cause"
+  ],
+  "report_path": "docs/OWNER_VALIDATION_0.3.6.md",
+  "media_failure_modes": [
+    "direct",
+    "relay_only"
+  ],
+  "obfuscated2_report": {
+    "reported_text": "Ошибка Obfuscated2",
+    "ui_source": null,
+    "listener_stops": null
+  }
+}

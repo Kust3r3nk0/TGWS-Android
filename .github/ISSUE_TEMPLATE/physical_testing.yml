@@ -6,13 +6,13 @@ body:
       value: |
         Физические результаты подтверждает владелец. Не публикуйте secret, ключи, relay URL,
         сообщения, SIM/IMEI/serial и полную конфигурацию. Проверка CI не заменяет этот отчёт.
-        В TGWS 0.3.4 встроенный WebView не используется; указывайте среду, не выдумывая тест веб-страницы.
+        Базовые результаты 0.3.6 уже записаны в docs/OWNER_VALIDATION_0.3.6.md. Укажите новую проверку или уточнение. Встроенного WebView нет; renderer/page тесты неприменимы.
   - type: input
     id: build
     attributes:
       label: Версия и commit SHA
       description: Из OWNER_HANDOFF.md / build-info.json именно скачанной сборки.
-      placeholder: 0.3.4-alpha / source SHA / checked tree SHA
+      placeholder: 0.3.7-alpha / source SHA / checked tree SHA
     validations:
       required: true
   - type: input
@@ -30,23 +30,11 @@ body:
     id: telegram
     attributes:
       label: Версия Telegram, сеть, оператор/регион
-  - type: dropdown
-    id: webview_channel
-    attributes:
-      label: Выбранный WebView-канал
-      options:
-        - Неизвестно / не проверялось
-        - Stable
-        - Beta
-        - Dev (дополнительно)
-        - Canary (экспериментально)
-        - AOSP / другой провайдер
-        - Провайдер недоступен
   - type: input
     id: webview_version
     attributes:
-      label: WebView package / точная версия
-      description: Имя пакета не подтверждает последнее обновление. Укажите, проверяли ли актуальность.
+      label: WebView package/version — только для связанного с обновлением провайдера сбоя
+      description: Необязательное поле; нативный MTProto не использует WebView.
   - type: textarea
     id: results
     attributes:
@@ -54,12 +42,12 @@ body:
       value: |
         Дата:
         Режим/тип транспорта (без URL и ключей):
-        Telegram: отправка/получение/загрузка:
-        Задержка (метод измерения), длительность/разрывы:
-        Wi-Fi и мобильная сеть, восстановление:
-        SNI/Fake TLS/Cloudflare:
-        One UI / Live Updates / Quick Settings (если реализованы):
-        Stable/Beta, обновление WebView, настройки и сервис до/после:
+        Повторный start/stop: шаги и результат:
+        Wi-Fi ↔ мобильная сеть: восстановилось само / нужен перезапуск:
+        HD-фото и видеокружки: режим, отправка/скачивание, результат:
+        Длительность работы и разрывы:
+        Файл 1–5 МиБ: результат или не проверял:
+        Другие проверенные функции:
         Статусы: не проверено / пройдено / ошибка / не поддерживается / неприменимо.
     validations:
       required: true

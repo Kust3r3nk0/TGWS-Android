@@ -14,8 +14,8 @@ android {
         applicationId = "io.github.kust3r3nk0.tgwsandroid"
         minSdk = 36
         targetSdk = 37
-        versionCode = 12
-        versionName = "0.3.6-alpha"
+        versionCode = 13
+        versionName = "0.3.7-alpha"
         testInstrumentationRunner = "io.github.kust3r3nk0.tgwsandroid.UpgradeInstrumentation"
     }
     buildFeatures { compose = true }

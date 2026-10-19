@@ -32,7 +32,8 @@
     <string name="clipboard_secret">Секрет прокси Telegram</string>
     <string name="link_copied">Ссылка скопирована.</string>
     <string name="secret_copied">Секрет скопирован.</string>
-    <string name="alpha_notice">Экспериментальная версия. Новые транспорты проверены автоматическими тестами; проверка владельцем на физическом устройстве ожидается. Для Worker/CF нужен совместимый внешний узел.</string>
+    <string name="alpha_notice">Экспериментальная версия. Результаты владельца и известные сбои указаны ниже. Для Worker/CF нужен совместимый внешний узел.</string>
+    <string name="owner_validation_summary">Владелец проверил 0.3.6 на Samsung Galaxy A16, Android 16 / One UI 8.5, Telegram 13.0.3: работают текст, обычные фото и голосовые, сохраняются настройки и оформление. Сообщено об ошибке Obfuscated2, сбоях HD-фото/видеокружков в прямом режиме и через реле, проблемах восстановления сети. Причины ещё исследуются.</string>
     <string name="local_notice">Прокси доступен только на этом устройстве, через 127.0.0.1. Это не VPN. Открытие порта не подтверждает доступность Telegram.</string>
     <string name="status_stopped">Остановлен</string>
     <string name="status_starting">Запускается</string>
