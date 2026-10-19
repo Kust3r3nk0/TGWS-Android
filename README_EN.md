@@ -112,7 +112,7 @@ WSS endpoint. No external relay has been deployed or validated on a carrier yet.
 | WebSocket framing, Upgrade and TLS | Implemented and tested with local RFC 6455 / TLS peers; live WSS validation required |
 | Foreground Service and network loss | Basic lifecycle tested on API 36–37 emulators; real Wi-Fi/LTE requires validation |
 | Compose / Material 3, Russian and English UI | Tested on API 36–37; physical validation pending |
-| Keystore AES-256-GCM | API 36–37 including in-place 0.3.4 → 0.3.5 upgrade; missing keys/records require explicit recovery |
+| Keystore AES-256-GCM | API 36–37 including in-place 0.3.5 → 0.3.6 upgrade; missing keys/records require explicit recovery |
 | Official Telegram physical-device E2E | Owner confirmed earlier text/SD; HD stalls on 0.3.4/LTE/Worker. New 0.3.5 needs validation |
 | Debug APK | Debug-signed test artifact, not a distribution release |
 | GitHub debug Pre-releases | Owner-authorized after CI, with debug signing and stated limitations |

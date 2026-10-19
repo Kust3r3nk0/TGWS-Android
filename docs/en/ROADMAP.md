@@ -11,6 +11,8 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 - Upgrade regression now uses the SHA-pinned Android 16+ 0.3.5 baseline, preserving credentials, Keystore and settings.
 - versionCode 12, unchanged applicationId/debug certificate. Transports and Worker limits are unchanged; physical validation belongs to the owner.
 
+- [x] [0.3.6 verification](TEST_REPORT_0.3.6-alpha.md): 203 JVM tests, zero Lint errors, 34 Android cases and successful 0.3.5 → 0.3.6 upgrade on each API 36/37.
+
 ## 0.3.5-alpha — credential continuity and session reliability
 
 - Decode pasted `dd`/`ee` secrets without truncating the key; preserve the Fake TLS domain.
