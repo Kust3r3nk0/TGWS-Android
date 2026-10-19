@@ -13,6 +13,20 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class BrandingInstrumentedTest {
+    @Test fun ownerResultsRemainAnchoredToTheTestedVersionInBothLanguages() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        for (language in listOf("ru", "en")) {
+            val configuration = Configuration(context.resources.configuration).apply {
+                setLocales(LocaleList(Locale.forLanguageTag(language)))
+            }
+            val localized = context.createConfigurationContext(configuration)
+            val report = localized.getString(R.string.owner_validation_summary)
+            assertTrue(report.contains("0.3.6"))
+            assertTrue(report.contains("Android 16 / One UI 8.5"))
+            assertFalse(localized.getString(R.string.alpha_notice).contains("pending", ignoreCase = true))
+            assertFalse(localized.getString(R.string.alpha_notice).contains("ожидается", ignoreCase = true))
+        }
+    }
     @Test fun aboutLabelMatchesInstalledMinimumInBothLanguages() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals(36, context.applicationInfo.minSdkVersion)

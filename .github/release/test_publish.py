@@ -11,16 +11,16 @@ spec.loader.exec_module(publisher)
 
 class PublicationGuardsTest(unittest.TestCase):
     def test_upgrade_requires_matching_version_and_every_persistence_check(self):
-        report = dict(result='passed', baseline_version='0.3.5-alpha', target_version_code=12,
+        report = dict(result='passed', baseline_version='0.3.6-alpha', target_version_code=13,
                       install_replace=True, secret_preserved=True, ciphertext_unchanged=True,
                       keystore_preserved=True, settings_preserved=True, payload_matches_build=True,
                       ci_signer_sha256='a' * 64)
-        publisher.verify_upgrade(report, 12)
-        for change in [dict(result='failed'), dict(target_version_code=11), dict(secret_preserved=False),
+        publisher.verify_upgrade(report, 13)
+        for change in [dict(result='failed'), dict(target_version_code=12), dict(secret_preserved=False),
                        dict(keystore_preserved=None), dict(install_replace=False), dict(baseline_version='unknown'),
                        dict(payload_matches_build=False), dict(ci_signer_sha256='invalid')]:
             with self.assertRaises(ValueError):
-                publisher.verify_upgrade(dict(report, **change), 12)
+                publisher.verify_upgrade(dict(report, **change), 13)
     def test_artifact_file_is_found_under_gh_pattern_directory_but_duplicates_fail(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

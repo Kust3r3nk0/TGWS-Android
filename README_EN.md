@@ -4,13 +4,13 @@
   <img src="docs/images/tgws-github-cover-en.svg" width="100%" alt="TGWS-Android — native MTProto proxy for Android, English cover" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.6--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.7--alpha-orange)
 
-**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.6-alpha-debug/TGWS-Android-0.3.6-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Test results](docs/en/TEST_REPORT_0.3.6-alpha.md) · [Contributing](docs/en/CONTRIBUTING.md)**
+**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.7-alpha-debug/TGWS-Android-0.3.7-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Test results](docs/en/TEST_REPORT_0.3.7-alpha.md) · [Contributing](docs/en/CONTRIBUTING.md)**
 
 **Unofficial, open-source Android 16+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
-> **0.3.6-alpha is an Android 16+ test build with the preserved debug signature.** See the version report for CI and upgrade-continuity results. Physical Telegram/carrier validation of this version is pending.
+> **0.3.7-alpha updates validation reporting, Android 16+.** The owner tested basic 0.3.6 functions on One UI 8.5 and reported HD/video, start/stop and network recovery failures. See actual results and scope below.
 
 ## Languages & technology
 
@@ -83,12 +83,12 @@ flowchart LR
 
 Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 36+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
 
-[Download 0.3.6 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.6-alpha-debug/TGWS-Android-0.3.6-debug.apk)
+[Download 0.3.7 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.7-alpha-debug/TGWS-Android-0.3.7-debug.apk)
 
 ## 0.2.0 reliability
 
 For a Cloudflare route without a VPS, see the [experimental Worker setup](docs/en/CLOUDFLARE_WORKER.md).
-Your account is required; Megafon reachability is unverified. It has a 16 MiB
+Your account is required; The direct/relay owner report does not establish reachability of every Worker endpoint on Megafon. It has a 16 MiB
 per-session budget and does not require a new APK or spoof `cloudflare.com`.
 
 Bounded unused direct-WSS pool, pre-init Ping/Pong, age rotation and per-route
@@ -99,31 +99,27 @@ Bounded unused direct-WSS pool, pre-init Ping/Pong, age rotation and per-route
 
 If a carrier blocks Telegram IPs, direct WSS → TCP fallback can fail on both paths.
 The app supports an optional **relay-only** route through your reachable
-WSS endpoint. No external relay has been deployed or validated on a carrier yet.
+WSS endpoint. The owner used direct and relay-only on Wi-Fi/cellular in 0.3.6, with failures while travelling; individual endpoint reachability is not guaranteed.
 [Setup, standalone server and limits](docs/en/MOBILE_NETWORKS.md).
 
-## Current state (0.3.6-alpha)
+## Owner results: 0.3.6-alpha
 
-| Component | Status |
+**Android 16 / One UI 8.5; direct and relay-only modes. Partially verified, with failures.**
+
+| Scenario | Observed result |
 |---|---|
-| Obfuscated2, AES-CTR, relay initialization | Implemented and tested: byte-for-byte JVM Flowseal v1.11.2 vectors |
-| Abridged / Intermediate / Padded Intermediate | Implemented and tested: JVM, 4 MiB packet bound and malformed length rejection |
-| Loopback listener and WSS → TCP fallback | Implemented and tested locally; live Telegram network validation required |
-| WebSocket framing, Upgrade and TLS | Implemented and tested with local RFC 6455 / TLS peers; live WSS validation required |
-| Foreground Service and network loss | Basic lifecycle tested on API 36–37 emulators; real Wi-Fi/LTE requires validation |
-| Compose / Material 3, Russian and English UI | Tested on API 36–37; physical validation pending |
-| Keystore AES-256-GCM | API 36–37 including in-place 0.3.5 → 0.3.6 upgrade; missing keys/records require explicit recovery |
-| Official Telegram physical-device E2E | Owner confirmed earlier text/SD; HD stalls on 0.3.4/LTE/Worker. New 0.3.5 needs validation |
-| Debug APK | Debug-signed test artifact, not a distribution release |
-| GitHub debug Pre-releases | Owner-authorized after CI, with debug signing and stated limitations |
-| Trusted signed stable APK | Planned; full release gate not passed |
-| Fake TLS and CF Proxy/Worker routing | Implemented and tested locally; external E2E unverified |
-| HTTP/2 media `/api` | Real local TLS/ALPN/flow-control/multiplexing and RST/GOAWAY tests; needs compatible server |
-| Network-bound DNS/sockets, IPv4/IPv6, network changes | Local/model tests; physical DNS64/XLAT and handover unverified |
-| Network/route diagnostics and carrier reference | Actual phase timings, explicit probe, anonymous export preview; no APN/DNS/SIM changes |
+| Secret, port and settings after upgrade | Preserved |
+| Telegram text send/receive | Works |
+| Standard photos and voice messages | Work; direction/per-mode breakdown unspecified |
+| HD photos and video messages | Fail; cause unresolved |
+| Wi-Fi and cellular Мега5G | Work, with failures in some areas while travelling |
+| Repeated start/stop | Has a failure; reproduction details pending |
+| Wi-Fi ↔ cellular handover | Requires manual proxy restart |
+| Sustained operation | Sometimes reconnects, sometimes needs manual restart |
+| Themes, Liquid Glass and transparency | Work and persist |
+| 1–5 MiB file | Not tested |
 
-[0.3 transports and configuration](docs/en/TRANSPORTS_0.3.md) · [Carrier reference/matrix](docs/en/RU_MOBILE_OPERATORS.md).
-Seamless migration, test datacenters and full experimental Worker media flow control remain outside this release.
+[Owner report](docs/en/OWNER_VALIDATION_0.3.6.md) is separate from [automated checks](docs/en/TEST_REPORT_0.3.7-alpha.md). 0.3.7 updates reporting; these network/media failures are not claimed fixed. Native protocol/TLS/framing tests validate local peers, not every external transport. No embedded WebView: renderer/page API tests are not applicable.
 
 ## Build prerequisites
 
@@ -141,7 +137,7 @@ checksum, build version/commit and changelog, with JVM/Lint reports separately.
 Action versions are pinned to verified commit SHAs. A separate PR/manual workflow
 is configured to run instrumentation tests on API 36 and 37.0; verify new run results.
 JVM tests, Lint and APK assembly are required checks. See [testing](docs/en/TESTING.md) and the
-[update test report](docs/en/TEST_REPORT_0.3.6-alpha.md).
+[update test report](docs/en/TEST_REPORT_0.3.7-alpha.md).
 
 ## Versions
 

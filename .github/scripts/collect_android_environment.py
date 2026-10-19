@@ -42,7 +42,7 @@ def collect(shell):
             'model': prop('ro.product.model'), 'android_release': prop('ro.build.version.release'),
             'api': int(api), 'one_ui_version': None, 'webview_provider': view,
             'webview_component_tests': 'not_applicable_native_ui',
-            'physical_validation': 'owner_pending'}
+            'physical_validation': 'not_applicable_ci_emulator'}
 
 
 def main():

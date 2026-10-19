@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.7-alpha — owner verification results
+
+- Record the owner's physical 0.3.6 report: Android 16 / One UI 8.5, direct and relay-only. Text, standard photos/voice, settings and appearance persistence confirmed.
+- Record start/stop, HD/video, automatic recovery and sustained stability failures. Causes unresolved; no fix is claimed.
+- RU/EN About shows the versioned report instead of a blanket untested label; add actual rendered-report and localized regression checks.
+- Align README, roadmap, stable gate and handoff with observed results. Future WebView components are not current failed native tests.
+- Separate owner 0.3.6 data from CI emulator evidence. Upgrade baseline 0.3.6, versionCode 13; native core/settings unchanged.
+
 ## 0.3.6-alpha — Android 16+ only
 
 - Correct the RU/EN About label to Android 16+; APK minimum remains API 36.

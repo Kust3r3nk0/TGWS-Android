@@ -36,4 +36,8 @@ Preserved debug signing; apksigner and every-entry byte comparison with CI passe
 
 TGWS-16-016 inventory: `com.google.android.webview`, API 36 `133.0.6943.137`, API 37 `145.0.7632.218`, both `latest_verified=false`; One UI unverified. This does not certify current Stable/Beta. No unnecessary WebView/WebKit was introduced.
 
-TGWS-16-017 physical Telegram/Wi-Fi/LTE/One UI/Stable/Beta validation belongs to the owner and remains pending for 0.3.6. Protocols, strict TLS, settings and the 16 MiB Worker limit are unchanged. Carrier reachability and HD upload are not established by this build. [Stable gate](STABILITY_GATE.md).
+TGWS-16-017 physical results for 0.3.6 were reported by the owner; see the versioned report below. Protocols, strict TLS, settings and the 16 MiB Worker limit are unchanged. Carrier reachability and HD upload are not established by this build. [Stable gate](STABILITY_GATE.md).
+
+## Owner response received
+
+19 October 2026: basic 0.3.6 scenarios confirmed, with start/stop, HD/video and network recovery failures. **Partially verified, with failures.** [Physical report](OWNER_VALIDATION_0.3.6.md). Build-time CI metadata/screenshots are historical snapshots, not evidence that this response is absent.

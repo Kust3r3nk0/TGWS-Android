@@ -3,6 +3,23 @@
 Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Only API 36 and newer are supported. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
 
+## Current priority — owner results for 0.3.6
+
+[Physical report](OWNER_VALIDATION_0.3.6.md): Android 16 / One UI 8.5, direct and relay-only.
+
+- [x] Text, standard photos/voice, settings and appearance persistence confirmed.
+- [ ] P0: reproduce and fix repeated start/stop from clarified steps.
+- [ ] P0: automatic Wi-Fi/cellular recovery and stalled sustained sessions.
+- [ ] P1: isolate HD/video failures by direction/mode, diagnose and fix.
+- [ ] 1–5 MiB file not tested.
+- [x] Basic One UI 8.5 UI tested; no embedded WebView, renderer/page tests not applicable.
+
+## 0.3.7-alpha — accurate verification status
+
+- Replace the blanket untested label with versioned 0.3.6 owner results and known failures.
+- README, stable gate and handoff reflect actual evidence; separate emulator/CI from phone results.
+- Native network core unchanged; no reported failure is claimed fixed.
+
 ## 0.3.6-alpha — Android 16+ only
 
 - Correct the RU/EN About label to Android 16+; APK minimum remains API 36.

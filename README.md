@@ -4,14 +4,14 @@
   <img src="docs/images/tgws-github-cover-ru.svg" width="100%" alt="TGWS-Android — нативный MTProto-прокси для Android, русский баннер" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.6--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.7--alpha-orange)
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 16+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.6-alpha-debug/TGWS-Android-0.3.6-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Результаты тестов](docs/TEST_REPORT_0.3.6-alpha.md) · [Участие](CONTRIBUTING.md)**
+**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.7-alpha-debug/TGWS-Android-0.3.7-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Результаты тестов](docs/TEST_REPORT_0.3.7-alpha.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.3.6-alpha — тестовая сборка строго для Android 16+, с прежней debug-подписью.** Результаты CI и проверки сохранения настроек — в отчёте версии. Проверка этой версии с Telegram и мобильным оператором на физическом устройстве ожидается.
+> **0.3.7-alpha — обновление статусов проверки, Android 16+.** Владелец проверил базовые функции 0.3.6 на One UI 8.5; подтверждены сбои HD/видеокружков, start/stop и восстановления сети. Результаты и границы перечислены ниже.
 
 ## Языки и технологии
 
@@ -84,27 +84,24 @@ flowchart LR
 
 TGWS-Android — нативное Android-приложение на Kotlin и Jetpack Compose для запуска локального MTProto WebSocket-прокси. Планируется функциональная совместимость с сетевым ядром Flowseal TG-WS-Proxy, включая WebSocket, TCP fallback, Fake TLS, Cloudflare-маршруты и HTTP/2. Приложение **не является VPN** и не перехватывает системный трафик.
 
-## Текущее состояние (0.3.6-alpha)
+## Результаты владельца: 0.3.6-alpha
 
-| Возможность | Статус |
+**Android 16 / One UI 8.5, прямой режим и только реле. Частично проверено; есть сбои.**
+
+| Сценарий | Фактический результат |
 |---|---|
-| Obfuscated2, AES-CTR, relay initialization | Реализовано и протестировано: побайтовые JVM-векторы Flowseal v1.11.2 |
-| Abridged, Intermediate, Padded Intermediate | Реализовано и протестировано: JVM, пакет до 4 МиБ, повреждённые длины отклоняются |
-| Локальный listener и WSS → TCP fallback | Реализовано и протестировано: локальные интеграционные тесты; публичная сеть Telegram требует проверки |
-| WebSocket framing, HTTP Upgrade, TLS | Реализовано и протестировано: локальные RFC 6455 / TLS тесты; реальные WSS-узлы требуют проверки |
-| Foreground Service, реакция на потерю сети | Основной lifecycle протестирован на эмуляторах API 36–37; реальные Wi-Fi/LTE требуют проверки |
-| Compose / Material 3, русский и английский UI | Протестировано на API 36–37; физическая проверка ожидается |
-| Android Keystore AES-256-GCM | API 36–37, включая обновление 0.3.5 → 0.3.6; утрата ключа/записи требует явного восстановления |
-| Реальное подключение официального Telegram | Исторические сообщения/SD подтверждены владельцем; HD зависает на 0.3.4/LTE/Worker. Новая 0.3.5 требует проверки |
-| Собственное WSS-реле (Worker-совместимое) | Реализовано и протестировано локально; нужен внешний узел, мобильный E2E не проверен |
-| Fake TLS (ee-secret) | Реализовано и протестировано: HMAC/records и локальные сессии; внешний E2E не проверен |
-| Cloudflare Proxy и Worker fallback | Реализовано и протестировано локально: проверяемая конфигурация, ротация/backoff; нужен совместимый внешний узел |
-| HTTP/2 для медиатрафика | Реализовано и протестировано с локальным TLS/H2 `/api`, multiplexing/flow control/RST/GOAWAY; внешний E2E не проверен |
-| IPv4/IPv6 и смена сети | Реализовано и протестировано в моделях/локальных тестах; DNS64/XLAT зависят от ОС и сети, физическая проверка ожидается |
-| Диагностика и справочник операторов | Реализовано: состояния маршрутов/сети, реальные замеры, явная проверка и обезличенный экспорт |
-| Debug APK | Тестовый артефакт с отладочной подписью; не пользовательский релиз |
-| GitHub debug-предрелизы | Разрешены владельцем; публикуются после CI, с отладочной подписью и ограничениями |
-| Доверенно подписанный стабильный APK | Запланировано; полный release gate не пройден |
+| Секрет, порт и настройки после обновления | Сохранились |
+| Текст Telegram: отправка и получение | Работает |
+| Обычные фото и голосовые | Работают; направление и разбивка по режимам уточняются |
+| HD-фото и видеокружки | Ошибка; причина пока не установлена |
+| Wi-Fi и мобильный Мега5G | Работают, но в поездках бывают нерабочие участки |
+| Повторный запуск/остановка | Есть сбой, уточняются шаги |
+| Смена Wi-Fi ↔ мобильная сеть | Требуется ручной перезапуск прокси |
+| Длительная работа | Иногда переподключается, иногда нужен ручной перезапуск |
+| Темы, Liquid Glass и прозрачность | Работают и сохраняются |
+| Файл 1–5 МиБ | Не проверен |
+
+[Полный отчёт владельца](docs/OWNER_VALIDATION_0.3.6.md) отделён от [автоматических проверок](docs/TEST_REPORT_0.3.7-alpha.md). 0.3.7 обновляет статус проверки; перечисленные сетевые/медиа-сбои ещё не объявлены исправленными. Native MTProto/Fake TLS/H2 и RFC 6455 проверяются локальными тестами; это не подтверждение всех внешних транспортов. Встроенного WebView нет, поэтому тесты renderer/page API неприменимы.
 
 ## Версии Android и сборочные инструменты
 
@@ -126,14 +123,14 @@ TGWS-Android — нативное Android-приложение на Kotlin и Je
 6. Debug APK доступен в **Actions → Android CI → запуск → Artifacts**. [Инструкции Codex](AGENTS.md).
 
 > [!NOTE]
-> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет инструментальные тесты и проверку обновления APK на API 36–37. [Результаты и ограничения](docs/TEST_REPORT_0.3.6-alpha.md).
+> Обязательные проверки: JVM-тесты, Lint и сборка APK; CI выполняет инструментальные тесты и проверку обновления APK на API 36–37. [Результаты и ограничения](docs/TEST_REPORT_0.3.7-alpha.md).
 
 CI запускается при push в `main`, Pull Request и вручную. Успешная проверка
 публикует debug APK, `SHA256SUMS`, версию и commit, changelog; отчёты JVM/Lint
 сохраняются отдельно. Actions и Wrapper закреплены по проверенным SHA.
 Отдельный workflow при PR и вручную проверяет Android API 36 и 37.0.
 
-[Скачать 0.3.6 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.6-alpha-debug/TGWS-Android-0.3.6-debug.apk)
+[Скачать 0.3.7 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.7-alpha-debug/TGWS-Android-0.3.7-debug.apk)
 
 ## Транспорты 0.3.0
 
@@ -151,11 +148,11 @@ CI запускается при push в `main`, Pull Request и вручную.
 
 Если оператор блокирует IP Telegram, прямой WSS → TCP может не помочь.
 Начиная с 0.1.3-alpha можно указать собственное WSS-реле на доступном внешнем узле.
-Реле не развёртывается автоматически; его доступность у оператора ещё не проверена.
+Владелец использовал прямой режим и реле на Wi-Fi/мобильной сети в 0.3.6; в поездках есть отказы. Доступность конкретного узла не гарантируется.
 [Настройка, сервер реле и ограничения](docs/MOBILE_NETWORKS.md).
 
 Для пробы через Cloudflare без VPS: [Worker и инструкция](cloudflare-worker/README.md).
-Нужен аккаунт Cloudflare; доступность у Мегафона ещё не проверена. Это отдельная
+Нужен аккаунт Cloudflare; результат владельца для прямого режима/реле не устанавливает доступность всех Worker-узлов у Мегафона. Это отдельная
 экспериментальная заготовка с лимитом 16 MiB на сессию, не новый APK и не
 подтверждённый обход. Подстановка SNI `cloudflare.com` не создаёт рабочий узел.
 
@@ -184,7 +181,7 @@ WSS использует обычную проверку доверия TLS и �
 
 При смене сети существующие сессии закрываются; Telegram должен создать новые.
 Бесшовной миграции нет. Полные критерии, ограничения и фактически выполненные
-проверки приведены в [отчёте обновления](docs/TEST_REPORT_0.3.6-alpha.md).
+проверки приведены в [отчёте обновления](docs/TEST_REPORT_0.3.7-alpha.md).
 
 ## Архитектура исходников
 

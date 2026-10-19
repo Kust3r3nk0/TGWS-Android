@@ -32,7 +32,8 @@
     <string name="clipboard_secret">Telegram proxy secret</string>
     <string name="link_copied">Link copied.</string>
     <string name="secret_copied">Secret copied.</string>
-    <string name="alpha_notice">Experimental version. New transports are automatically tested; physical owner testing is pending. Worker/CF requires a compatible external endpoint.</string>
+    <string name="alpha_notice">Experimental version. Owner results and known failures are listed below. Worker/CF requires a compatible external endpoint.</string>
+    <string name="owner_validation_summary">The owner tested 0.3.6 on Android 16 / One UI 8.5: text, standard photos and voice messages work; settings and appearance persist. Start/stop, HD photos, video messages and network recovery have failures. These failures are not fixed yet.</string>
     <string name="local_notice">The proxy is available on this device only, via 127.0.0.1. This is not a VPN. Opening the port does not confirm Telegram connectivity.</string>
     <string name="status_stopped">Stopped</string>
     <string name="status_starting">Starting</string>
