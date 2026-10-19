@@ -26,6 +26,47 @@ import javax.net.ssl.TrustManagerFactory
 class RawWebSocketTest {
     private val limits = RawWebSocket.Limits(readMillis = 750, handshakeMillis = 750, writeMillis = 750, closeMillis = 200)
 
+    @Test(timeout = 10000) fun progressingMediaUploadCanOutliveOneWriteWindow() {
+        val payload = ByteArray(512 * 1024) { (it * 17).toByte() }
+        peer(server = { socket ->
+            val received = ByteArrayOutputStream()
+            var fragments = 0
+            do {
+                val frame = readClientFrame(socket.getInputStream(), allowFragments = true)
+                assertEquals(if (fragments++ == 0) 2 else 0, frame.opcode)
+                assertTrue(frame.body.size <= 65536)
+                received.write(frame.body)
+            } while (!frame.fin)
+            assertTrue(fragments > 1)
+            assertArrayEquals(payload, received.toByteArray())
+            socket.getOutputStream().write(frame(2, byteArrayOf(42)))
+        }) { socket ->
+            var throttled = false
+            val output = socket.getOutputStream()
+            val slowSocket = object : Socket() {
+                override fun getInputStream() = socket.getInputStream()
+                override fun getOutputStream() = object : java.io.OutputStream() {
+                    override fun write(value: Int) = output.write(value)
+                    override fun write(bytes: ByteArray, offset: Int, length: Int) {
+                        if (throttled && length >= 1024) Thread.sleep(35)
+                        output.write(bytes, offset, length)
+                    }
+                    override fun flush() = output.flush()
+                }
+                override fun setSoTimeout(timeout: Int) { socket.soTimeout = timeout }
+                override fun isClosed() = socket.isClosed
+                override fun close() = socket.close()
+            }
+            val ws = RawWebSocket.upgrade(slowSocket, "localhost", limits = limits.copy(writeMillis = 400, readMillis = 3000))
+            throttled = true
+            val started = System.nanoTime()
+            ws.send(payload)
+            assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) > 400)
+            assertArrayEquals(byteArrayOf(42), ws.receive())
+            ws.abort()
+        }
+    }
+
     @Test(timeout = 5000) fun idlePoolProbeRequiresMatchingPongAndDoesNotConsumeSubsequentPayload() {
         peer(server = { socket ->
             val ping = readClientFrame(socket.getInputStream())
@@ -585,11 +626,12 @@ class RawWebSocketTest {
         return server to client
     }
 
-    private data class ClientFrame(val opcode: Int, val body: ByteArray)
-    private fun readClientFrame(input: InputStream): ClientFrame {
+    private data class ClientFrame(val opcode: Int, val body: ByteArray, val fin: Boolean)
+    private fun readClientFrame(input: InputStream, allowFragments: Boolean = false): ClientFrame {
         val first = input.read()
         assertTrue("Client frame missing", first >= 0)
-        assertEquals(0x80, first and 0xf0)
+        assertEquals(0, first and 0x70)
+        if (!allowFragments) assertEquals(0x80, first and 0x80)
         val second = input.read()
         assertEquals("Client frame must be masked", 0x80, second and 0x80)
         var size = (second and 127).toLong()
@@ -607,7 +649,7 @@ class RawWebSocketTest {
         val body = input.readNBytes(size.toInt())
         assertEquals(size.toInt(), body.size)
         for (i in body.indices) body[i] = (body[i].toInt() xor mask[i % 4].toInt()).toByte()
-        return ClientFrame(first and 15, body)
+        return ClientFrame(first and 15, body, first and 0x80 != 0)
     }
 
     private fun requestKey(input: InputStream, expectedPath: String? = null): String {
