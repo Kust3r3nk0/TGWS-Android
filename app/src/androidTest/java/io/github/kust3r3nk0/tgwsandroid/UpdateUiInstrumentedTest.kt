@@ -28,15 +28,24 @@ class UpdateUiInstrumentedTest {
     private val context get()=instrumentation.targetContext
     private lateinit var storage:MemoryUpdatePersistence
     private lateinit var repository:UpdateRepository
+    private lateinit var previousLocales:android.os.LocaleList
     private val http=FixtureUpdateHttp()
     @Before fun setup(){
+        val localeManager=context.getSystemService(android.app.LocaleManager::class.java)
+        previousLocales=localeManager.applicationLocales
+        instrumentation.runOnMainSync{localeManager.applicationLocales=android.os.LocaleList.forLanguageTags("ru")}
+        instrumentation.waitForIdleSync()
         AppPreferences(context).theme=ThemeMode.DARK
         storage=MemoryUpdatePersistence().apply{preferences=UpdateOptions(channel=UpdateChannel.PREVIEW)}
-        http.release("0.3.11-alpha",17,true).put("body","## Features\n- Native Update Center and background checks.\n## Fixes\n- Verify APK signing identity before installation.\n## Performance\n- Bounded download buffers and cancellable requests.")
+        http.release("0.3.11-alpha",17,true).put("body","## Новые функции\n- Центр обновлений и фоновая проверка новых версий.\n## Исправления\n- Проверка подписи APK перед установкой.\n## Оптимизация\n- Ограничение буферов и отмена загрузки.")
         repository=UpdateRepository(storage,GithubUpdateSource(http),"0.3.10-alpha",16,android.os.Build.VERSION.SDK_INT,{System.currentTimeMillis()-120000})
         runBlocking{repository.initialize()};UpdateGraph.useForTests(repository)
     }
-    @After fun cleanup(){UpdateGraph.useForTests(null);AppPreferences(context).apply{theme=ThemeMode.SYSTEM;liquidGlass=false;transparency=false}}
+    @After fun cleanup(){
+        UpdateGraph.useForTests(null);AppPreferences(context).apply{theme=ThemeMode.SYSTEM;liquidGlass=false;transparency=false}
+        instrumentation.runOnMainSync{context.getSystemService(android.app.LocaleManager::class.java).applicationLocales=previousLocales}
+        instrumentation.waitForIdleSync()
+    }
     private fun scroll(tag:String){
         if(ui.onAllNodesWithTag("updates.scroll").fetchSemanticsNodes().isNotEmpty())ui.onNodeWithTag("updates.scroll").performScrollToNode(hasTestTag(tag))
         else ui.onNodeWithTag(tag).performScrollTo()

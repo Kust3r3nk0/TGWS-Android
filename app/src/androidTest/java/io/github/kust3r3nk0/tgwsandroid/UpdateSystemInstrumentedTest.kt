@@ -3,7 +3,6 @@ package io.github.kust3r3nk0.tgwsandroid
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationManager
-import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -22,7 +21,6 @@ class UpdateSystemInstrumentedTest {
     private val instrumentation get()=InstrumentationRegistry.getInstrumentation()
     private val context get()=instrumentation.targetContext
     private val device get()=UiDevice.getInstance(instrumentation)
-    private fun shell(command:String)=ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command)).bufferedReader().use{it.readText()}
     private fun await(condition:()->Boolean){val end=SystemClock.elapsedRealtime()+5000
         while(!condition()){check(SystemClock.elapsedRealtime()<end){"Android update handoff deadline"};SystemClock.sleep(20)}}
     @Test fun notificationHasCorrectTextAndOpensTheExistingUpdateCenter()=runBlocking {
@@ -49,11 +47,10 @@ class UpdateSystemInstrumentedTest {
         val file=File(context.cacheDir,"verified_updates/system-fixture.apk").apply{parentFile!!.mkdirs()}
         instrumentation.context.assets.open("valid.apk").use{input->file.outputStream().use{input.copyTo(it)}}
         val release=GithubRelease(99,"v9.0.0-debug","9.0.0",99,36,UpdateChannel.PREVIEW,"",UpdateAsset("TGWS-Android-9.0.0-debug.apk","",file.length()),UpdateAsset("SHA256SUMS","",1))
-        val previous=shell("appops get ${context.packageName} REQUEST_INSTALL_PACKAGES")
-            .let{Regex("REQUEST_INSTALL_PACKAGES: (allow|deny|ignore|default|foreground)").find(it)?.groupValues?.get(1)?:"default"}
         try{
             AndroidUpdateApkVerifier(context).verify(file,release)
-            shell("appops set ${context.packageName} REQUEST_INSTALL_PACKAGES allow")
+            // The emulator entry point grants and restores this outside instrumentation.
+            // Revoking this app-op kills the owning UID on Android 16/17.
             val installer=UpdateInstaller(context);assertTrue(installer.allowed())
             val intent=installer.installIntent(file)
             ActivityScenario.launch(MainActivity::class.java).use{activity->
@@ -64,6 +61,6 @@ class UpdateSystemInstrumentedTest {
             }
             val info=context.packageManager.getPackageInfo(context.packageName,0)
             assertTrue(info.longVersionCode<99)
-        }finally{shell("appops set ${context.packageName} REQUEST_INSTALL_PACKAGES $previous");file.delete()}
+        }finally{file.delete()}
     }
 }
