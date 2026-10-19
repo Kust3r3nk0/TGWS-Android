@@ -74,7 +74,8 @@ class MainActivity : ComponentActivity() {
                         else SystemBarStyle.light(android.graphics.Color.TRANSPARENT,android.graphics.Color.TRANSPARENT)
                     enableEdgeToEdge(statusBarStyle=bars,navigationBarStyle=bars)
                 }
-                var page by rememberSaveable{mutableIntStateOf(0)}
+                var page by rememberSaveable{mutableIntStateOf(if (intent.getBooleanExtra(GithubUpdates.OPEN_UPDATES, false)) 2 else 0)}
+                LaunchedEffect(Unit) { GithubUpdates(this@MainActivity).configureWorker() }
                 var observedNetwork by remember{mutableStateOf(NetworkView())}
                 DisposableEffect(Unit){
                     var monitor:AndroidNetworkMonitor?=null
@@ -169,6 +170,17 @@ class MainActivity : ComponentActivity() {
                     onDispose { lifecycle.removeObserver(observer) }
                 }
 
+                if (page == 2 || page == 3) {
+                    TgwsUpdateHub(
+                        page = page, currentVersion = version, onPage = { page = it },
+                        onBack = { page = 1 },
+                        requestNotificationPermission = {
+                            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 12)
+                            }
+                        }
+                    )
+                } else {
                 AppScaffold(page=page,onPage={page=it;revealSecret=false},version=version,isDark=isDark,onToggleTheme={
                     themeMode=if(isDark)ThemeMode.LIGHT else ThemeMode.DARK;preferences.theme=themeMode
                 }){
@@ -380,11 +392,20 @@ class MainActivity : ComponentActivity() {
                             }
                         }){Text(stringResource(R.string.save_settings))}
                         }
+                        SectionCard("Обновления приложения", Modifier.testTag("settings.updates")) {
+                            Text("Проверка GitHub Releases, загрузка проверенного APK и установка с подтверждением Android.",
+                                style = MaterialTheme.typography.bodySmall)
+                            OutlinedButton(modifier = Modifier.fillMaxWidth().testTag("settings.update.center"),
+                                onClick = { page = 2 }) { Text("Центр обновлений") }
+                            OutlinedButton(modifier = Modifier.fillMaxWidth().testTag("settings.update.options"),
+                                onClick = { page = 3 }) { Text("Настройки обновлений") }
+                        }
                         SectionCard(stringResource(R.string.about_title)){
                             Text(stringResource(R.string.version_label,version),modifier=Modifier.testTag("about.version"))
                             Text(stringResource(R.string.alpha_notice),style=MaterialTheme.typography.bodySmall)
                         }
                     }
+                }
                 }
             }
         }
