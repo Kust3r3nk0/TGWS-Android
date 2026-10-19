@@ -6,10 +6,10 @@
   "status": "owner_reported_with_failures",
   "environment": {
     "manufacturer": "Samsung",
-    "model": null,
+    "model": "Galaxy A16",
     "android": 16,
     "one_ui": "8.5",
-    "telegram_version": null,
+    "telegram_version": "13.0.3",
     "carrier_label": "Мега5G"
   },
   "modes": [
@@ -25,7 +25,7 @@
     "appearance_persistence"
   ],
   "failed": [
-    "repeated_start_stop",
+    "obfuscated2_error_during_repeated_start_stop",
     "hd_photo",
     "video_message",
     "automatic_network_recovery",
@@ -36,12 +36,19 @@
   ],
   "network_result": "wifi_and_cellular_work_with_reported_failures_while_travelling",
   "unresolved_details": [
-    "exact_model",
-    "telegram_version",
-    "start_stop_symptom",
-    "media_direction_and_mode",
+    "obfuscated2_source_exact_text_listener_state",
+    "media_direction",
     "test_duration",
     "travelling_failure_cause"
   ],
-  "report_path": "docs/OWNER_VALIDATION_0.3.6.md"
+  "report_path": "docs/OWNER_VALIDATION_0.3.6.md",
+  "media_failure_modes": [
+    "direct",
+    "relay_only"
+  ],
+  "obfuscated2_report": {
+    "reported_text": "Ошибка Obfuscated2",
+    "ui_source": null,
+    "listener_stops": null
+  }
 }

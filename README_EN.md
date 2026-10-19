@@ -111,9 +111,9 @@ WSS endpoint. The owner used direct and relay-only on Wi-Fi/cellular in 0.3.6, w
 | Secret, port and settings after upgrade | Preserved |
 | Telegram text send/receive | Works |
 | Standard photos and voice messages | Work; direction/per-mode breakdown unspecified |
-| HD photos and video messages | Fail; cause unresolved |
+| HD photos and video messages | Fail in direct and relay; cause unresolved |
 | Wi-Fi and cellular Мега5G | Work, with failures in some areas while travelling |
-| Repeated start/stop | Has a failure; reproduction details pending |
+| Repeated start/stop | Owner sees Obfuscated2 error; listener shutdown unconfirmed |
 | Wi-Fi ↔ cellular handover | Requires manual proxy restart |
 | Sustained operation | Sometimes reconnects, sometimes needs manual restart |
 | Themes, Liquid Glass and transparency | Work and persist |

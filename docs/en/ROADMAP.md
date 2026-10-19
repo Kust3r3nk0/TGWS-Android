@@ -8,9 +8,9 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 [Physical report](OWNER_VALIDATION_0.3.6.md): Android 16 / One UI 8.5, direct and relay-only.
 
 - [x] Text, standard photos/voice, settings and appearance persistence confirmed.
-- [ ] P0: reproduce and fix repeated start/stop from clarified steps.
+- [ ] P0: reproduce and fix repeated start/stop after identifying the Obfuscated2 message source/listener state.
 - [ ] P0: automatic Wi-Fi/cellular recovery and stalled sustained sessions.
-- [ ] P1: isolate HD/video failures by direction/mode, diagnose and fix.
+- [ ] P1: isolate HD/video failures in both modes by transfer direction, diagnose and fix.
 - [ ] 1–5 MiB file not tested.
 - [x] Basic One UI 8.5 UI tested; no embedded WebView, renderer/page tests not applicable.
 

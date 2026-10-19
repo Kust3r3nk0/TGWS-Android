@@ -23,6 +23,7 @@ class BrandingInstrumentedTest {
             val report = localized.getString(R.string.owner_validation_summary)
             assertTrue(report.contains("0.3.6"))
             assertTrue(report.contains("Android 16 / One UI 8.5"))
+            assertTrue(report.contains("Galaxy A16") && report.contains("13.0.3") && report.contains("Obfuscated2"))
             assertFalse(localized.getString(R.string.alpha_notice).contains("pending", ignoreCase = true))
             assertFalse(localized.getString(R.string.alpha_notice).contains("ожидается", ignoreCase = true))
         }
