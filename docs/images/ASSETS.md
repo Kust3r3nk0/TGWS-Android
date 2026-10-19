@@ -32,3 +32,8 @@
 | [home-light.png](0.3.5/home-light.png) | 37 / `12159016676` | `transparency-light.png` | `593af30a64032dc580b9a4533a70cf98e5f461d73336fef8b46569e00162fe72` |
 | [home-dark.png](0.3.5/home-dark.png) | 36 / `12158608352` | `transparency-dark.png` | `ca0f0456878ab2c732e53ab01138dcad146f2c9f6a0fd12e3f7ebf819b559fa2` |
 | [settings-glass.png](0.3.5/settings-glass.png) | 37 / `12159016676` | `transparency-combined.png` | `ebc5d0df342b36be8f0a454f81abb3d645d3d8af0694180b494a794ec1e25bb9` |
+
+## Update Center
+
+- `app/src/main/res/drawable-nodpi/update_download_glass.png`: декоративная иллюстрация, созданная по утверждённому владельцем первому концепту; не содержит экранов или текста UI. Фирменный логотип переиспользуется.
+- `app/src/main/res/drawable/ic_update_*.xml`: Google Material Symbols, Apache-2.0; исходные URL указаны в каждом файле. Цвет задаёт Compose. [Лицензия](../licenses/MaterialSymbols-Apache-2.0.txt).

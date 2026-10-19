@@ -1,267 +1,188 @@
 package io.github.kust3r3nk0.tgwsandroid
 
-import android.Manifest
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.net.Uri
-import android.provider.Settings
-import androidx.core.content.FileProvider
-import androidx.work.Constraints
-import androidx.work.CoroutineWorker
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.WorkerParameters
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONArray
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
+import java.net.SocketTimeoutException
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.suspendCancellableCoroutine
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import org.json.JSONArray
+import org.json.JSONObject
 
-data class UpdateOptions(
-    val auto: Boolean = true, val minutes: Long = 360,
-    val notify: Boolean = true, val wifiOnly: Boolean = false
-) {
-    companion object { val periods = listOf(15L, 60L, 180L, 360L, 720L, 1440L, 10080L) }
+internal fun trustedUpdateAsset(url:String,tag:String,name:String):Boolean {
+    val u=url.toHttpUrlOrNull()?:return false
+    return u.scheme=="https" && u.host=="github.com" && u.port==443 && u.username.isEmpty() &&
+        u.password.isEmpty() && u.query==null && u.fragment==null &&
+        u.pathSegments==UPDATE_REPOSITORY.split('/')+listOf("releases","download",tag,name) &&
+        !tag.contains('/') && name.matches(Regex("[A-Za-z0-9._-]{1,180}"))
 }
 
-class UpdateOptionsStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences("tgws_update_options", Context.MODE_PRIVATE)
-    fun read() = UpdateOptions(
-        prefs.getBoolean("auto", true),
-        prefs.getLong("period", 360).takeIf { it in UpdateOptions.periods } ?: 360,
-        prefs.getBoolean("notify", true), prefs.getBoolean("wifi", false)
-    )
-    fun save(options: UpdateOptions) {
-        prefs.edit().putBoolean("auto", options.auto).putLong("period", options.minutes)
-            .putBoolean("notify", options.notify).putBoolean("wifi", options.wifiOnly).apply()
-    }
-    fun unseen(tag: String) = prefs.getString("last_tag", null) != tag
-    fun notified(tag: String) { prefs.edit().putString("last_tag", tag).apply() }
+internal interface UpdateHttp {
+    suspend fun text(url:String,limit:Int=2_000_000):String
+    suspend fun download(url:String,target:File,expectedSize:Long,progress:(Long)->Unit)
 }
 
-data class GithubRelease(
-    val tag: String, val version: String, val notes: String,
-    val apkName: String, val apkUrl: String, val shaUrl: String
-)
-internal data class NumericVersion(val major: Int, val minor: Int, val patch: Int, val pre: Boolean) : Comparable<NumericVersion> {
-    override fun compareTo(other: NumericVersion): Int =
-        compareValuesBy(this, other, { it.major }, { it.minor }, { it.patch }, { !it.pre })
-}
-internal fun numericVersion(raw: String): NumericVersion? {
-    val match = Regex("""^v?(\d+)\.(\d+)\.(\d+)(?:-([A-Za-z0-9-]+))?$""").matchEntire(raw.trim()) ?: return null
-    return NumericVersion(match.groupValues[1].toIntOrNull() ?: return null,
-        match.groupValues[2].toIntOrNull() ?: return null,
-        match.groupValues[3].toIntOrNull() ?: return null, match.groupValues[4].isNotEmpty())
-}
-
-/** Only published assets of our repository are eligible; no arbitrary update URLs. */
-class GithubUpdates(private val context: Context) {
-    private val http = OkHttpClient.Builder().callTimeout(60, TimeUnit.SECONDS).build()
-    companion object {
-        const val REPO = "Kust3r3nk0/TGWS-Android"
-        const val OPEN_UPDATES = "tgws_open_updates"
-        private const val MAX_APK = 160L * 1024 * 1024
-    }
-    private fun trusted(url: String): Boolean = runCatching {
-        val u = Uri.parse(url)
-        u.scheme == "https" && u.host == "github.com" &&
-            u.path.orEmpty().startsWith("/" + REPO + "/releases/download/")
-    }.getOrDefault(false)
-
-    private fun fetch(url: String, limit: Int = 2_000_000): String {
-        http.newCall(Request.Builder().url(url).header("User-Agent", "TGWS-Android-UpdateCenter")
-            .build()).execute().use { reply ->
-            if (!reply.isSuccessful) error("GitHub HTTP " + reply.code)
-            val bytes = reply.body?.byteStream() ?: error("Пустой ответ GitHub")
-            ByteArrayOutputStream().use { out ->
-                bytes.use { input ->
-                    val buffer = ByteArray(16_384)
-                    while (true) {
-                        val n = input.read(buffer)
-                        if (n < 0) break
-                        if (out.size() + n > limit) error("Ответ сервера слишком велик")
-                        out.write(buffer, 0, n)
-                    }
+/** No credentials, TLS exceptions, arbitrary note URLs, or unbounded response buffers. */
+internal class GithubUpdateHttp(private val client:OkHttpClient=OkHttpClient.Builder()
+    .connectTimeout(15,TimeUnit.SECONDS).readTimeout(20,TimeUnit.SECONDS)
+    .callTimeout(10,TimeUnit.MINUTES).followRedirects(false).followSslRedirects(false).build()):UpdateHttp {
+    private suspend fun <T> read(url:String,redirects:Int=0,deadline:Long=System.nanoTime()+TimeUnit.SECONDS.toNanos(60),consume:(Response,()->Unit)->T):T {
+        if(redirects>4)throw UpdateException(UpdateIssue.BAD_RESPONSE)
+        val remaining=TimeUnit.NANOSECONDS.toMillis(deadline-System.nanoTime())
+        if(remaining<=0)throw UpdateException(UpdateIssue.TIMEOUT)
+        val result=suspendCancellableCoroutine<Pair<T?,String?>> { continuation ->
+            val call=client.newCall(Request.Builder().url(url)
+                .header("User-Agent","TGWS-Android-UpdateCenter")
+                .header("Accept","application/vnd.github+json")
+                .header("X-GitHub-Api-Version","2026-03-10").build())
+            call.timeout().timeout(minOf(remaining,client.callTimeoutMillis.takeIf{it>0}?.toLong()?:remaining),TimeUnit.MILLISECONDS)
+            continuation.invokeOnCancellation{call.cancel()}
+            call.enqueue(object:Callback {
+                override fun onFailure(call:Call,e:IOException){
+                    if(continuation.isActive)continuation.resumeWithException(if(e is java.io.InterruptedIOException)
+                        UpdateException(UpdateIssue.TIMEOUT) else UpdateException(UpdateIssue.NETWORK))
                 }
-                return out.toString("UTF-8")
-            }
-        }
-    }
-
-    private fun installedVersion(): String {
-        @Suppress("DEPRECATION")
-        return context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
-    }
-
-    suspend fun check(): Result<GithubRelease?> = withContext(Dispatchers.IO) {
-        runCatching {
-            val installed = numericVersion(installedVersion()) ?: error("Некорректная версия приложения")
-            val alpha = installed.pre
-            val json = JSONArray(fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=30"))
-            val candidates = mutableListOf<GithubRelease>()
-            for (i in 0 until json.length()) {
-                val entry = json.optJSONObject(i) ?: continue
-                if (entry.optBoolean("draft") || (entry.optBoolean("prerelease") && !alpha)) continue
-                val tag = entry.optString("tag_name")
-                val version = numericVersion(tag) ?: continue
-                if (version <= installed) continue
-                var apkName = ""
-                var apkUrl = ""
-                var shaUrl = ""
-                val assets = entry.optJSONArray("assets") ?: continue
-                for (j in 0 until assets.length()) {
-                    val a = assets.optJSONObject(j) ?: continue
-                    val name = a.optString("name")
-                    val url = a.optString("browser_download_url")
-                    if (!trusted(url)) continue
-                    if (name == "SHA256SUMS") shaUrl = url
-                    if (name.startsWith("TGWS-Android-") && name.endsWith(".apk") &&
-                        name.contains("debug", ignoreCase = true) == alpha) {
-                        apkName = name
-                        apkUrl = url
-                    }
-                }
-                if (apkUrl.isNotEmpty() && shaUrl.isNotEmpty())
-                    candidates += GithubRelease(tag, tag.removePrefix("v").removeSuffix("-debug"),
-                        entry.optString("body"), apkName, apkUrl, shaUrl)
-            }
-            candidates.maxWithOrNull(compareBy { numericVersion(it.tag) })
-        }
-    }
-
-    private fun onWifi(): Boolean {
-        val conn = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        return conn.allNetworks.any { network ->
-            conn.getNetworkCapabilities(network)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
-        }
-    }
-
-    /** SHA-256 AND installed package signing certificate AND monotonically newer versionCode. */
-    suspend fun downloadVerified(release: GithubRelease, wifiOnly: Boolean): File = withContext(Dispatchers.IO) {
-        if (!trusted(release.apkUrl) || !trusted(release.shaUrl)) error("Недоверенный URL")
-        if (wifiOnly && !onWifi()) error("Для загрузки необходим Wi-Fi")
-        val sha = fetch(release.shaUrl, 100_000).lineSequence().mapNotNull { line ->
-            Regex("""^([A-Fa-f0-9]{64})\s+\*?(.+?)\s*$""")
-                .matchEntire(line.trim())?.takeIf { it.groupValues[2] == release.apkName }
-                ?.groupValues?.get(1)
-        }.firstOrNull() ?: error("Контрольная сумма APK отсутствует")
-        val folder = File(context.cacheDir, "verified_updates").also { it.mkdirs() }
-        val tmp = File(folder, "tgws.pending")
-        val target = File(folder, "tgws-verified.apk")
-        tmp.delete()
-        try {
-            val digest = MessageDigest.getInstance("SHA-256")
-            var length = 0L
-            http.newCall(Request.Builder().url(release.apkUrl)
-                .header("User-Agent", "TGWS-Android-UpdateCenter").build()).execute().use { reply ->
-                if (!reply.isSuccessful) error("APK HTTP " + reply.code)
-                if ((reply.body?.contentLength() ?: -1) > MAX_APK) error("APK слишком велик")
-                (reply.body?.byteStream() ?: error("Пустой APK")).use { input ->
-                    FileOutputStream(tmp).use { output ->
-                        val buffer = ByteArray(64 * 1024)
-                        while (true) {
-                            val n = input.read(buffer)
-                            if (n < 0) break
-                            length += n
-                            if (length > MAX_APK) error("APK слишком велик")
-                            digest.update(buffer, 0, n)
-                            output.write(buffer, 0, n)
+                override fun onResponse(call:Call,response:Response){
+                    try{response.use { reply ->
+                        if(reply.code in listOf(301,302,303,307,308)) {
+                            val next=reply.header("Location")?.toHttpUrlOrNull()?:throw UpdateException(UpdateIssue.BAD_RESPONSE)
+                            if(next.scheme!="https" || next.port!=443 || next.username.isNotEmpty() || next.password.isNotEmpty() ||
+                                next.host !in setOf("github.com","release-assets.githubusercontent.com","objects.githubusercontent.com"))
+                                throw UpdateException(UpdateIssue.BAD_RESPONSE)
+                            if(continuation.isActive)continuation.resume(null to next.toString())
+                        }else{
+                            if(!reply.isSuccessful)throw httpFailure(reply)
+                            val value=consume(reply){continuation.context.ensureActive()}
+                            if(continuation.isActive)continuation.resume(value to null)
                         }
-                        output.fd.sync()
-                    }
+                    }}catch(e:Exception){if(continuation.isActive)continuation.resumeWithException(
+                        if(e is UpdateException)e else if(e is java.io.InterruptedIOException)UpdateException(UpdateIssue.TIMEOUT)
+                        else UpdateException(UpdateIssue.NETWORK))}
                 }
-            }
-            if (length == 0L) error("APK пуст")
-            if (!digest.digest().joinToString("") { "%02x".format(it) }.equals(sha, true))
-                error("SHA-256 APK не совпадает")
-            val flags = PackageManager.PackageInfoFlags.of(PackageManager.GET_SIGNING_CERTIFICATES.toLong())
-            val pm = context.packageManager
-            val installed = pm.getPackageInfo(context.packageName, flags)
-            val archive = pm.getPackageArchiveInfo(tmp.absolutePath, flags) ?: error("Недопустимый APK")
-            if (archive.packageName != context.packageName ||
-                archive.longVersionCode <= installed.longVersionCode) error("APK не подходит для обновления")
-            val existing = installed.signingInfo?.apkContentsSigners ?: error("Нет подписи приложения")
-            val incoming = archive.signingInfo?.apkContentsSigners ?: error("Нет подписи APK")
-            if (existing.size != incoming.size || existing.any { old ->
-                    incoming.none { next -> old.toByteArray().contentEquals(next.toByteArray()) }
-                }) error("Подпись APK отличается")
-            if (target.exists() && !target.delete()) error("Не удалось заменить APK")
-            if (!tmp.renameTo(target)) error("Не удалось сохранить APK")
-            target
-        } catch (e: Exception) {
-            tmp.delete()
-            throw e
+            })
+        }
+        result.second?.let{return read(it,redirects+1,deadline,consume)}
+        @Suppress("UNCHECKED_CAST") return result.first as T
+    }
+    private fun httpFailure(reply:Response):UpdateException {
+        val now=System.currentTimeMillis()
+        val retry=(reply.header("Retry-After")?.toLongOrNull()?.coerceIn(60,86400)?.times(1000)?.plus(now)
+            ?:reply.header("X-RateLimit-Reset")?.toLongOrNull()?.times(1000)?.coerceIn(now+60000,now+86400000)
+            ?:now+15*60000)
+        return when(reply.code){
+            403->UpdateException(if(reply.header("X-RateLimit-Remaining")=="0")UpdateIssue.RATE_LIMIT else UpdateIssue.FORBIDDEN,retry)
+            404->UpdateException(UpdateIssue.NOT_FOUND)
+            429->UpdateException(UpdateIssue.RATE_LIMIT,retry)
+            else->UpdateException(UpdateIssue.NETWORK)
         }
     }
-
-    /** Android controls installation and asks the user for confirmation. */
-    fun install(apk: File) {
-        if (!context.packageManager.canRequestPackageInstalls()) {
-            context.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                Uri.parse("package:" + context.packageName)))
-            error("Разрешите установку для TGWS-Android и повторите нажатие «Обновить»")
-        }
-        val uri = FileProvider.getUriForFile(context, context.packageName + ".updates", apk)
-        context.startActivity(Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        })
+    override suspend fun text(url:String,limit:Int):String=read(url){reply,active->
+        val body=reply.body
+        if(body.contentLength()>limit)throw UpdateException(UpdateIssue.BAD_RESPONSE)
+        val out=java.io.ByteArrayOutputStream()
+        body.byteStream().use{input->val b=ByteArray(16384);while(true){active();val n=input.read(b);if(n<0)break
+            if(out.size()+n>limit)throw UpdateException(UpdateIssue.BAD_RESPONSE);out.write(b,0,n)}}
+        out.toString("UTF-8")
     }
-
-    fun configureWorker(replace: Boolean = false) {
-        val options = UpdateOptionsStore(context).read()
-        val manager = WorkManager.getInstance(context)
-        if (!options.auto) {
-            manager.cancelUniqueWork("tgws-update-check")
-        } else {
-            val request = PeriodicWorkRequestBuilder<UpdateWorker>(options.minutes, TimeUnit.MINUTES)
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build()
-            manager.enqueueUniquePeriodicWork("tgws-update-check",
-                if (replace) ExistingPeriodicWorkPolicy.UPDATE else ExistingPeriodicWorkPolicy.KEEP, request)
+    override suspend fun download(url:String,target:File,expectedSize:Long,progress:(Long)->Unit){
+        read(url,deadline=System.nanoTime()+TimeUnit.MINUTES.toNanos(10)){reply,active->
+            val body=reply.body
+            if(body.contentLength()>MAX_UPDATE_BYTES || body.contentLength()>=0 && body.contentLength()!=expectedSize)
+                throw UpdateException(UpdateIssue.INVALID_APK)
+            var total=0L
+            body.byteStream().use{input->FileOutputStream(target).use{output->val b=ByteArray(65536)
+                while(true){active();val n=input.read(b);if(n<0)break;total+=n
+                    if(total>MAX_UPDATE_BYTES || total>expectedSize)throw UpdateException(UpdateIssue.INVALID_APK)
+                    output.write(b,0,n);progress(total)}
+                output.fd.sync()
+            }}
+            if(total!=expectedSize || total==0L)throw UpdateException(UpdateIssue.INVALID_APK)
         }
-    }
-
-    fun notify(release: GithubRelease) {
-        val prefs = UpdateOptionsStore(context)
-        if (!prefs.read().notify || !prefs.unseen(release.tag)) return
-        if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
-        val notifications = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channel = "tgws_app_updates"
-        notifications.createNotificationChannel(NotificationChannel(
-            channel, "Обновления TGWS-Android", NotificationManager.IMPORTANCE_DEFAULT))
-        val launch = Intent(context, MainActivity::class.java)
-            .putExtra(OPEN_UPDATES, true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        val pending = PendingIntent.getActivity(context, 306, launch,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        notifications.notify(306, Notification.Builder(context, channel)
-            .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle("Обновление TGWS-Android")
-            .setContentText("Доступна версия " + release.version)
-            .setContentIntent(pending).setAutoCancel(true).build())
-        prefs.notified(release.tag)
     }
 }
 
-class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
-    override suspend fun doWork(): Result {
-        if (!UpdateOptionsStore(applicationContext).read().auto) return Result.success()
-        val updates = GithubUpdates(applicationContext)
-        val next = updates.check().getOrElse { return Result.retry() }
-        if (next != null) updates.notify(next)
-        return Result.success()
+internal fun checksumFor(text:String,name:String):String {
+    val matches=text.lineSequence().mapNotNull{line->Regex("([0-9a-fA-F]{64})[ \\t]+\\*?([^\\r\\n]+)")
+        .matchEntire(line.trim())?.takeIf{it.groupValues[2]==name}?.groupValues?.get(1)?.lowercase()}.toList()
+    if(matches.size!=1)throw UpdateException(UpdateIssue.CHECKSUM)
+    return matches.single()
+}
+internal fun sha256(file:File):String {
+    val digest=MessageDigest.getInstance("SHA-256")
+    file.inputStream().use{input->val b=ByteArray(65536);while(true){val n=input.read(b);if(n<0)break;digest.update(b,0,n)}}
+    return digest.digest().joinToString(""){"%02x".format(it)}
+}
+internal fun verifyUpdateChecksum(file:File,expected:String){
+    if(!expected.matches(Regex("[0-9a-fA-F]{64}")) || !sha256(file).equals(expected,true))throw UpdateException(UpdateIssue.CHECKSUM)
+}
+/** Reject compressed manifest/resource bombs before any signature or package parser. */
+internal fun validateUpdateArchive(file:File){
+    try{java.util.zip.ZipFile(file).use{zip->
+        if(zip.size()>25000)throw UpdateException(UpdateIssue.INVALID_APK)
+        var total=0L;var manifests=0
+        val entries=zip.entries()
+        while(entries.hasMoreElements()){
+            val entry=entries.nextElement();total+=entry.size.coerceAtLeast(0)
+            if(entry.size<0 || entry.size>64L*1024*1024 || total>512L*1024*1024)throw UpdateException(UpdateIssue.INVALID_APK)
+            if(entry.name=="AndroidManifest.xml"){manifests++;if(entry.size !in 1..2L*1024*1024)throw UpdateException(UpdateIssue.INVALID_APK)}
+            if(entry.name=="resources.arsc" && entry.size>32L*1024*1024)throw UpdateException(UpdateIssue.INVALID_APK)
+        }
+        if(manifests!=1)throw UpdateException(UpdateIssue.INVALID_APK)
+    }}catch(error:UpdateException){throw error}catch(_:java.io.IOException){throw UpdateException(UpdateIssue.INVALID_APK)}
+}
+
+/** Only release-owned assets and a documented manifest can advertise an APK. */
+internal class GithubUpdateSource(private val http:UpdateHttp) {
+    suspend fun check(installedVersion:String,installedCode:Long,sdk:Int,channel:UpdateChannel):GithubRelease? {
+        val installed=numericVersion(installedVersion)?:throw UpdateException(UpdateIssue.BAD_RESPONSE)
+        val entries=try{JSONArray(http.text("https://api.github.com/repos/$UPDATE_REPOSITORY/releases?per_page=100"))}
+            catch(e:org.json.JSONException){throw UpdateException(UpdateIssue.BAD_RESPONSE)}
+        if(entries.length()>100)throw UpdateException(UpdateIssue.BAD_RESPONSE)
+        val eligible=(0 until entries.length()).mapNotNull{entries.optJSONObject(it)}.filter{entry->
+            val v=numericVersion(entry.optString("tag_name"))
+            entry.optLong("id",-1)>0 && !entry.optBoolean("draft",true) && v!=null && v>installed &&
+                (channel==UpdateChannel.PREVIEW || !entry.optBoolean("prerelease",true) && !v.pre && !entry.optString("tag_name").endsWith("-debug"))
+        }.sortedWith(compareByDescending{numericVersion(it.optString("tag_name"))}).take(8)
+        val candidates=mutableListOf<GithubRelease>()
+        for(entry in eligible) {
+            val tag=entry.optString("tag_name")
+            val assets=entry.optJSONArray("assets")?:continue
+            val names=mutableMapOf<String,UpdateAsset>()
+            for(i in 0 until minOf(assets.length(),40)) {
+                val a=assets.optJSONObject(i)?:continue
+                val name=a.optString("name");val url=a.optString("browser_download_url");val size=a.optLong("size",-1)
+                if(!trustedUpdateAsset(url,tag,name) || size !in 1..MAX_UPDATE_BYTES)continue
+                if(names.put(name,UpdateAsset(name,url,size))!=null)throw UpdateException(UpdateIssue.BAD_RESPONSE)
+            }
+            val manifest=names["update-manifest.json"]?:continue
+            if(manifest.size>16_384)continue
+            val metadata=try{JSONObject(http.text(manifest.url,16_384))}catch(e:org.json.JSONException){throw UpdateException(UpdateIssue.BAD_RESPONSE)}
+            val version=metadata.optString("version_name")
+            val v=numericVersion(version)?:continue
+            val code=metadata.optLong("version_code",-1)
+            val minSdk=metadata.optInt("min_sdk",-1)
+            val kind=runCatching{UpdateChannel.valueOf(metadata.optString("channel"))}.getOrNull()?:continue
+            val apk=names[metadata.optString("apk")]?:continue
+            val sums=names["SHA256SUMS"]?:continue
+            if(metadata.opt("version_code") !is Int && metadata.opt("version_code") !is Long || metadata.opt("min_sdk") !is Int ||
+                metadata.optInt("schema")!=1 || metadata.optString("package_name")!=UPDATE_PACKAGE ||
+                v!=numericVersion(tag) || v<=installed || code<=installedCode || minSdk !in 36..sdk ||
+                !apk.name.startsWith("TGWS-Android-") || !apk.name.endsWith(".apk") ||
+                channel==UpdateChannel.STABLE && kind!=UpdateChannel.STABLE ||
+                kind==UpdateChannel.STABLE && (v.pre || tag.endsWith("-debug") || apk.name.contains("debug",true) || entry.optBoolean("prerelease",true)))continue
+            if(sums.size>100_000)continue
+            candidates+=GithubRelease(entry.optLong("id"),tag,version,code,minSdk,kind,entry.optString("body").take(64000),apk,sums)
+        }
+        return candidates.maxWithOrNull(compareBy<GithubRelease>{numericVersion(it.version)}.thenBy{it.versionCode})
     }
 }

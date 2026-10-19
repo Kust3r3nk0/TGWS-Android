@@ -30,6 +30,7 @@ class UpgradeInstrumentation : AndroidJUnitRunner() {
             val store = SettingsStore(context)
             val preferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
             val fixture = context.getSharedPreferences("upgrade_fixture", Context.MODE_PRIVATE)
+            val updates = context.getSharedPreferences("tgws_update_options", Context.MODE_PRIVATE)
             val sample = "00112233445566778899aabbccddeeff"
             val relay = "wss://relay.example/upgrade-fixture/apiws"
             when (phase) {
@@ -46,6 +47,9 @@ class UpgradeInstrumentation : AndroidJUnitRunner() {
                     checkpoint = "APPEARANCE"
                     AppPreferences(context).let { check(it.theme == ThemeMode.DARK && it.liquidGlass && it.transparency) }
                     check(fixture.edit().putString("protected", JSONObject(preferences.all).toString()).commit())
+                    check(updates.edit().putBoolean("auto",false).putLong("period",720).putBoolean("notify",false)
+                        .putBoolean("wifi",true).putString("channel","PREVIEW").commit())
+                    check(fixture.edit().putString("updates",JSONObject(updates.all).toString()).commit())
                 }
                 "verify" -> {
                     checkpoint = "LOAD_FIXTURE"
@@ -64,6 +68,10 @@ class UpgradeInstrumentation : AndroidJUnitRunner() {
                     check(appearance.liquidGlass)
                     checkpoint = "TRANSPARENCY"
                     check(appearance.transparency)
+                    checkpoint = "UPDATE_OPTIONS"
+                    val oldUpdates=JSONObject(requireNotNull(fixture.getString("updates",null)))
+                    check(updates.all.size==oldUpdates.length())
+                    check(oldUpdates.keys().asSequence().all{updates.all[it].toString()==oldUpdates.get(it).toString()})
                 }
                 else -> error("Invalid phase")
             }
