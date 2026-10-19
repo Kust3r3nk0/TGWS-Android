@@ -45,6 +45,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -59,7 +62,7 @@ private val NightBorder = Color(0xFF2A3B3C)
 private val Dim = Color(0xFFADB8B9)
 
 @Composable private fun UiColors(): Pair<Color, Color> {
-    val dark = androidx.compose.foundation.isSystemInDarkTheme()
+    val dark = MaterialTheme.colorScheme.background.luminance() < .5f
     return if (dark) Night to NightCard
     else MaterialTheme.colorScheme.background to MaterialTheme.colorScheme.surfaceContainer
 }
@@ -138,7 +141,7 @@ internal fun TgwsUpdateHub(
     fun change(next: UpdateOptions) {
         options = next
         store.save(next)
-        updates.configureWorker()
+        updates.configureWorker(replace = true)
     }
     fun check() {
         if (loading) return
@@ -190,7 +193,7 @@ internal fun TgwsUpdateHub(
                         verticalArrangement = Arrangement.spacedBy(15.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Доступно обновление", color = Dim,
+                            Text(if (info != null) "Доступно обновление" else "Проверка обновлений", color = Dim,
                                 style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                             Surface(shape = RoundedCornerShape(100.dp), color = Accent.copy(alpha = .14f),
                                 border = BorderStroke(1.dp, Accent.copy(alpha = .55f))) {
@@ -221,12 +224,17 @@ internal fun TgwsUpdateHub(
                             PremiumCard {
                                 Row(verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    val iconColor = when (category) {
+                                        "Исправления" -> Color(0xFF90A8FF)
+                                        "Оптимизация" -> Color(0xFFFFC763)
+                                        else -> Accent
+                                    }
                                     Text(when (category) {
                                         "Новые функции" -> "✧"
                                         "Исправления" -> "⚒"
                                         "Оптимизация" -> "◉"
                                         else -> "ⓘ"
-                                    }, color = Accent, fontSize = 25.sp)
+                                    }, color = iconColor, fontSize = 25.sp)
                                     Text(category, style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold)
                                 }
@@ -286,7 +294,7 @@ internal fun TgwsUpdateHub(
                             Text("Поиск новых версий на GitHub",
                                 style = MaterialTheme.typography.bodySmall, color = Dim)
                         }
-                        Switch(checked = options.auto, onCheckedChange = {
+                        Switch(checked = options.auto, colors = SwitchDefaults.colors(checkedTrackColor = Accent, checkedThumbColor = Color(0xFF082017)), onCheckedChange = {
                             change(options.copy(auto = it))
                         }, modifier = Modifier.testTag("updates.auto"))
                     }
@@ -313,6 +321,7 @@ internal fun TgwsUpdateHub(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(selected = selected, enabled = options.auto,
+                                colors = RadioButtonDefaults.colors(selectedColor = Accent),
                                 onClick = { change(options.copy(minutes = period)) })
                             Text(label, modifier = Modifier.padding(start = 6.dp),
                                 color = if (options.auto) MaterialTheme.colorScheme.onSurface else Dim,
@@ -327,7 +336,7 @@ internal fun TgwsUpdateHub(
                             Text("Системные уведомления Android",
                                 color = Dim, style = MaterialTheme.typography.bodySmall)
                         }
-                        Switch(checked = options.notify, onCheckedChange = {
+                        Switch(checked = options.notify, colors = SwitchDefaults.colors(checkedTrackColor = Accent, checkedThumbColor = Color(0xFF082017)), onCheckedChange = {
                             change(options.copy(notify = it))
                             if (it && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
                                 PackageManager.PERMISSION_GRANTED) requestNotificationPermission()
@@ -342,6 +351,7 @@ internal fun TgwsUpdateHub(
                                 color = Dim, style = MaterialTheme.typography.bodySmall)
                         }
                         Switch(checked = options.wifiOnly,
+                            colors = SwitchDefaults.colors(checkedTrackColor = Accent, checkedThumbColor = Color(0xFF082017)),
                             onCheckedChange = { change(options.copy(wifiOnly = it)) },
                             modifier = Modifier.testTag("updates.wifi"))
                     }
