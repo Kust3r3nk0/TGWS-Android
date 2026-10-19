@@ -1,22 +1,25 @@
 package io.github.kust3r3nk0.tgwsandroid
 
-import android.app.Instrumentation
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import org.json.JSONObject
+import androidx.test.runner.AndroidJUnitRunner
 
 /** Separate CI process before and after adb install -r. Contains only public test fixtures. */
-class UpgradeInstrumentation : Instrumentation() {
+class UpgradeInstrumentation : AndroidJUnitRunner() {
     private var phase = ""
     private var expectedVersion = -1L
     override fun onCreate(arguments: Bundle?) {
-        super.onCreate(arguments)
         phase = arguments?.getString("phase").orEmpty()
         expectedVersion = arguments?.getString("version")?.toLongOrNull() ?: -1
-        start()
+        super.onCreate(arguments)
     }
     override fun onStart() {
+        if (phase.isEmpty()) {
+            super.onStart()
+            return
+        }
         try {
             check(Build.MODEL.startsWith("sdk_gphone"))
             val context = targetContext

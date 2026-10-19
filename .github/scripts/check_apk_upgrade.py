@@ -11,6 +11,13 @@ import urllib.request
 BASELINE_URL = 'https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.4-alpha-debug/TGWS-Android-0.3.4-debug.apk'
 BASELINE_SHA = '453c6676053c439709508a16024267f502f079b8ce7b8b8cc9952c2bd997eab8'
 PACKAGE = 'io.github.kust3r3nk0.tgwsandroid'
+RUNNER = PACKAGE + '.UpgradeInstrumentation'
+
+
+def check_runner(manifest):
+    # AGP may replace instrumentation declarations with testInstrumentationRunner.
+    if not re.search(r'android:name\([^\n]*="' + re.escape(RUNNER) + r'"', manifest):
+        raise ValueError('Upgrade runner is absent from the compiled test APK')
 
 
 def checked_phase(output, phase):
@@ -29,7 +36,8 @@ def emulator_serial(value):
 def run(*args, allow_failure=False):
     result = subprocess.run(args, text=True, capture_output=True, timeout=120)
     if result.returncode and not allow_failure:
-        raise ValueError('Upgrade command failed: ' + Path(args[0]).name)
+        operation = next((name for name in ('instrument', 'install', 'uninstall', 'sign') if name in args), 'command')
+        raise ValueError('Upgrade ' + operation + ' failed: ' + Path(args[0]).name)
     return result.stdout
 
 
@@ -46,6 +54,8 @@ def main():
     old = stage / 'baseline.apk'
     signed = stage / 'baseline-ci-signed.apk'
     if args.prepare:
+        check_runner(run(str(Path(args.sdk) / 'build-tools/36.0.0/aapt'), 'dump', 'xmltree',
+                         'app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk', 'AndroidManifest.xml'))
         with urllib.request.urlopen(BASELINE_URL, timeout=60) as response:
             payload = response.read(100 * 1024 * 1024 + 1)
         if hashlib.sha256(payload).hexdigest() != BASELINE_SHA:
