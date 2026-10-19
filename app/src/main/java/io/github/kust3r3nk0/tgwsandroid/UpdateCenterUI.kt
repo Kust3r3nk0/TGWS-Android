@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -112,6 +114,7 @@ private fun sections(notes: String): List<Pair<String, List<String>>> {
         TextButton(onClick = back, modifier = Modifier.testTag("updates.back")) {
             Text("‹", fontSize = 32.sp, color = MaterialTheme.colorScheme.onSurface)
         }
+        Image(painterResource(R.drawable.tgws_symbol), contentDescription = null, modifier = Modifier.size(36.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
