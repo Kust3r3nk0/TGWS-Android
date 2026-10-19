@@ -4,13 +4,13 @@
   <img src="docs/images/tgws-github-cover-en.svg" width="100%" alt="TGWS-Android — native MTProto proxy for Android, English cover" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.5--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.6--alpha-orange)
 
-**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.5-alpha-debug/TGWS-Android-0.3.5-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Test results](docs/en/TEST_REPORT_0.3.5-alpha.md) · [Contributing](docs/en/CONTRIBUTING.md)**
+**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.6-alpha-debug/TGWS-Android-0.3.6-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Test results](docs/en/TEST_REPORT_0.3.6-alpha.md) · [Contributing](docs/en/CONTRIBUTING.md)**
 
 **Unofficial, open-source Android 16+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
-> **0.3.5-alpha is a test build with the preserved debug signature.** CI passed 203 JVM tests, 33 Android tests each on API 36/37 and an in-place 0.3.4 upgrade preserving credentials/settings. Physical Telegram/carrier validation of this version is pending.
+> **0.3.6-alpha is an Android 16+ test build with the preserved debug signature.** See the version report for CI and upgrade-continuity results. Physical Telegram/carrier validation of this version is pending.
 
 ## Languages & technology
 
@@ -40,13 +40,13 @@ Android Keystore, Gradle and GitHub Actions. [Image sources & licenses](docs/en/
     <td align="center" width="33%"><strong>Appearance</strong></td>
   </tr>
   <tr>
-    <td><img src="docs/images/0.3.3/home-light.png" alt="TGWS-Android 0.3.3: light Home screen with transparency" width="260" /></td>
-    <td><img src="docs/images/0.3.3/home-dark.png" alt="TGWS-Android 0.3.3: dark Home screen with transparency" width="260" /></td>
-    <td><img src="docs/images/0.3.3/settings-glass.png" alt="TGWS-Android 0.3.3: settings with Liquid Glass and transparency enabled" width="260" /></td>
+    <td><img src="docs/images/0.3.5/home-light.png" alt="TGWS-Android 0.3.5: light Home screen with transparency" width="260" /></td>
+    <td><img src="docs/images/0.3.5/home-dark.png" alt="TGWS-Android 0.3.5: dark Home screen with transparency" width="260" /></td>
+    <td><img src="docs/images/0.3.5/settings-glass.png" alt="TGWS-Android 0.3.5: settings with Liquid Glass and transparency enabled" width="260" /></td>
   </tr>
 </table>
 
-Historical **0.3.3-alpha** CI captures (not the current support matrix): Android API 35/36/37, English locale, software GPU.
+Verified **0.3.5-alpha** CI captures: Android API 36/37, English locale, software GPU.
 Beta effects are enabled for this demonstration; they are off by default. These captures
 do not establish Telegram connectivity. [Sources and verified SHA-256](docs/en/IMAGE_ASSETS.md).
 
@@ -68,15 +68,22 @@ Wi-Fi/cellular and address families even while stopped.
 
 ## Architecture & roadmap
 
-![TGWS-Android: current alpha architecture and planned 1.0 features](docs/images/tgws-android-workflow-en.svg)
+```mermaid
+flowchart LR
+    A[Android 16+] --> B[Foreground Service]
+    B --> C[Local MTProto 127.0.0.1]
+    C --> D[Native Kotlin core]
+    D --> E[WSS / TCP / configured relay]
+    E --> F[Telegram DC]
+```
 
-*The diagram separates the current unverified alpha source snapshot from features planned for 1.0.*
+*The diagram shows the native path. External route reachability is verified separately.*
 
 ## Goal
 
 Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 36+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
 
-[Download 0.3.5 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.5-alpha-debug/TGWS-Android-0.3.5-debug.apk)
+[Download 0.3.6 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.6-alpha-debug/TGWS-Android-0.3.6-debug.apk)
 
 ## 0.2.0 reliability
 
@@ -95,7 +102,7 @@ The app supports an optional **relay-only** route through your reachable
 WSS endpoint. No external relay has been deployed or validated on a carrier yet.
 [Setup, standalone server and limits](docs/en/MOBILE_NETWORKS.md).
 
-## Current state (0.3.5-alpha)
+## Current state (0.3.6-alpha)
 
 | Component | Status |
 |---|---|
@@ -105,7 +112,7 @@ WSS endpoint. No external relay has been deployed or validated on a carrier yet.
 | WebSocket framing, Upgrade and TLS | Implemented and tested with local RFC 6455 / TLS peers; live WSS validation required |
 | Foreground Service and network loss | Basic lifecycle tested on API 36–37 emulators; real Wi-Fi/LTE requires validation |
 | Compose / Material 3, Russian and English UI | Tested on API 36–37; physical validation pending |
-| Keystore AES-256-GCM | API 36–37 including in-place 0.3.4 → 0.3.5 upgrade; missing keys/records require explicit recovery |
+| Keystore AES-256-GCM | API 36–37 including in-place 0.3.5 → 0.3.6 upgrade; missing keys/records require explicit recovery |
 | Official Telegram physical-device E2E | Owner confirmed earlier text/SD; HD stalls on 0.3.4/LTE/Worker. New 0.3.5 needs validation |
 | Debug APK | Debug-signed test artifact, not a distribution release |
 | GitHub debug Pre-releases | Owner-authorized after CI, with debug signing and stated limitations |
@@ -134,7 +141,7 @@ checksum, build version/commit and changelog, with JVM/Lint reports separately.
 Action versions are pinned to verified commit SHAs. A separate PR/manual workflow
 is configured to run instrumentation tests on API 36 and 37.0; verify new run results.
 JVM tests, Lint and APK assembly are required checks. See [testing](docs/en/TESTING.md) and the
-[update test report](docs/en/TEST_REPORT_0.3.5-alpha.md).
+[update test report](docs/en/TEST_REPORT_0.3.6-alpha.md).
 
 ## Versions
 

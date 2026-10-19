@@ -1,7 +1,7 @@
 # TGWS-16-016 — WebView Stable / Beta
 
 Приоритет P1. Требование владельца от 16.10.2026. Матрица Android 16+, AOSP и Samsung
-One UI 8.5/9.0; минимум всего приложения — Android 16 / API 36 (Android 14/15 исключены).
+One UI 8.5/9.0; минимум всего приложения — Android 16 / API 36.
 [English](en/WEBVIEW_COMPATIBILITY.md) · [порядок физических проверок](TGWS-16-017_PHYSICAL_TESTING.md).
 
 ## Применимость к текущему приложению
@@ -68,7 +68,7 @@ Android/API и One UI (по экрану устройства, не по дог�
 
 ## Что CI измеряет сейчас
 
-Эмуляторные API 35/36/37 проходят прежние native-тесты. До/после прогона сохраняются
+Эмуляторные API 36/37 проходят native-тесты. До/после прогона сохраняются
 `android-environment/before.json` и `after.json`: manufacturer, model, Android/API,
 выбранный provider package/version и предполагаемый канал по известному имени пакета.
 `com.android.webview` обозначается AOSP, не Latest Stable. Неизвестный OEM остаётся unknown.

@@ -31,10 +31,14 @@ jobs:
         run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
       - name: Check the declared native UI contract (TGWS-16-016)
         run: python3 .github/scripts/verify_native_ui.py --output app/build/reports/native-ui.json
+      - name: Check Android 16+ sources, resources and documentation
+        run: python3 .github/scripts/verify_android_platform.py
       - name: Run tests, lint and debug build
         run: ./gradlew --no-daemon -PsoakSeconds=60 :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Check retired Cloudflare DNS is absent from the app APK
         run: python3 .github/scripts/verify_native_dns.py
+      - name: Check built APK platform minimum
+        run: python3 .github/scripts/verify_android_platform.py --apk app/build/outputs/apk/debug/app-debug.apk --output app/build/reports/android-platform.json
       - name: Verify instrumentation report gate tests
         run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
       - name: Verify actual 60-second soak execution and resource limits
@@ -111,6 +115,7 @@ jobs:
               raise SystemExit('Owner handoff contains unresolved build placeholders')
           (output / 'OWNER_HANDOFF.md').write_text(handoff)
           shutil.copy2('app/build/reports/native-ui.json', output / 'native-ui.json')
+          shutil.copy2('app/build/reports/android-platform.json', output / 'android-platform.json')
           PY
       - name: Upload debug build (not a distribution release)
         if: success()
@@ -132,6 +137,7 @@ jobs:
             app/build/reports/soak-summary.json
             app/build/reports/http2-soak-summary.json
             app/build/reports/native-ui.json
+            app/build/reports/android-platform.json
             relay/test-results.xml
             cloudflare-worker/test-results.xml
           if-no-files-found: warn

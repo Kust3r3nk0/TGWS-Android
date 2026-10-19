@@ -3,6 +3,10 @@
 # dependent checks in this process so a wrong API or failed test cannot continue.
 set -euo pipefail
 requested_api=${1:?Requested Android API is required}
+if [[ ! "$requested_api" =~ ^[0-9]+([.][0-9]+)?$ ]] || (( ${requested_api%%.*} < 36 )); then
+  echo 'Android tests require API 36 or newer' >&2
+  exit 1
+fi
 actual_api=$(adb -s emulator-5554 shell getprop ro.build.version.sdk | tr -d '\r')
 if [[ "$actual_api" != "${requested_api%%.*}" ]]; then
   echo "Wrong emulator API: expected ${requested_api%%.*}, received $actual_api" >&2

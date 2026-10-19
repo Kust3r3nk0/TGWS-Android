@@ -7,7 +7,7 @@ import unittest
 
 
 class AndroidEntryPointTest(unittest.TestCase):
-    def run_script(self, api='37', gradle_status=0, report_status=0, pull_status=0, before_status=0, after_status=0):
+    def run_script(self, api='37', gradle_status=0, report_status=0, pull_status=0, before_status=0, after_status=0, requested_api='37.0'):
         script = Path(__file__).with_name('run_android_tests.sh').resolve()
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -20,12 +20,18 @@ class AndroidEntryPointTest(unittest.TestCase):
                 path.write_text(content)
                 path.chmod(0o755)
             env = dict(os.environ, PATH=str(root) + os.pathsep + os.environ['PATH'])
-            result = subprocess.run(['bash', str(script), '37.0'], cwd=root, env=env, capture_output=True, text=True)
+            result = subprocess.run(['bash', str(script), requested_api], cwd=root, env=env, capture_output=True, text=True)
             steps = (root / 'steps').read_text().splitlines() if (root / 'steps').exists() else []
             return result.returncode, steps
 
     def test_wrong_api_stops_before_gradle(self):
-        status, steps = self.run_script(api='34')
+        status, steps = self.run_script(api=str(36 - 1))
+        self.assertNotEqual(0, status)
+        self.assertEqual([], steps)
+
+    def test_unsupported_matching_api_cannot_run_tests(self):
+        retired = str(36 - 1)
+        status, steps = self.run_script(api=retired, requested_api=retired)
         self.assertNotEqual(0, status)
         self.assertEqual([], steps)
 

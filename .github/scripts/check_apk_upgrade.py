@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check 0.3.4 -> current install -r on the explicit CI emulator, never a phone."""
+"""Check the Android 16+ baseline -> current install -r on an explicit CI emulator."""
 import argparse
 import hashlib
 import json
@@ -8,9 +8,10 @@ import re
 import subprocess
 import urllib.request
 import zipfile
+from verify_android_platform import verify_apk
 
-BASELINE_URL = 'https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.4-alpha-debug/TGWS-Android-0.3.4-debug.apk'
-BASELINE_SHA = '453c6676053c439709508a16024267f502f079b8ce7b8b8cc9952c2bd997eab8'
+BASELINE_URL = 'https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.5-alpha-debug/TGWS-Android-0.3.5-debug.apk'
+BASELINE_SHA = 'd658209c94f1f9e8fccf7ef24f2a629f3a5569becc8329e138859baf900f9164'
 PACKAGE = 'io.github.kust3r3nk0.tgwsandroid'
 RUNNER = PACKAGE + '.UpgradeInstrumentation'
 
@@ -95,7 +96,8 @@ def main():
         if hashlib.sha256(payload).hexdigest() != BASELINE_SHA:
             raise ValueError('Baseline release checksum mismatch')
         old.write_bytes(payload)
-        print('Pinned 0.3.4 APK downloaded and compiled upgrade runner verified')
+        verify_apk(old, args.sdk)
+        print('Pinned Android 16+ baseline downloaded and compiled upgrade runner verified')
         return
     if not old.is_file() or hashlib.sha256(old.read_bytes()).hexdigest() != BASELINE_SHA:
         raise ValueError('Missing prepared upgrade fixture')
@@ -124,13 +126,13 @@ def main():
     run(*adb, 'install', '--no-incremental', '-t', str(tests))
     runner = PACKAGE + '.test/' + PACKAGE + '.UpgradeInstrumentation'
     checked_phase(run(*adb, 'shell', 'am', 'instrument', '-w', '-r', '-e', 'phase', 'seed',
-                      '-e', 'version', '10', runner), 'seed')
+                      '-e', 'version', '11', runner), 'seed')
     run(*adb, 'install', '--no-incremental', '-r', '-t', str(current))
     checked_phase(run(*adb, 'shell', 'am', 'instrument', '-w', '-r', '-e', 'phase', 'verify',
                       '-e', 'version', version, runner), 'verify')
     output.mkdir(parents=True, exist_ok=True)
     (output / 'result.json').write_text(json.dumps({
-        'baseline_version': '0.3.4-alpha', 'baseline_sha256': BASELINE_SHA,
+        'baseline_version': '0.3.5-alpha', 'baseline_sha256': BASELINE_SHA,
         'target_version_code': int(version), 'install_replace': True,
         'secret_preserved': True, 'ciphertext_unchanged': True, 'keystore_preserved': True,
         'settings_preserved': True, 'signing': 'temporary CI debug key on both APKs',

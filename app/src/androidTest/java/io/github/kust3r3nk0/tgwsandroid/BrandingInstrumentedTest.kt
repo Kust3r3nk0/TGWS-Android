@@ -1,7 +1,10 @@
 package io.github.kust3r3nk0.tgwsandroid
 
 import android.graphics.drawable.AdaptiveIconDrawable
+import android.content.res.Configuration
 import android.os.Build
+import android.os.LocaleList
+import java.util.Locale
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.*
@@ -10,6 +13,18 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class BrandingInstrumentedTest {
+    @Test fun aboutLabelMatchesInstalledMinimumInBothLanguages() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        assertEquals(36, context.applicationInfo.minSdkVersion)
+        val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName!!
+        for (language in listOf("ru", "en")) {
+            val configuration = Configuration(context.resources.configuration).apply {
+                setLocales(LocaleList(Locale.forLanguageTag(language)))
+            }
+            val localized = context.createConfigurationContext(configuration)
+            assertEquals("Android 16+ · $version", localized.getString(R.string.version_label, version))
+        }
+    }
     @Test fun installedApplicationHasUserBrandingAndAndroid16Minimum() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val info = context.applicationInfo

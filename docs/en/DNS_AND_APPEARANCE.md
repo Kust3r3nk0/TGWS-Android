@@ -38,7 +38,7 @@ of every remote server. NAT64/Private DNS/routes remain in diagnostics. The UI m
 in background; the running foreground service retains its own monitor. No polling or new wake
 locks. DNS/address details remain local and are excluded from anonymous export.
 
-[Automated report](TEST_REPORT_0.3.1-alpha.md). Live Cloudflare, carrier/Telegram and physical
+[Automated report](TEST_REPORT.md). Live Cloudflare, carrier/Telegram and physical
 UI validation await the owner.
 
 ## Liquid Glass beta (0.3.2)

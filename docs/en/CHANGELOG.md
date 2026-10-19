@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.6-alpha — Android 16+ only
+
+- Correct the RU/EN About label to Android 16+; APK minimum remains API 36.
+- Remove retired platform reports, release-note files and images from the current tree; preserve Git history. Use verified API 36/37 screenshots and update SVG labels/instructions.
+- CI checks minSdk, localized branding, resources, documentation and the emulator matrix. Android regressions check both locales and the actual About screen.
+- Upgrade regression now uses the SHA-pinned Android 16+ 0.3.5 baseline, preserving credentials, Keystore and settings.
+- versionCode 12, unchanged applicationId/debug certificate. Transports and Worker limits are unchanged; physical validation belongs to the owner.
+
 ## 0.3.5-alpha — credential continuity and session reliability
 
 - Decode pasted `dd`/`ee` secrets without truncating the key; preserve the Fake TLS domain.
@@ -36,7 +44,7 @@ All notable changes will be documented in this file. Versions of this Android po
 - Off by default, persists separately from Liquid Glass and protected proxy settings; applies without restarting the service. Text and controls remain opaque.
 - Premultiplied alpha in native RuntimeShader; root window stays opaque. No capture of other apps/wallpaper, extra permissions/dependencies or continuous animation.
 - Native UI tests cover changing parent backdrop compositing, both themes/effect combinations, text visibility, persistence/disabling and unchanged MTProxy/DNS.
-- versionCode 9, Android 15+, same applicationId/debug key. Beta appearance inspired by Liquid Glass; physical appearance/battery validation pending.
+- versionCode 9, same applicationId/debug key. Beta appearance inspired by Liquid Glass; physical appearance/battery validation pending.
 
 ## [0.3.2-alpha] — 2026-10-16 (debug)
 
@@ -44,13 +52,12 @@ All notable changes will be documented in this file. Versions of this Android po
 - Off by default, including upgrades. Persists separately from protected proxy configuration and applies immediately without restarting the service.
 - Native Android RuntimeShader; no new dependency, screen capture or continuous animation loop. Refraction samples a procedural backdrop, not arbitrary content behind panels.
 - Native UI test covers default off, actual rendering/text visibility, light/dark, Activity recreation, disabling/restoring normal appearance and unchanged proxy/DNS settings.
-- versionCode 8, Android 15+, existing applicationId/debug key; physical appearance/performance validation pending. App remains alpha.
+- versionCode 8, existing applicationId/debug key; physical appearance/performance validation pending. App remains alpha.
 
 ## [0.1.2-alpha] — 2026-10-15 (debug)
 
 - Owner logo in the app/README, adaptive launcher icon and monochrome notification icon.
 - Installed label TGWS-Android without Alpha; versionCode 3, alpha stage retained in version metadata.
-- Minimum Android 15 / API 35; current CI matrix API 35–37.
 - Safe handshake rejection categories and counter separate from service/network errors; validation and routes preserved.
 - Updated persistent instructions/specification baseline/roadmap; explicitly labelled debug Pre-releases are authorized.
 - User reports 0.1.1-alpha working and Telegram showing 6–8 ms; no independent latency or complete E2E claim.
@@ -67,20 +74,19 @@ All notable changes will be documented in this file. Versions of this Android po
 
 ### Verification and limits
 - The user confirmed text send/receive and downloads in **0.1.0-alpha**, Android 16, Telegram 13.0.2, Wi-Fi, with brief disconnections. This does not verify the update.
-- Version 0.1.1-alpha requires a new physical-device test; all causes of real disconnections have not been established. See the [report](TEST_REPORT_0.1.1-alpha.md).
+- Version 0.1.1-alpha requires a new physical-device test; all causes of real disconnections have not been established. See the [report](TEST_REPORT.md).
 
 ## [0.1.0-alpha] — 2026-10-14 (source snapshot, unreleased)
 
 ### Added
 
-- Initial Kotlin/Compose Android project with Android 14 minimum target.
 - Local MTProto server, obfuscated2/AES-CTR, direct WebSocket and TCP fallback code.
 - Foreground service, settings store with Android Keystore and first JVM tests.
 - Open-source repository scaffolding, MIT attribution, contributor docs and CI definition.
 
 ### Limitations
 
-- Debug APK and automated API 34–37 tests passed CI; physical-device Telegram E2E and full upstream feature parity remain pending.
+- Debug APK and automated tests passed CI; physical-device Telegram E2E and full upstream feature parity remain pending.
 - Fake TLS, Cloudflare transports, media HTTP/2 and robust mobile network support are pending.
 
 ### Fixed during alpha preparation
@@ -90,7 +96,7 @@ All notable changes will be documented in this file. Versions of this Android po
 - Separate WSS redirects and TCP routes; bounded fallback, sessions and workers with owned sockets closed on stop/network loss.
 - Idempotent foreground service startup and distinct local/remote state.
 - Hidden secrets, explicit Keystore recovery, validated Telegram links and complete RU/EN Android string resources.
-- SHA-pinned CI actions, checksums/build metadata/reports, instrumentation sources and a separate API 34–37 device workflow.
+- SHA-pinned CI actions, checksums/build metadata/reports, instrumentation sources and a separate device workflow.
 - CI rejects empty/incomplete Android reports and checks the actual emulator API; fixed dependent shell command execution and API 37.0 AVD metadata, with 16 CI script tests.
 - Version remains `0.1.0-alpha`; physical Telegram E2E is not run, so the release gate prevents a tag and Pre-release.
 

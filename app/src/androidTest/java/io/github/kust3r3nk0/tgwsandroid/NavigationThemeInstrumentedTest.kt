@@ -171,6 +171,10 @@ class NavigationThemeInstrumentedTest {
             node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.LIGHT}
             node("nav.home").click();screenshot("home-light",dark=false)
             node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.DARK};screenshot("home-dark",dark=true)
+            node("nav.settings").click()
+            val version=context.packageManager.getPackageInfo(context.packageName,0).versionName
+            assertEquals("Android 16+ · $version",node("about.version",Direction.DOWN).text)
+            screenshot("about-dark",dark=true)
             assertEquals(before,prefs.getString("secret_encrypted",null))
         }
     }

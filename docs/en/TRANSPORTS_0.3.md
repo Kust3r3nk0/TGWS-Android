@@ -1,6 +1,6 @@
 # 0.3.0-alpha transports
 
-[Русский](../TRANSPORTS_0.3.md). Android 15+. **Owner physical-device validation: pending.**
+[Русский](../TRANSPORTS_0.3.md). Android 16+. **Owner physical-device validation: pending.**
 Local automated results do not establish public server or carrier reachability.
 
 Stop the proxy before editing. Migration preserves the 0.2 port, secret, relay URL and

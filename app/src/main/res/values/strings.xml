@@ -3,7 +3,7 @@
     <string name="route_dns_answers">Ответы DNS A/AAAA (локально): %1$s</string>
     <string name="app_name">TGWS-Android</string>
     <string name="app_label">TGWS-Android</string>
-    <string name="version_label">Android 15+ · %1$s</string>
+    <string name="version_label">Android 16+ · %1$s</string>
     <string name="local_address">Локальный адрес: %1$s:%2$s</string>
     <string name="session_counts">Активные сессии: %1$d · подключаются: %2$d</string>
     <string name="transport_counts">Транспорт сессий: WSS %1$d · TCP %2$d · реле %3$d · CF %4$d · H2 %5$d</string>

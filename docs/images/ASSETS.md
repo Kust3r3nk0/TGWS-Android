@@ -23,12 +23,16 @@
 | [gradle](tech/gradle.svg) | `2caf72625f88b8062f38ee4bed0193f5fe910b6ec73951e239584d55c1bde55a` |
 | [githubactions](tech/githubactions.svg) | `3a2524052ccf301d1a239f20cfef98d655e060c51cc29c5e94c867913899a47e` |
 
-## Снимки 0.3.3-alpha
+## Снимки Android 16+
 
-[Проверенный device CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38860603657), код `a8020a6984f5dcc1d7b1496cb1e05d03feeca2fe`; 25 тестов на каждой API 35/36/37. Файлы скопированы побайтово из артефактов, без ретуши и сжатия. Английская локализация, software GPU. Это демонстрация включённых эффектов (по умолчанию выключены), не подтверждение физического устройства или Telegram E2E.
+Снимки **0.3.5-alpha** из [device CI 39187502586](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/39187502586), source `fb72b67775b6dff5a71d804ec596850963b409a6`; по 33 теста на API 36/37. Файлы скопированы побайтово, без ретуши/сжатия. Английская локализация, software GPU; эффекты показаны включёнными, по умолчанию выключены. Это не физический Telegram E2E.
 
 | Файл | API / artifact | Оригинал | SHA-256 |
 |---|---|---|---|
-| [home-light.png](0.3.3/home-light.png) | 35 / `12028244444` | `transparency-light.png` | `a73d20be29da7ee1de63fc42e6e3d91c9ac4a8a1807de952be1094fa36b27ec2` |
-| [home-dark.png](0.3.3/home-dark.png) | 36 / `12028914195` | `transparency-dark.png` | `25f19faa188adaa03f7ad0d38aa6fa4cd2b4a7cedfdb3d4d33620676003cc38a` |
-| [settings-glass.png](0.3.3/settings-glass.png) | 37 / `12029291120` | `transparency-combined.png` | `863ae4e1dd6524c43db3059017027b23d6f51bfd1f01a780b50d79e5e5b8f653` |
+| [home-light.png](0.3.5/home-light.png) | 37 / `12159016676` | `transparency-light.png` | `593af30a64032dc580b9a4533a70cf98e5f461d73336fef8b46569e00162fe72` |
+| [home-dark.png](0.3.5/home-dark.png) | 36 / `12158608352` | `transparency-dark.png` | `ca0f0456878ab2c732e53ab01138dcad146f2c9f6a0fd12e3f7ebf819b559fa2` |
+| [settings-glass.png](0.3.5/settings-glass.png) | 37 / `12159016676` | `transparency-combined.png` | `ebc5d0df342b36be8f0a454f81abb3d645d3d8af0694180b494a794ec1e25bb9` |
+
+## Проверка About 0.3.6-alpha
+
+[Device CI 39190171835](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/39190171835), source `71fd2a2b886bdb423ed5823d5152c8d3967f2349`, API 36, artifact `12158989722`, оригинал `about-dark.png`. [Неизменённый PNG](0.3.6/about-dark.png), SHA-256 `6d630716c4bfa0f9964f2ca07665bbd28a6d8f4e1589adfb9b070a7778f5eccd`. На каждом API 36/37 прошли 34 теста; реальная подпись Android 16+ проверена автоматически.
