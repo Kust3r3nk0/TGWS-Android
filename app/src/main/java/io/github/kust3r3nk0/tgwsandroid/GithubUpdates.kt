@@ -62,7 +62,7 @@ internal data class NumericVersion(val major: Int, val minor: Int, val patch: In
         compareValuesBy(this, other, { it.major }, { it.minor }, { it.patch }, { !it.pre })
 }
 internal fun numericVersion(raw: String): NumericVersion? {
-    val match = Regex("""^v?(\d+)\.(\d+)\.(\d+)(.*)$""").matchEntire(raw.trim()) ?: return null
+    val match = Regex("""^v?(\d+)\.(\d+)\.(\d+)(?:-([A-Za-z0-9-]+))?$""").matchEntire(raw.trim()) ?: return null
     return NumericVersion(match.groupValues[1].toIntOrNull() ?: return null,
         match.groupValues[2].toIntOrNull() ?: return null,
         match.groupValues[3].toIntOrNull() ?: return null, match.groupValues[4].isNotEmpty())
