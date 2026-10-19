@@ -10,8 +10,8 @@ import urllib.request
 import zipfile
 from verify_android_platform import verify_apk
 
-BASELINE_URL = 'https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.8-alpha-debug/TGWS-Android-0.3.8-debug.apk'
-BASELINE_SHA = '6c5e0ec8a1a5bbb746b1cd5d21f0a78b1b475649d26e0711088390f1153ac9c1'
+BASELINE_URL = 'https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.9-alpha-debug/TGWS-Android-0.3.9-debug.apk'
+BASELINE_SHA = 'b569596133a0b0c93799b564cfb26ff271686035a3a83ac06a20043a89f0510b'
 PACKAGE = 'io.github.kust3r3nk0.tgwsandroid'
 RUNNER = PACKAGE + '.UpgradeInstrumentation'
 
@@ -54,7 +54,7 @@ def failure_detail(output):
             details.append(category)
     details += re.findall(r'^INSTRUMENTATION_RESULT: TGWS_UPGRADE=((?:seed|verify):(?:passed|failed))\s*$', output, re.M)
     details += ['RESULT_' + code for code in re.findall(r'^INSTRUMENTATION_CODE:\s*(-?\d{1,3})\s*$', output, re.M)]
-    for stage in ['ENVIRONMENT', 'VERSION', 'EMPTY_SETTINGS', 'SAVE_FIXTURE', 'LOAD_FIXTURE', 'CIPHERTEXT', 'APPEARANCE', 'THEME', 'GLASS', 'TRANSPARENCY']:
+    for stage in ['ENVIRONMENT', 'VERSION', 'EMPTY_SETTINGS', 'SAVE_FIXTURE', 'LOAD_FIXTURE', 'CIPHERTEXT', 'APPEARANCE', 'THEME', 'GLASS', 'TRANSPARENCY', 'UPDATE_OPTIONS']:
         if re.search(r'^INSTRUMENTATION_RESULT: TGWS_UPGRADE_CHECK=' + stage + r'\s*$', output, re.M):
             details.append(stage)
     return ','.join(details) or 'NO_PUBLIC_STATUS'
@@ -126,16 +126,17 @@ def main():
     run(*adb, 'install', '--no-incremental', '-t', str(tests))
     runner = PACKAGE + '.test/' + PACKAGE + '.UpgradeInstrumentation'
     checked_phase(run(*adb, 'shell', 'am', 'instrument', '-w', '-r', '-e', 'phase', 'seed',
-                      '-e', 'version', '14', runner), 'seed')
+                      '-e', 'version', '15', runner), 'seed')
     run(*adb, 'install', '--no-incremental', '-r', '-t', str(current))
     checked_phase(run(*adb, 'shell', 'am', 'instrument', '-w', '-r', '-e', 'phase', 'verify',
                       '-e', 'version', version, runner), 'verify')
     output.mkdir(parents=True, exist_ok=True)
     (output / 'result.json').write_text(json.dumps({
-        'baseline_version': '0.3.8-alpha', 'baseline_sha256': BASELINE_SHA,
+        'baseline_version': '0.3.9-alpha', 'baseline_sha256': BASELINE_SHA,
         'target_version_code': int(version), 'install_replace': True,
         'secret_preserved': True, 'ciphertext_unchanged': True, 'keystore_preserved': True,
         'settings_preserved': True, 'signing': 'temporary CI debug key on both APKs',
+        'update_options_preserved': True,
         'payload_matches_build': True, 'ci_signer_sha256': certificates[0],
         'physical_testing': 'not_applicable_ci_emulator', 'result': 'passed'}, indent=2) + '\n')
     # Cleanup occurs only AFTER install -r and verification. The normal JUnit

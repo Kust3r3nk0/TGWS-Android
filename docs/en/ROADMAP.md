@@ -3,7 +3,13 @@
 Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Only API 36 and newer are supported. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
 
-## Current priority — 0.3.9-alpha
+## 0.3.10-alpha — Update Center
+
+- Native screens matching the approved first concept, RU/EN and light/dark themes.
+- Full APK/signing verification, scheduling and notifications; [release contract](UPDATE_CENTER.md).
+- Automated regressions and API 36/37 remain required.
+
+## 0.3.9-alpha — network core
 
 - [x] Compatible plain Obfuscated2 while Fake TLS is enabled, preserving secret validation.
 - [x] Progressing large uploads/downloads without false expiration of one short window; memory and stall bounds retained.

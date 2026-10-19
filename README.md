@@ -4,14 +4,14 @@
   <img src="docs/images/tgws-github-cover-ru.svg" width="100%" alt="TGWS-Android — нативный MTProto-прокси для Android, русский баннер" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.9--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.10--alpha-orange)
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 16+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.9-alpha-debug/TGWS-Android-0.3.9-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
+**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.10-alpha-debug/TGWS-Android-0.3.10-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.3.9-alpha — Android 16+.** Исправлены совместимость Obfuscated2/Fake TLS, сроки активных медиа-передач и реакция на изменение доступности сети. Личные отчёты не публикуются.
+> **0.3.10-alpha — Android 16+.** Исправлены совместимость Obfuscated2/Fake TLS, сроки активных медиа-передач и реакция на изменение доступности сети. Личные отчёты не публикуются.
 
 ## Языки и технологии
 
@@ -120,7 +120,7 @@ CI запускается при push в `main`, Pull Request и вручную.
 сохраняются отдельно. Actions и Wrapper закреплены по проверенным SHA.
 Отдельный workflow при PR и вручную проверяет Android API 36 и 37.0.
 
-[Скачать 0.3.9 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.9-alpha-debug/TGWS-Android-0.3.9-debug.apk)
+[Скачать 0.3.10 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.10-alpha-debug/TGWS-Android-0.3.10-debug.apk)
 
 ## Транспорты 0.3.0
 
@@ -210,3 +210,7 @@ app/src/main/java/io/github/kust3r3nk0/tgwsandroid/
 и [порядок физических проверок](docs/TGWS-16-017_PHYSICAL_TESTING.md) закрепляют обязанности.
 Успешные CI-артефакты содержат версию, source/tree SHA и `BUILD.md`; результаты
 на смартфоне, One UI, у оператора, в Telegram и Stable/Beta подтверждает владелец.
+
+## Update Center
+
+[Нативный центр обновлений](docs/UPDATE_CENTER.md): GitHub Releases, Stable/Preview, WorkManager и проверка подписи APK. Настройки доступны в отдельном разделе приложения.

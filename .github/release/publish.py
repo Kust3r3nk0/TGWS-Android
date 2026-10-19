@@ -41,9 +41,9 @@ def verify_payload(original, candidate):
 
 
 def verify_upgrade(report, version_code):
-    required = ['install_replace', 'secret_preserved', 'ciphertext_unchanged', 'keystore_preserved', 'settings_preserved', 'payload_matches_build']
+    required = ['install_replace', 'secret_preserved', 'ciphertext_unchanged', 'keystore_preserved', 'settings_preserved', 'update_options_preserved', 'payload_matches_build']
     if (report.get('result') != 'passed' or report.get('target_version_code') != version_code or
-            report.get('baseline_version') != '0.3.8-alpha' or
+            report.get('baseline_version') != '0.3.9-alpha' or
             not re.fullmatch(r'[a-f0-9]{64}', report.get('ci_signer_sha256', '')) or
             any(report.get(key) is not True for key in required)):
         raise ValueError('Missing or unsuccessful APK upgrade regression')
@@ -80,6 +80,8 @@ def main():
     output = Path('debug-release-assets')
     output.mkdir()
     candidate = output / f'TGWS-Android-{version.removesuffix("-alpha")}-debug.apk'
+    command('python3', '.github/scripts/create_update_manifest.py', '--apk-name', candidate.name,
+            '--channel', 'PREVIEW', '--output', str(output / 'update-manifest.json'))
     # SHA and payload are checked before any publication; cap transfer size.
     try:
         with urllib.request.urlopen(inputs['apk_url'], timeout=60) as response, candidate.open('wb') as dest:

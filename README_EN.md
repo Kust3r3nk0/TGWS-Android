@@ -4,13 +4,13 @@
   <img src="docs/images/tgws-github-cover-en.svg" width="100%" alt="TGWS-Android — native MTProto proxy for Android, English cover" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.9--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.10--alpha-orange)
 
-**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.9-alpha-debug/TGWS-Android-0.3.9-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Contributing](docs/en/CONTRIBUTING.md)**
+**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.10-alpha-debug/TGWS-Android-0.3.10-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Contributing](docs/en/CONTRIBUTING.md)**
 
 **Unofficial, open-source Android 16+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
-> **0.3.9-alpha — Android 16+.** Includes Obfuscated2/Fake TLS compatibility, progressing media transfer deadlines and recovery from changes in network availability. No personal validation reports.
+> **0.3.10-alpha — Android 16+.** Includes Obfuscated2/Fake TLS compatibility, progressing media transfer deadlines and recovery from changes in network availability. No personal validation reports.
 
 ## Languages & technology
 
@@ -83,7 +83,7 @@ flowchart LR
 
 Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 36+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
 
-[Download 0.3.9 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.9-alpha-debug/TGWS-Android-0.3.9-debug.apk)
+[Download 0.3.10 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.10-alpha-debug/TGWS-Android-0.3.10-debug.apk)
 
 ## 0.2.0 reliability
 
@@ -181,3 +181,7 @@ in CI does not certify latest Stable/Beta. [WebView applicability](docs/en/WEBVI
 and [owner physical-testing workflow](docs/en/PHYSICAL_TESTING.md) define responsibilities.
 Successful CI artifacts include version/source/tree SHA and `BUILD.md`; phone,
 One UI, carrier, Telegram and Stable/Beta results are confirmed by the owner.
+
+## Update Center
+
+[Native app updates](docs/en/UPDATE_CENTER.md): GitHub Releases, explicit Stable/Preview channels, WorkManager and full APK signing verification, integrated into the existing settings.
