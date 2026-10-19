@@ -1,8 +1,14 @@
 import unittest
-from check_apk_upgrade import checked_phase, emulator_serial, check_runner, RUNNER
+from check_apk_upgrade import checked_phase, emulator_serial, check_runner, RUNNER, failure_detail, signer_digest
 
 
 class UpgradeGateTest(unittest.TestCase):
+    def test_signer_check_requires_single_sha256_certificate(self):
+        certificate = 'Signer #1 certificate SHA-256 digest: ' + 'a' * 64 + '\n'
+        self.assertEqual('a' * 64, signer_digest(certificate))
+        for output in ['', 'Signer #1 certificate SHA-256 digest: invalid', certificate + certificate]:
+            with self.assertRaises(ValueError):
+                signer_digest(output)
     def test_compiled_manifest_must_expose_the_upgrade_runner(self):
         check_runner('A: android:name(0x01010003)="' + RUNNER + '" (Raw: "' + RUNNER + '")')
         for text in ['', 'A: android:name(0x01010003)="androidx.test.runner.AndroidJUnitRunner"', RUNNER]:
@@ -14,11 +20,18 @@ class UpgradeGateTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 emulator_serial(value)
 
-    def test_instrumentation_success_requires_expected_phase_and_zero_code(self):
-        checked_phase('INSTRUMENTATION_RESULT: TGWS_UPGRADE=verify:passed\nINSTRUMENTATION_CODE: 0\n', 'verify')
-        for output in ['', 'INSTRUMENTATION_CODE: 0\n',
-                       'INSTRUMENTATION_RESULT: TGWS_UPGRADE=seed:passed\nINSTRUMENTATION_CODE: 0\n',
-                       'INSTRUMENTATION_RESULT: TGWS_UPGRADE=verify:failed\nINSTRUMENTATION_CODE: 0\n',
-                       'INSTRUMENTATION_RESULT: TGWS_UPGRADE=verify:passed\nINSTRUMENTATION_CODE: -1\n']:
+    def test_instrumentation_success_requires_expected_phase_and_android_result_ok(self):
+        checked_phase('INSTRUMENTATION_RESULT: TGWS_UPGRADE=verify:passed\nINSTRUMENTATION_CODE: -1\n', 'verify')
+        for output in ['', 'INSTRUMENTATION_CODE: -1\n',
+                       'INSTRUMENTATION_RESULT: TGWS_UPGRADE=seed:passed\nINSTRUMENTATION_CODE: -1\n',
+                       'INSTRUMENTATION_RESULT: TGWS_UPGRADE=verify:failed\nINSTRUMENTATION_CODE: -1\n',
+                       'INSTRUMENTATION_RESULT: TGWS_UPGRADE=verify:passed\nINSTRUMENTATION_CODE: 0\n']:
             with self.assertRaises(ValueError):
                 checked_phase(output, 'verify')
+
+    def test_instrumentation_failure_exports_only_fixed_public_categories(self):
+        text = ('Permission Denial: private.example/token=secret\n'
+                'INSTRUMENTATION_RESULT: TGWS_UPGRADE=seed:failed\n'
+                'INSTRUMENTATION_RESULT: TGWS_UPGRADE_CHECK=VERSION\nINSTRUMENTATION_CODE: 0\n')
+        self.assertEqual('PERMISSION_DENIED,seed:failed,RESULT_0,VERSION', failure_detail(text))
+        self.assertEqual('NO_PUBLIC_STATUS', failure_detail('private.example/token=secret'))

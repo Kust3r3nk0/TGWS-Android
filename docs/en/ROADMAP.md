@@ -11,6 +11,7 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 - Empty local TCP probes are quiet; truncated handshakes and timeouts are classified separately, including Fake TLS.
 - Clear current session errors on stop and ignore late callbacks. Keep rejection counters as last-run history.
 - Add UI, Keystore, lifecycle and in-place 0.3.4 APK upgrade regressions.
+- Include PR #16 media-route and allowlisted WSS close diagnostics; keep normal close distinct from failure and retain the Worker 16 MiB budget.
 - Stable release still requires owner physical validation, usable cellular routes and trusted production signing.
 
 ## 0.3.4-alpha — network compatibility

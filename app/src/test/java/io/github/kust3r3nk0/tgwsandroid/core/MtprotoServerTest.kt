@@ -344,6 +344,64 @@ class MtprotoServerTest {
         }
     }
 
+    @Test fun relayCloseRetainsSafeMetadataAndNormalCloseDoesNotBecomeSessionError() {
+        for (code in listOf(1000, 1008)) {
+            val port = freePort()
+            val events = Events()
+            val closePeer = CountDownLatch(1)
+            val factory = object : TransportFactory {
+                override fun openWebSocket(address: String, domain: String, own: (Closeable) -> Unit): RemoteTransport = error("Unexpected direct route")
+                override fun openTcp(address: String, own: (Closeable) -> Unit): RemoteTransport = error("Unexpected TCP fallback")
+                override fun openRelay(endpoint: RelayEndpoint, dc: Int, own: (Closeable) -> Unit): RemoteTransport =
+                    object : RemoteTransport {
+                        override val kind = TransportKind.RELAY
+                        override fun send(data: ByteArray) { assertEquals(64, data.size) }
+                        override fun receive(): ByteArray? {
+                            check(closePeer.await(3, TimeUnit.SECONDS))
+                            throw WebSocketPeerCloseException(code, if (code == 1000)
+                                WebSocketCloseCategory.TCP_EOF else WebSocketCloseCategory.BYTE_LIMIT)
+                        }
+                        override fun close() { closePeer.countDown() }
+                    }.also(own)
+            }
+            MtprotoServer(port, secretHex, events.all::add, transports = factory, limits = limits,
+                relayEndpoint = RelayEndpoint.parse("wss://relay.example/apiws")).use { server ->
+                server.start()
+                await("Listener not ready") { events.phase(ServerPhase.LISTENING) }
+                connect(port).use { client ->
+                    client.getOutputStream().write(init().bytes)
+                    await("Relay not established") { events.sessions(1, 0) }
+                    closePeer.countDown()
+                    assertClosed(client)
+                    await("Closed relay retained session") { events.sessions(0, 0) }
+                }
+                val route = events.all.filterIsInstance<ServerEvent.Routes>().last().routes.single()
+                assertEquals(code, route.closeCode)
+                assertEquals(if (code == 1000) RouteStatus.CLOSED else RouteStatus.UNAVAILABLE, route.status)
+                assertEquals(code != 1000, events.issue(ServerIssue.RELAY))
+                assertFalse(events.issue(ServerIssue.SESSION))
+            }
+        }
+    }
+
+    @Test fun localClientCloseClearsLastReadyRouteWithoutInventingRemoteFailure() {
+        val port = freePort()
+        val events = Events()
+        MtprotoServer(port, secretHex, events.all::add, transports = FakeFactory(), limits = limits).use { server ->
+            server.start()
+            await("Listener not ready") { events.phase(ServerPhase.LISTENING) }
+            connect(port).use { client ->
+                client.getOutputStream().write(init().bytes)
+                await("Transport not established") { events.sessions(1, 0) }
+            }
+            await("Client close retained session") { events.sessions(0, 0) }
+            val tcp = events.all.filterIsInstance<ServerEvent.Routes>().last().routes.single { it.kind == TransportKind.TCP }
+            assertEquals(RouteStatus.CLOSED, tcp.status)
+            assertNull(tcp.issue)
+            assertFalse(events.issue(ServerIssue.SESSION))
+        }
+    }
+
     @Test fun emptyLocalProbesDoNotBecomeSessionErrorsOrWrongSecretRejections() {
         for (domain in listOf("", "example.com")) {
             val port = freePort()

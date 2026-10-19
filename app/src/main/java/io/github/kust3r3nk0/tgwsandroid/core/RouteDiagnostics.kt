@@ -41,10 +41,12 @@ internal class RouteDiagnostics(private val nano:()->Long=System::nanoTime,priva
             checkedAtMillis=wall(),closeCode=closeCode,closeCategory=closeCategory)
     }
     /** A closed session is not an unreachable route; never leave its stale READY state visible. */
-    @Synchronized fun closed(key:String?){
-        val old=entries[key]?:return
-        if(old.status==RouteStatus.AVAILABLE)
-            entries[key!!]=old.copy(status=RouteStatus.CLOSED,stage=RouteStage.CLOSED,checkedAtMillis=wall())
+    @Synchronized fun closed(key:String?,closeCode:Int?=null,closeCategory:WebSocketCloseCategory?=null):Boolean{
+        val old=entries[key]?:return false
+        if(old.status!=RouteStatus.AVAILABLE)return false
+        entries[key!!]=old.copy(status=RouteStatus.CLOSED,stage=RouteStage.CLOSED,checkedAtMillis=wall(),
+            closeCode=closeCode,closeCategory=closeCategory)
+        return true
     }
     @Synchronized fun clear(){entries.clear();starts.clear()}
 }

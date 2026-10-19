@@ -250,6 +250,16 @@ class RawWebSocketTest {
             assertNull(error.category)
             assertFalse(error.message.orEmpty().contains("private.example"))
         }
+        val normal=byteArrayOf(3,-24)+"TCP_EOF".toByteArray(Charsets.UTF_8)
+        peer(server={socket->
+            socket.getOutputStream().write(frame(8,normal))
+            assertEquals(8,readClientFrame(socket.getInputStream()).opcode)
+        }){socket->
+            val ws=RawWebSocket.upgrade(socket,"localhost",limits=limits)
+            val closed=expect<WebSocketPeerCloseException>{ws.receive()}
+            assertEquals(1000,closed.statusCode)
+            assertEquals(WebSocketCloseCategory.TCP_EOF,closed.category)
+        }
     }
     @Test(timeout = 5000) fun initiatesCloseAndWaitsForPeerReply() {
         peer(server = { socket ->

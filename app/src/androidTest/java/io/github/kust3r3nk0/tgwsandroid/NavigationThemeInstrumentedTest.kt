@@ -265,7 +265,10 @@ class NavigationThemeInstrumentedTest {
                         }
                     }
                 }}
-                val panel=node("proof.panel").visibleBounds
+                // setContent returns before the first accessibility/layout frame on a busy software GPU.
+                val panel=requireNotNull(device.wait(Until.findObject(selector("proof.panel")),10_000)) {
+                    "Proof panel was not composed"
+                }.visibleBounds
                 fun sample():Int {
                     val image=requireNotNull(instrumentation.uiAutomation.takeScreenshot())
                     return try{image.getPixel(panel.centerX(),panel.bottom-24)}finally{image.recycle()}

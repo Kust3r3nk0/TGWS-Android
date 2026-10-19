@@ -223,6 +223,10 @@ class MtprotoServer(
             owned.forEach(::release)
             synchronized(lifecycle) {
                 run.sessions.remove(this)
+                if (established && run.sessions.none { it.established && it.routeKey == routeKey } &&
+                    run.diagnostics.closed(routeKey)) {
+                    emit(run, ServerEvent.Routes(run.diagnostics.snapshot()))
+                }
                 counts(run)
             }
         }
@@ -261,7 +265,7 @@ class MtprotoServer(
     }
 
     private fun counts(run: Run) {
-        val sessions = run.sessions.toList()
+        val sessions = run.sessions.snapshotEntries()
         emit(run, ServerEvent.Sessions(sessions.count { it.established }, sessions.count { !it.established },
             sessions.count { it.established && it.transportKind == TransportKind.WSS },
             sessions.count { it.established && it.transportKind == TransportKind.TCP },
@@ -552,13 +556,20 @@ class MtprotoServer(
         fun remoteFailure(error:Exception){
             synchronized(lifecycle){if(!session.closed.get()){
                 session.remoteFailureReported=true
+                val peerClose=error as? WebSocketPeerCloseException
+                if(peerClose?.statusCode==1000){
+                    if(session.run.sessions.none{it!==session && !it.closed.get() && it.established && it.routeKey==session.routeKey}){
+                        session.run.diagnostics.closed(session.routeKey,peerClose.statusCode,peerClose.category)
+                        emit(session.run,ServerEvent.Routes(session.run.diagnostics.snapshot()))
+                    }
+                    return
+                }
                 val issue=when{
                     error is SSLException->ServerIssue.TLS
                     remote.kind==TransportKind.HTTP2->ServerIssue.HTTP2
                     remote.kind==TransportKind.RELAY || remote.kind==TransportKind.WORKER->ServerIssue.RELAY
                     else->ServerIssue.SESSION
                 }
-                val peerClose=error as? WebSocketPeerCloseException
                 session.run.diagnostics.failed(session.routeKey,issue,peerClose?.statusCode,peerClose?.category)
                 emit(session.run,ServerEvent.Routes(session.run.diagnostics.snapshot()))
                 emit(session.run,ServerEvent.Diagnostic(issue))
@@ -583,15 +594,6 @@ class MtprotoServer(
             } catch (_: Exception) {
                 if (!session.closed.get() && !session.remoteFailureReported) emit(session.run, ServerEvent.Diagnostic(ServerIssue.SESSION))
             } finally {
-                // A READY setup is not proof that the media stream is still alive.
-                synchronized(lifecycle){
-                    if(!session.closed.get() && !session.remoteFailureReported &&
-                        session.run.sessions.none{other->other!==session && !other.closed.get() &&
-                            other.established && other.routeKey==session.routeKey}){
-                        session.run.diagnostics.closed(session.routeKey)
-                        emit(session.run,ServerEvent.Routes(session.run.diagnostics.snapshot()))
-                    }
-                }
                 session.close()
             }
         }
@@ -624,12 +626,12 @@ class MtprotoServer(
             current?.let { run ->
                 run.networkGeneration++
                 run.warm.invalidate()
-                run.probes.toList().forEach(Attempt::close)
+                run.probes.snapshotEntries().forEach(Attempt::close)
                 run.retries.reset()
                 run.rotation.clear()
                 run.diagnostics.clear()
                 emit(run,ServerEvent.Routes(emptyList()))
-                run.sessions.toList().forEach(Session::close)
+                run.sessions.snapshotEntries().forEach(Session::close)
             }
         }
     }
@@ -707,8 +709,8 @@ class MtprotoServer(
         }
         run.server?.let(::release)
         run.warm.close()
-        run.probes.toList().forEach(Attempt::close)
-        run.sessions.toList().forEach(Session::close)
+        run.probes.snapshotEntries().forEach(Attempt::close)
+        run.sessions.snapshotEntries().forEach(Session::close)
         run.watchdog.shutdownNow()
         run.workers.shutdownNow()
         run.downstream.shutdownNow()
