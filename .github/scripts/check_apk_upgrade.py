@@ -53,7 +53,7 @@ def failure_detail(output):
             details.append(category)
     details += re.findall(r'^INSTRUMENTATION_RESULT: TGWS_UPGRADE=((?:seed|verify):(?:passed|failed))\s*$', output, re.M)
     details += ['RESULT_' + code for code in re.findall(r'^INSTRUMENTATION_CODE:\s*(-?\d{1,3})\s*$', output, re.M)]
-    for stage in ['ENVIRONMENT', 'VERSION', 'EMPTY_SETTINGS', 'SAVE_FIXTURE', 'LOAD_FIXTURE', 'CIPHERTEXT', 'APPEARANCE']:
+    for stage in ['ENVIRONMENT', 'VERSION', 'EMPTY_SETTINGS', 'SAVE_FIXTURE', 'LOAD_FIXTURE', 'CIPHERTEXT', 'APPEARANCE', 'THEME', 'GLASS', 'TRANSPARENCY']:
         if re.search(r'^INSTRUMENTATION_RESULT: TGWS_UPGRADE_CHECK=' + stage + r'\s*$', output, re.M):
             details.append(stage)
     return ','.join(details) or 'NO_PUBLIC_STATUS'
@@ -102,8 +102,8 @@ def main():
     adb = [str(Path(args.sdk) / 'platform-tools/adb'), '-s', args.serial]
     current = stage / 'current-ci-signed.apk'
     tests = stage / 'tests-ci-signed.apk'
-    # Connected tests may rebuild/sign APKs. Prepare *all three* copies afterwards,
-    # preserving every ZIP payload byte; never import the publishing key into CI.
+    # Prepare all three copies with a known common certificate, preserving every
+    # ZIP payload byte; never import the publishing key into CI.
     signer = str(Path(args.sdk) / 'build-tools/36.0.0/apksigner')
     pairs = [(old, signed), (Path('app/build/outputs/apk/debug/app-debug.apk'), current),
              (Path('app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk'), tests)]
@@ -136,6 +136,10 @@ def main():
         'settings_preserved': True, 'signing': 'temporary CI debug key on both APKs',
         'payload_matches_build': True, 'ci_signer_sha256': certificates[0],
         'physical_testing': 'owner_pending', 'result': 'passed'}, indent=2) + '\n')
+    # Cleanup occurs only AFTER install -r and verification. The normal JUnit
+    # suite then installs the original build APKs into this same CI emulator.
+    run(*adb, 'uninstall', PACKAGE + '.test')
+    run(*adb, 'uninstall', PACKAGE)
     print('APK upgrade verified: encrypted credentials, port, relay and appearance preserved')
 
 

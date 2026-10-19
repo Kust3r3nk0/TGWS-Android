@@ -39,6 +39,12 @@ class UpgradeInstrumentation : AndroidJUnitRunner() {
                     checkpoint = "SAVE_FIXTURE"
                     store.save(8443, sample, relay)
                     AppPreferences(context).apply { theme = ThemeMode.DARK; liquidGlass = true; transparency = true }
+                    // Unlike an Activity lifecycle, this runner exits immediately. Drain the
+                    // same preference file's pending apply() writes before killing the process.
+                    check(context.applicationContext.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
+                        .edit().commit())
+                    checkpoint = "APPEARANCE"
+                    AppPreferences(context).let { check(it.theme == ThemeMode.DARK && it.liquidGlass && it.transparency) }
                     check(fixture.edit().putString("protected", JSONObject(preferences.all).toString()).commit())
                 }
                 "verify" -> {
@@ -51,8 +57,13 @@ class UpgradeInstrumentation : AndroidJUnitRunner() {
                     checkpoint = "CIPHERTEXT"
                     check(preferences.all.size == before.length())
                     check(before.keys().asSequence().all { preferences.all[it] == before.get(it) })
-                    checkpoint = "APPEARANCE"
-                    AppPreferences(context).let { check(it.theme == ThemeMode.DARK && it.liquidGlass && it.transparency) }
+                    val appearance = AppPreferences(context)
+                    checkpoint = "THEME"
+                    check(appearance.theme == ThemeMode.DARK)
+                    checkpoint = "GLASS"
+                    check(appearance.liquidGlass)
+                    checkpoint = "TRANSPARENCY"
+                    check(appearance.transparency)
                 }
                 else -> error("Invalid phase")
             }
