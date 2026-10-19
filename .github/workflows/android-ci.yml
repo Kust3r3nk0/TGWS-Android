@@ -46,6 +46,14 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm test -- --test-reporter=junit --test-reporter-destination=test-results.xml
+      - name: Test and bundle experimental Worker without deployment
+        working-directory: cloudflare-worker
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm test -- --test-reporter=junit --test-reporter-destination=test-results.xml
+          npm run build
       - name: Collect debug APK, checksum and build information
         if: success()
         env:
@@ -125,6 +133,7 @@ jobs:
             app/build/reports/http2-soak-summary.json
             app/build/reports/native-ui.json
             relay/test-results.xml
+            cloudflare-worker/test-results.xml
           if-no-files-found: warn
           retention-days: 14
       - name: Add build details to run summary

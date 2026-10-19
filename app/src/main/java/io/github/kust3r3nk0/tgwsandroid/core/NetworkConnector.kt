@@ -120,7 +120,7 @@ internal class NetworkConnector(private val current:()->NetworkAccess?) : Socket
             preferred.getOrNull(i)?.let{add(it)};alternate.getOrNull(i)?.let{add(it)}
         }}
     }
-    fun invalidate(){epoch.incrementAndGet();dns.invalidate();dialing.toList().forEach{it.close()}}
+    fun invalidate(){epoch.incrementAndGet();dns.invalidate();dialing.snapshotEntries().forEach{it.close()}}
     override fun takeTiming(socket:Socket):SetupTimings?=timings.remove(socket)
     override fun close(){closed=true;invalidate();dns.close();dialers.shutdownNow()}
 }

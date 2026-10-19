@@ -14,9 +14,9 @@ android {
         applicationId = "io.github.kust3r3nk0.tgwsandroid"
         minSdk = 36
         targetSdk = 37
-        versionCode = 10
-        versionName = "0.3.4-alpha"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        versionCode = 11
+        versionName = "0.3.5-alpha"
+        testInstrumentationRunner = "io.github.kust3r3nk0.tgwsandroid.UpgradeInstrumentation"
     }
     buildFeatures { compose = true }
     sourceSets["test"].kotlin.directories.add("src/sharedTest/java")

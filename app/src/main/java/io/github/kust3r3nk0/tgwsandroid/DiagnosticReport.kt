@@ -23,7 +23,10 @@ internal object DiagnosticReport {
                 .append(", \"dns_ms\": ").append(route.timings?.dnsMillis?:"null")
                 .append(", \"tcp_ms\": ").append(route.timings?.tcpMillis?:"null")
                 .append(", \"tls_ms\": ").append(route.timings?.tlsMillis?:"null")
-                .append(", \"http_ms\": ").append(route.timings?.httpMillis?:"null").append('}')
+                .append(", \"http_ms\": ").append(route.timings?.httpMillis?:"null")
+                .append(", \"route_sent\": ").append(route.sent).append(", \"route_received\": ").append(route.received)
+                .append(", \"close_code\": ").append(route.closeCode?:"null")
+                .append(", \"close_reason\": ").append(route.closeCategory?.name?.let{ "\"$it\"" }?:"null").append('}')
         }
         append("\n  ]\n}\n")
     }

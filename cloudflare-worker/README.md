@@ -66,7 +66,7 @@ wss://tgws-relay.account.workers.dev/<ваш-TGWS_RELAY_TOKEN>/apiws
   не глобальная квота аккаунта и не защита от DDoS/расходов. Настройте квоты аккаунта.
 - Connect 6 с, init/write 10 с, idle 5 минут; очередь до 4 MiB + 4 байта,
   до 64 сообщений. Проверка размеров и закрытие ресурсов обязательны.
-- **16 MiB суммарно в обе стороны на одну сессию**, затем закрытие с кодом 1008.
+- **16 MiB суммарно в обе стороны на одну сессию**, затем закрытие с кодом 1008 и причиной `BYTE_LIMIT`.
   Это явный защитный лимит: Worker WebSocket API не даёт drain/backpressure для
   send, поэтому нельзя обещать ограниченную память при бесконечном потоке.
   Ограничение может вызывать переподключения и мешать крупным загрузкам.
@@ -95,3 +95,19 @@ Proxy на своём домене с **Full (strict)** и WebSocket либо о
 Эталон: [Flowseal v1.11.2 Worker](https://github.com/Flowseal/tg-ws-proxy/blob/v1.11.2/docs/RU/CfWorker.md).
 Платформенные API: [TCP sockets](https://developers.cloudflare.com/workers/runtime-apis/tcp-sockets/),
 [WebSockets](https://developers.cloudflare.com/workers/runtime-apis/websockets/).
+
+## Диагностика медиа 0.3.5-alpha (PR)
+
+Обновлённый Worker отправляет только фиксированную машинную категорию в WebSocket Close reason,
+без пути, URL, секретов и содержимого MTProto. Android 0.3.5-alpha, если увидел close-frame,
+показывает в диагностике маршрута `close_code` и `close_reason`.
+`BYTE_LIMIT` означает исчерпание 16 МиБ суммарного трафика на **одну сессию**;
+`QUEUE_LIMIT` и `MESSAGE_LIMIT` — переполнение входной очереди;
+`WRITE_TIMEOUT` — тайм-аут записи в upstream TCP; `TCP_ERROR` — ошибка TCP.
+Код `1000/TCP_EOF` означает закрытие upstream, а не успех доставки медиа.
+
+Это не исправление передачи HD само по себе. Порядок проверки и ограничения:
+[план 0.3.5-alpha](../docs/MEDIA_UPLOAD_0.3.5-alpha.md).
+Коды закрытия можно увидеть только после публикации **новой версии Worker** и
+установки **новой версии APK**. Старая опубликованная версия Worker не обновляется
+от изменения репозитория. Никогда не публикуйте приватный Worker URL и токены.

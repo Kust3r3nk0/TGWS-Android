@@ -42,6 +42,8 @@ jobs:
         run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
       - name: Build app and instrumentation before starting emulator
         run: ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Prepare pinned previous APK for update regression
+        run: python3 .github/scripts/check_apk_upgrade.py --prepare --serial emulator-5554 --sdk "$ANDROID_HOME" --keystore "$HOME/.android/debug.keystore"
       - name: Install stable emulator and system image
         shell: bash
         run: |
@@ -75,7 +77,9 @@ jobs:
           emulator-options: -no-window -gpu software -no-snapshot -noaudio -no-boot-anim -no-metrics -show-kernel
           pre-emulator-launch-script: python3 .github/scripts/configure_avd.py --api '${{ matrix.api }}'
           disable-animations: true
-          script: bash .github/scripts/run_android_tests.sh '${{ matrix.api }}'
+          script: |
+            python3 .github/scripts/check_apk_upgrade.py --serial emulator-5554 --sdk "$ANDROID_HOME" --keystore "$HOME/.android/debug.keystore"
+            bash .github/scripts/run_android_tests.sh '${{ matrix.api }}'
       - name: Upload device test reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -85,5 +89,6 @@ jobs:
             app/build/outputs/androidTest-results/connected/
             app/build/reports/androidTests/connected/
             app/build/reports/android-environment/
+            app/build/reports/apk-upgrade/
           if-no-files-found: warn
           retention-days: 14

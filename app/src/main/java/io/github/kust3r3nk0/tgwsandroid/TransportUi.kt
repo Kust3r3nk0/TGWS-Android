@@ -86,11 +86,16 @@ internal data class TransportDraft(val mode:TransportMode=TransportMode.DIRECT,v
         Text(stringResource(R.string.probe_limit),style=MaterialTheme.typography.bodySmall)
         for(route in snapshot.routes){
             val transport=when(route.kind){TransportKind.WSS->R.string.kind_wss;TransportKind.TCP->R.string.kind_tcp;TransportKind.RELAY->R.string.kind_relay;TransportKind.WORKER->R.string.kind_worker;TransportKind.CLOUDFLARE->R.string.kind_cf;TransportKind.HTTP2->R.string.kind_h2}
-            val status=when(route.status){RouteStatus.UNCHECKED->R.string.route_unchecked;RouteStatus.CONNECTING->R.string.route_connecting;RouteStatus.AVAILABLE->R.string.route_available;RouteStatus.BACKOFF->R.string.route_backoff;RouteStatus.UNAVAILABLE->R.string.route_unavailable}
+            val status=when(route.status){RouteStatus.UNCHECKED->R.string.route_unchecked;RouteStatus.CONNECTING->R.string.route_connecting;RouteStatus.AVAILABLE->R.string.route_available;RouteStatus.BACKOFF->R.string.route_backoff;RouteStatus.UNAVAILABLE->R.string.route_unavailable;RouteStatus.CLOSED->R.string.route_closed}
             val stage=when(route.stage){RouteStage.SETUP->R.string.stage_setup;RouteStage.HANDSHAKE->R.string.stage_handshake;RouteStage.READY->R.string.stage_ready;RouteStage.DNS->R.string.stage_dns;RouteStage.TLS->R.string.stage_tls;RouteStage.CLOSED->R.string.stage_closed}
             val checked=if(route.checkedAtMillis==0L)unknown else java.text.DateFormat.getTimeInstance().format(java.util.Date(route.checkedAtMillis))
             Text(stringResource(R.string.route_details,route.id,if(route.media)-route.dc else route.dc,stringResource(transport),stringResource(status),
                 stringResource(stage),checked,route.setupMillis?.toString()?:unknown,route.issue?.let{stringResource(diagnosticIssueResource(it))}?:stringResource(R.string.no),route.attempts))
+            Text(stringResource(R.string.route_traffic,route.sent,route.received),style=MaterialTheme.typography.bodySmall)
+            route.closeCode?.let{code->
+                Text(stringResource(R.string.route_close_code,code,route.closeCategory?.name?:"UNKNOWN"),
+                    style=MaterialTheme.typography.bodySmall)
+            }
             route.timings?.let{timing->Text(stringResource(R.string.phase_timings,timing.dnsMillis?.toString()?:unknown,
                 timing.tcpMillis?.toString()?:unknown,timing.tlsMillis?.toString()?:unknown,timing.httpMillis?.toString()?:unknown))
                 Text(stringResource(R.string.route_dns_answers,timing.resolvedAddresses.joinToString(", ").ifEmpty{unknown}))}

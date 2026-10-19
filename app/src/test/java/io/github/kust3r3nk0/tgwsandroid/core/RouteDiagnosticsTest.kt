@@ -30,6 +30,34 @@ class RouteDiagnosticsTest {
             assertFalse(book.snapshot().toString().contains("private endpoint"))
         }
     }
+    @Test fun closedRouteCannotRemainReadyAndDoesNotClaimNetworkUnreachable(){
+        val book=RouteDiagnostics()
+        book.mark("private-media-route",1,true,TransportKind.RELAY,RouteStatus.CONNECTING)
+        book.mark("private-media-route",1,true,TransportKind.RELAY,RouteStatus.AVAILABLE)
+        book.traffic("private-media-route",4096,2048)
+        assertTrue(book.closed("private-media-route",1000,WebSocketCloseCategory.TCP_EOF))
+        val closed=book.snapshot().single()
+        assertEquals(RouteStatus.CLOSED,closed.status)
+        assertEquals(RouteStage.CLOSED,closed.stage)
+        assertEquals(4096L,closed.sent)
+        assertEquals(2048L,closed.received)
+        assertNull(closed.issue)
+        assertEquals(1000,closed.closeCode)
+        assertEquals(WebSocketCloseCategory.TCP_EOF,closed.closeCategory)
+        assertFalse(book.closed("private-media-route"))
+        book.mark("private-media-route",1,true,TransportKind.RELAY,RouteStatus.CONNECTING)
+        book.mark("private-media-route",1,true,TransportKind.RELAY,RouteStatus.AVAILABLE)
+        assertEquals(RouteStatus.AVAILABLE,book.snapshot().single().status)
+    }
+    @Test fun websocketCloseSignalsUseCategorizedPublicMetadataOnly(){
+        val book=RouteDiagnostics()
+        book.mark("secret-worker-url",1,true,TransportKind.RELAY,RouteStatus.AVAILABLE)
+        book.failed("secret-worker-url",ServerIssue.RELAY,1008,WebSocketCloseCategory.BYTE_LIMIT)
+        val sample=book.snapshot().single()
+        assertEquals(1008,sample.closeCode)
+        assertEquals(WebSocketCloseCategory.BYTE_LIMIT,sample.closeCategory)
+        assertFalse(sample.toString().contains("secret-worker-url"))
+    }
     @Test fun diagnosticsStayBoundedUnderManyRoutes(){
         val book=RouteDiagnostics();repeat(1000){book.mark("key$it",2,false,TransportKind.WSS,RouteStatus.UNAVAILABLE,ServerIssue.TLS)}
         assertEquals(32,book.snapshot().size)

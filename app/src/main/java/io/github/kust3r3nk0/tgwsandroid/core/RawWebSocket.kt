@@ -23,6 +23,10 @@ import java.util.concurrent.locks.ReentrantLock
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 
+/** Only validated close codes and an allowlisted category cross the transport boundary. */
+internal class WebSocketPeerCloseException(val statusCode:Int, val category:WebSocketCloseCategory?) :
+    IOException("WebSocket peer closed")
+
 /** RFC 6455 binary transport. One reader, serialized masked writes, bounded I/O and memory. */
 internal class RawWebSocket private constructor(
     private val socket: Socket,
@@ -330,6 +334,13 @@ internal class RawWebSocket private constructor(
                     if (closing.compareAndSet(false, true)) writeFrame(8, body, allowClosing = true, timeoutMillis = limits.closeMillis)
                     peerClosed.countDown()
                     abort()
+                    val statusCode = if(body.size>=2)((body[0].toInt() and 255) shl 8) or (body[1].toInt() and 255) else null
+                    val category = if(body.size>2)body.copyOfRange(2,body.size).toString(Charsets.UTF_8)
+                        .let{raw->WebSocketCloseCategory.entries.firstOrNull{it.name==raw}} else null
+                    // 1000 with an unknown reason retains the existing graceful EOF behavior.
+                    // Worker close categories are fixed constants; never export arbitrary peer text.
+                    if(statusCode!=null && (statusCode!=1000 || category!=null))
+                        throw WebSocketPeerCloseException(statusCode,category)
                     return null
                 }
                 9 -> writeFrame(10, body, allowClosing = true,

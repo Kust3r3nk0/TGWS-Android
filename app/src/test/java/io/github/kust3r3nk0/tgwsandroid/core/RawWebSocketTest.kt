@@ -229,6 +229,38 @@ class RawWebSocketTest {
         }
     }
 
+    @Test(timeout = 5000) fun capturesOnlyAllowlistedWorkerCloseReasons(){
+        val body=byteArrayOf(3,-16)+"BYTE_LIMIT".toByteArray(Charsets.UTF_8)
+        peer(server={socket->
+            socket.getOutputStream().write(frame(8,body))
+            assertEquals(8,readClientFrame(socket.getInputStream()).opcode)
+        }){socket->
+            val ws=RawWebSocket.upgrade(socket,"localhost",limits=limits)
+            val error=expect<WebSocketPeerCloseException>{ws.receive()}
+            assertEquals(1008,error.statusCode)
+            assertEquals(WebSocketCloseCategory.BYTE_LIMIT,error.category)
+        }
+        val untrusted=byteArrayOf(3,-16)+"private.example/token=secret".toByteArray(Charsets.UTF_8)
+        peer(server={socket->
+            socket.getOutputStream().write(frame(8,untrusted))
+            assertEquals(8,readClientFrame(socket.getInputStream()).opcode)
+        }){socket->
+            val ws=RawWebSocket.upgrade(socket,"localhost",limits=limits)
+            val error=expect<WebSocketPeerCloseException>{ws.receive()}
+            assertNull(error.category)
+            assertFalse(error.message.orEmpty().contains("private.example"))
+        }
+        val normal=byteArrayOf(3,-24)+"TCP_EOF".toByteArray(Charsets.UTF_8)
+        peer(server={socket->
+            socket.getOutputStream().write(frame(8,normal))
+            assertEquals(8,readClientFrame(socket.getInputStream()).opcode)
+        }){socket->
+            val ws=RawWebSocket.upgrade(socket,"localhost",limits=limits)
+            val closed=expect<WebSocketPeerCloseException>{ws.receive()}
+            assertEquals(1000,closed.statusCode)
+            assertEquals(WebSocketCloseCategory.TCP_EOF,closed.category)
+        }
+    }
     @Test(timeout = 5000) fun initiatesCloseAndWaitsForPeerReply() {
         peer(server = { socket ->
             val close = readClientFrame(socket.getInputStream())

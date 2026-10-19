@@ -2,6 +2,20 @@
 
 Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Android 14/15 are no longer supported; prior CI evidence and reports remain historical. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
+
+## 0.3.5-alpha — credential continuity and session reliability
+
+- Decode pasted `dd`/`ee` secrets without truncating the key; preserve the Fake TLS domain.
+- Persist configuration before sharing a Telegram link or secret; stop export on Keystore failure.
+- A missing secret record with existing settings/key now requires explicit recovery instead of generating a replacement.
+- Empty local TCP probes are quiet; truncated handshakes and timeouts are classified separately, including Fake TLS.
+- Clear current session errors on stop and ignore late callbacks. Keep rejection counters as last-run history.
+- Add UI, Keystore, lifecycle and in-place 0.3.4 APK upgrade regressions.
+- Include PR #16 media-route and allowlisted WSS close diagnostics; keep normal close distinct from failure and retain the Worker 16 MiB budget.
+- Fix concurrent collection snapshots during stop and network changes.
+- [x] [Final verification](TEST_REPORT_0.3.5-alpha.md): 203 JVM tests, zero Lint errors, 17 Worker tests; 33 Android cases and a passing in-place 0.3.4 upgrade on each of API 36/37.
+- Stable release still requires owner physical validation, usable cellular routes and trusted production signing.
+
 ## 0.3.4-alpha — network compatibility
 
 - [x] Remove Cloudflare DNS from APK/UI, system DNS migration without configuration loss

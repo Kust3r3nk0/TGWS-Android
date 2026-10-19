@@ -6,8 +6,9 @@ export const routes = Object.freeze({
 const PACKET = 4 * 1024 * 1024 + 4;
 export const defaults = Object.freeze({ sessions: 4, connect: 6000, init: 10000,
   write: 10000, idle: 300000, queue: PACKET, messages: 64,
-  // Workers WebSocket.send has no drain API. A lifetime byte budget bounds
-  // runtime-owned send buffers; this experimental endpoint is not a media relay.
+  // Cloudflare WebSocket.send has no drain API; do not remove this lifetime
+  // safety budget without implementing verifiable downstream flow control.
+  // The default Worker remains experimental for sustained media transfer.
   bytes: 16 * 1024 * 1024 });
 
 export function destination(request, token) {
@@ -40,7 +41,9 @@ export function createHandler({ dial, pair, upgrade, limits = defaults }) {
     const timers = new Map();
     const ignore = promise => Promise.resolve(promise).catch(() => {});
     const release = () => { if (!released) { released = true; active--; } };
-    function finish(code = 1011) {
+    // Fixed, non-sensitive close categories are visible to our Android client.
+    // Never pass exception messages, request URLs, private endpoints, or tokens.
+    function finish(code = 1011, reason = 'RELAY_ERROR') {
       if (ended) return;
       ended = true;
       clearTimeout(idle); clearTimeout(init);
@@ -48,12 +51,12 @@ export function createHandler({ dial, pair, upgrade, limits = defaults }) {
       timers.clear();
       // Keep a capacity slot while the platform still owns a closing WS buffer.
       if (!listensForClose) release();
-      try { server?.close(code, code === 1000 ? 'Closed' : 'Relay ended'); } catch {}
+      try { server?.close(code, reason); } catch {}
       try { if (socket) ignore(socket.close()); } catch {}
       try { if (reader) ignore(reader.cancel()); } catch {}
       try { if (writer) ignore(writer.abort()); } catch {}
     }
-    const touch = () => { clearTimeout(idle); idle = setTimeout(() => finish(), limits.idle); };
+    const touch = () => { clearTimeout(idle); idle = setTimeout(() => finish(1011, 'IDLE_TIMEOUT'), limits.idle); };
     function deadline(promise, millis) {
       let timer;
       const timeout = new Promise((_, reject) => {
@@ -63,14 +66,14 @@ export function createHandler({ dial, pair, upgrade, limits = defaults }) {
       return Promise.race([promise, timeout]).finally(() => { clearTimeout(timer); timers.delete(timer); });
     }
     function charge(size) {
-      if (bytes + size > limits.bytes) { finish(1008); return false; }
+      if (bytes + size > limits.bytes) { finish(1008, 'BYTE_LIMIT'); return false; }
       bytes += size;
       return true;
     }
     try {
       socket = dial(target);
       // closed may reject before opened; observe it even on setup failure.
-      socket.closed.catch(() => finish());
+      socket.closed.catch(() => finish(1011, 'TCP_ERROR'));
       await deadline(socket.opened, limits.connect);
       if (ended) throw new Error('Closed during setup');
       const endpoints = pair();
@@ -79,17 +82,18 @@ export function createHandler({ dial, pair, upgrade, limits = defaults }) {
       server.binaryType = 'arraybuffer';
       reader = socket.readable.getReader();
       writer = socket.writable.getWriter();
-      server.addEventListener('close', () => { release(); finish(1000); });
-      server.addEventListener('error', () => finish());
+      server.addEventListener('close', () => { release(); finish(1000, 'CLIENT_CLOSED'); });
+      server.addEventListener('error', () => finish(1011, 'WS_ERROR'));
       listensForClose = true;
       server.addEventListener('message', event => {
         if (ended) return;
-        if (!(event.data instanceof ArrayBuffer)) { finish(1003); return; }
+        if (!(event.data instanceof ArrayBuffer)) { finish(1003, 'BAD_FRAME'); return; }
         const size = event.data.byteLength;
-        if (size > PACKET) { finish(1009); return; }
-        if (first && size !== 64) { finish(1002); return; }
+        if (size > PACKET) { finish(1009, 'FRAME_LIMIT'); return; }
+        if (first && size !== 64) { finish(1002, 'BAD_INIT'); return; }
         if (!size) return;
-        if (queued + size > limits.queue || messages >= limits.messages) { finish(1009); return; }
+        if (queued + size > limits.queue) { finish(1009, 'QUEUE_LIMIT'); return; }
+        if (messages >= limits.messages) { finish(1009, 'MESSAGE_LIMIT'); return; }
         if (!charge(size)) return;
         first = false;
         clearTimeout(init);
@@ -99,23 +103,24 @@ export function createHandler({ dial, pair, upgrade, limits = defaults }) {
           if (ended) return;
           await deadline(writer.write(data), limits.write);
           if (!ended) touch();
-        }).catch(() => finish()).finally(() => { queued -= size; messages--; });
+        }).catch(error => finish(1011, error?.message === 'Deadline' ? 'WRITE_TIMEOUT' : 'TCP_ERROR'))
+          .finally(() => { queued -= size; messages--; });
       });
-      init = setTimeout(() => finish(1002), limits.init);
+      init = setTimeout(() => finish(1002, 'INIT_TIMEOUT'), limits.init);
       touch();
       void (async () => {
         try {
           while (!ended) {
             const { value, done } = await reader.read();
-            if (done) { finish(1000); break; }
+            if (done) { finish(1000, 'TCP_EOF'); break; }
             if (!value?.byteLength) continue;
-            if (first) { finish(1002); break; }
+            if (first) { finish(1002, 'BAD_INIT'); break; }
             if (!charge(value.byteLength)) break;
             // Small WS frames avoid copying a whole downstream TCP chunk per send.
             for (let i = 0; i < value.byteLength && !ended; i += 65536) server.send(value.subarray(i, i + 65536));
             touch();
           }
-        } catch { finish(); }
+        } catch { finish(1011, 'TCP_ERROR'); }
         finally { try { reader.releaseLock(); } catch {} }
       })();
       return upgrade(endpoints[0]);

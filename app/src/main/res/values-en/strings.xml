@@ -13,6 +13,10 @@
     <string name="settings_loading">Processing protected settings…</string>
     <string name="local_port">Local port</string>
     <string name="secret_label">MTProto secret (32 HEX)</string>
+    <string name="secret_input_help">32 HEX characters. Pasted dd/ee secrets are decoded with their prefix and domain.</string>
+    <string name="secret_change_notice">APK updates preserve the secret. Generate a new one only to replace it, then update the proxy entry in Telegram.</string>
+    <string name="telegram_link_notice">Settings are saved before sharing the link. If the secret, port or Fake TLS changed, disable the old proxy entry in Telegram and add the current link.</string>
+    <string name="handshake_rejections_previous">Rejected client headers during the last run: %1$d. The proxy is now stopped.</string>
     <string name="secret_show">Show</string>
     <string name="secret_hide">Hide</string>
     <string name="secret_generate">Generate a new secret</string>
@@ -118,6 +122,9 @@
     <string name="route_available">Handshake passed</string>
     <string name="route_backoff">Backoff</string>
     <string name="route_unavailable">Unavailable</string>
+    <string name="route_closed">Session closed</string>
+    <string name="route_traffic">Route traffic (cumulative): sent %1$d B · received %2$d B</string>
+    <string name="route_close_code">WebSocket closure: code %1$d, reason %2$s</string>
     <string name="stage_setup">Setup</string>
     <string name="stage_handshake">Handshake</string>
     <string name="stage_ready">Ready</string>

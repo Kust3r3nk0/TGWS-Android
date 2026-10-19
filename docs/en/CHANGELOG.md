@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.5-alpha — credential continuity and session reliability
+
+- Decode pasted `dd`/`ee` secrets without truncating the key; preserve the Fake TLS domain.
+- Persist configuration before sharing a Telegram link or secret; stop export on Keystore failure.
+- A missing secret record with existing settings/key now requires explicit recovery instead of generating a replacement.
+- Empty local TCP probes are quiet; truncated handshakes and timeouts are classified separately, including Fake TLS.
+- Fix concurrent collection snapshots during service stop and network cancellation.
+- Clear current session errors on stop and ignore late callbacks. Keep rejection counters as last-run history.
+- Add UI, Keystore, lifecycle and in-place 0.3.4 APK upgrade regressions.
+- Integrate PR #16 media-route traffic and sanitized WSS close categories; retain the Worker 16 MiB production budget. Normal close is recorded without a false session failure.
+- Stable release still requires owner physical validation, usable cellular routes and trusted production signing.
+
 All notable changes will be documented in this file. Versions of this Android port do not correspond directly to upstream Flowseal releases.
 
 ## 0.3.4-alpha — 2026-10-16

@@ -223,6 +223,10 @@ class MtprotoServer(
             owned.forEach(::release)
             synchronized(lifecycle) {
                 run.sessions.remove(this)
+                if (established && run.sessions.none { it.established && it.routeKey == routeKey } &&
+                    run.diagnostics.closed(routeKey)) {
+                    emit(run, ServerEvent.Routes(run.diagnostics.snapshot()))
+                }
                 counts(run)
             }
         }
@@ -261,7 +265,7 @@ class MtprotoServer(
     }
 
     private fun counts(run: Run) {
-        val sessions = run.sessions.toList()
+        val sessions = run.sessions.snapshotEntries()
         emit(run, ServerEvent.Sessions(sessions.count { it.established }, sessions.count { !it.established },
             sessions.count { it.established && it.transportKind == TransportKind.WSS },
             sessions.count { it.established && it.transportKind == TransportKind.TCP },
@@ -354,21 +358,9 @@ class MtprotoServer(
         }
     }
 
-    private fun readInit(session: Session): ByteArray {
-        if (fakeTlsDomain.isNotEmpty()) {
-            session.client.soTimeout = limits.handshakeTimeoutMillis
-            val input = java.io.DataInputStream(session.input)
-            val header = ByteArray(5).also(input::readFully)
-            val size = ((header[3].toInt() and 255) shl 8) or (header[4].toInt() and 255)
-            if (header[0] != 0x16.toByte() || size !in 38..4096) throw java.net.ProtocolException("Invalid Fake TLS hello")
-            val body = ByteArray(size).also(input::readFully)
-            val hello = FakeTls.verify(header + body, secret) ?: throw java.net.ProtocolException("Fake TLS verification failed")
-            session.output.write(FakeTls.response(secret, hello))
-            session.output.flush()
-            session.input = FakeTls.Reader(session.input)
-            session.output = FakeTls.Writer(session.output)
-        }
-        val buffer = ByteArray(64)
+    /** An empty local TCP probe is not an authenticated MTProto attempt. */
+    private fun readHandshakeBytes(session: Session, size: Int, allowEmpty: Boolean = false): ByteArray? {
+        val buffer = ByteArray(size)
         var read = 0
         while (read < buffer.size) {
             session.checkOpen()
@@ -376,9 +368,28 @@ class MtprotoServer(
             if (remaining <= 0) throw java.net.SocketTimeoutException("Handshake deadline")
             session.client.soTimeout = TimeUnit.NANOSECONDS.toMillis(remaining).coerceAtLeast(1).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             val count = session.input.read(buffer, read, buffer.size - read)
-            if (count < 0) throw EOFException("Client closed during handshake")
+            if (count < 0) {
+                if (read == 0 && allowEmpty) return null
+                throw EOFException("Truncated client handshake")
+            }
             read += count
         }
+        return buffer
+    }
+
+    private fun readInit(session: Session): ByteArray? {
+        if (fakeTlsDomain.isNotEmpty()) {
+            val header = readHandshakeBytes(session, 5, allowEmpty = true) ?: return null
+            val size = ((header[3].toInt() and 255) shl 8) or (header[4].toInt() and 255)
+            if (header[0] != 0x16.toByte() || size !in 38..4096) throw java.net.ProtocolException("Invalid Fake TLS hello")
+            val body = requireNotNull(readHandshakeBytes(session, size))
+            val hello = FakeTls.verify(header + body, secret) ?: throw java.net.ProtocolException("Fake TLS verification failed")
+            session.output.write(FakeTls.response(secret, hello))
+            session.output.flush()
+            session.input = FakeTls.Reader(session.input)
+            session.output = FakeTls.Writer(session.output)
+        }
+        val buffer = readHandshakeBytes(session, 64, allowEmpty = true) ?: return null
         // The watchdog, rather than read-only socket deadlines, measures bidirectional activity.
         session.client.soTimeout = 0
         return buffer
@@ -386,8 +397,13 @@ class MtprotoServer(
 
     private fun serve(session: Session) {
         session.client.tcpNoDelay = true
-        val initial = try { readInit(session) } catch (error: java.io.IOException) {
-            if (fakeTlsDomain.isEmpty()) throw error
+        val initial = try { readInit(session) ?: return } catch (_: java.net.SocketTimeoutException) {
+            if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.TIMEOUT))
+            return
+        } catch (_: EOFException) {
+            if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.HANDSHAKE, HandshakeRejection.INVALID_LENGTH))
+            return
+        } catch (_: java.net.ProtocolException) {
             if (!session.closed.get()) emit(session.run, ServerEvent.Diagnostic(ServerIssue.HANDSHAKE, HandshakeRejection.SECRET_OR_TRANSPORT))
             return
         }
@@ -458,7 +474,7 @@ class MtprotoServer(
                 if (session.closed.get()) session.run.retries.cancel(permit)
                 else {
                     session.run.retries.failure(permit)
-                    val failure=setupFailure(error,issue)
+                    val failure=if(attempt.timedOut)ServerIssue.TIMEOUT else setupFailure(error,issue)
                     synchronized(lifecycle){if(!session.closed.get())mark(key,issue,RouteStatus.UNAVAILABLE,failure)}
                     emit(session.run, ServerEvent.Diagnostic(failure))
                 }
@@ -540,8 +556,21 @@ class MtprotoServer(
         fun remoteFailure(error:Exception){
             synchronized(lifecycle){if(!session.closed.get()){
                 session.remoteFailureReported=true
-                val issue=if(error is SSLException)ServerIssue.TLS else if(remote.kind==TransportKind.HTTP2)ServerIssue.HTTP2 else ServerIssue.SESSION
-                session.run.diagnostics.failed(session.routeKey,issue)
+                val peerClose=error as? WebSocketPeerCloseException
+                if(peerClose?.statusCode==1000){
+                    if(session.run.sessions.none{it!==session && !it.closed.get() && it.established && it.routeKey==session.routeKey}){
+                        session.run.diagnostics.closed(session.routeKey,peerClose.statusCode,peerClose.category)
+                        emit(session.run,ServerEvent.Routes(session.run.diagnostics.snapshot()))
+                    }
+                    return
+                }
+                val issue=when{
+                    error is SSLException->ServerIssue.TLS
+                    remote.kind==TransportKind.HTTP2->ServerIssue.HTTP2
+                    remote.kind==TransportKind.RELAY || remote.kind==TransportKind.WORKER->ServerIssue.RELAY
+                    else->ServerIssue.SESSION
+                }
+                session.run.diagnostics.failed(session.routeKey,issue,peerClose?.statusCode,peerClose?.category)
                 emit(session.run,ServerEvent.Routes(session.run.diagnostics.snapshot()))
                 emit(session.run,ServerEvent.Diagnostic(issue))
             }}
@@ -597,12 +626,12 @@ class MtprotoServer(
             current?.let { run ->
                 run.networkGeneration++
                 run.warm.invalidate()
-                run.probes.toList().forEach(Attempt::close)
+                run.probes.snapshotEntries().forEach(Attempt::close)
                 run.retries.reset()
                 run.rotation.clear()
                 run.diagnostics.clear()
                 emit(run,ServerEvent.Routes(emptyList()))
-                run.sessions.toList().forEach(Session::close)
+                run.sessions.snapshotEntries().forEach(Session::close)
             }
         }
     }
@@ -680,8 +709,8 @@ class MtprotoServer(
         }
         run.server?.let(::release)
         run.warm.close()
-        run.probes.toList().forEach(Attempt::close)
-        run.sessions.toList().forEach(Session::close)
+        run.probes.snapshotEntries().forEach(Attempt::close)
+        run.sessions.snapshotEntries().forEach(Session::close)
         run.watchdog.shutdownNow()
         run.workers.shutdownNow()
         run.downstream.shutdownNow()
