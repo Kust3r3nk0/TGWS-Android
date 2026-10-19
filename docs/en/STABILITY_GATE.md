@@ -9,3 +9,5 @@ The owner reported 2529 rejected headers on 0.3.4 and suspects a secret change a
 Install updates using the preserved signing certificate. Removing the application or clearing its data creates a fresh installation. If Telegram retains an outdated entry, disable it and add the current link from the app. Never include secrets in reports.
 
 Worker retains its 16 MiB session budget until verifiable flow control exists. PR #16 diagnostics and a larger test-only budget do not establish reliable real Cloudflare HD uploads.
+
+Automated 0.3.5 gate passed: 203 JVM tests, zero Lint errors, 33 Android cases and an in-place 0.3.4 upgrade preserving secret/Keystore/settings on each API 36/37. See the [checked report](TEST_REPORT_0.3.5-alpha.md). Physical and production-signing gates remain open.

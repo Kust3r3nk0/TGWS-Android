@@ -12,6 +12,8 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 - Clear current session errors on stop and ignore late callbacks. Keep rejection counters as last-run history.
 - Add UI, Keystore, lifecycle and in-place 0.3.4 APK upgrade regressions.
 - Include PR #16 media-route and allowlisted WSS close diagnostics; keep normal close distinct from failure and retain the Worker 16 MiB budget.
+- Fix concurrent collection snapshots during stop and network changes.
+- [x] [Final verification](TEST_REPORT_0.3.5-alpha.md): 203 JVM tests, zero Lint errors, 17 Worker tests; 33 Android cases and a passing in-place 0.3.4 upgrade on each of API 36/37.
 - Stable release still requires owner physical validation, usable cellular routes and trusted production signing.
 
 ## 0.3.4-alpha — network compatibility
