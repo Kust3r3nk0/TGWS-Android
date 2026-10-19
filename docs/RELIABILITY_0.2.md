@@ -3,7 +3,7 @@
 Версия продолжает план 0.2.0 из GitHub: векторы и строгие handshake-проверки,
 пулы соединений, ротация, ограниченные повторы, отмена и нагрузочные испытания.
 Эталон остаётся Flowseal v1.11.2 (`307a384ab7f522e34bb1a045884d0bd90f40bee5`).
-Зависимости, package/applicationId и minSdk 35 сохранены.
+Текущая платформа — Android 16+ / minSdk 36; package/applicationId сохранены.
 
 ## Пул свежих WSS-подключений
 
@@ -62,7 +62,7 @@ Java AES-CTR peer, четыре одновременных клиента, ef/ee
 ./gradlew --no-daemon -PsoakSeconds=180 :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
 ```
 
-Отчёт с фактическими результатами: [TEST_REPORT_0.2.0-alpha.md](TEST_REPORT_0.2.0-alpha.md).
+Отчёт с фактическими результатами: [TEST_REPORT.md](TEST_REPORT.md).
 Физическое устройство, длительные реальные Wi-Fi/LTE испытания, внешний relay
 и мобильный оператор остаются отдельными непроверенными сценариями.
 

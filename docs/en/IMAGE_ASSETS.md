@@ -12,9 +12,9 @@ is included; brands belong to their respective owners, with no affiliation impli
 code glyph is a neutral illustration, not an official logo. The self-contained technology
 board embeds vector paths with prefixed gradient ids.
 
-The three 0.3.3-alpha images are byte-for-byte native screenshots from
-[device CI 38860603657](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/38860603657),
-source `a8020a6984f5dcc1d7b1496cb1e05d03feeca2fe`: light Home/API35, dark Home/API36,
-and settings with both effects enabled/API37. English locale, software GPU; beta effects are
-off by default. No retouching or recompression. They do not establish physical-device/Telegram E2E.
-Artifact ids, original names and SHA-256 hashes are recorded in the Russian source manifest.
+The three 0.3.5-alpha images are byte-identical Android API 36/37 screenshots from
+[device CI 39187502586](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/39187502586),
+source `fb72b67775b6dff5a71d804ec596850963b409a6`. Both APIs passed 33 tests.
+English locale, software GPU; effects are off by default. No image edits.
+This does not establish physical Telegram E2E. Exact sources and SHA-256 hashes
+are recorded in the [Russian manifest](../images/ASSETS.md).

@@ -381,7 +381,7 @@ class MainActivity : ComponentActivity() {
                         }){Text(stringResource(R.string.save_settings))}
                         }
                         SectionCard(stringResource(R.string.about_title)){
-                            Text(stringResource(R.string.version_label,version))
+                            Text(stringResource(R.string.version_label,version),modifier=Modifier.testTag("about.version"))
                             Text(stringResource(R.string.alpha_notice),style=MaterialTheme.typography.bodySmall)
                         }
                     }

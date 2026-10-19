@@ -24,7 +24,7 @@ Telegram servers from the user's network.
 
 ## Android
 
-Test API 36 and 37 where a stable system image is available. API 34/35 are outside the current support matrix.
+Test API 36 and 37 where a stable system image is available.
 Instrumentation requires a connected device or emulator:
 
 ```bash
@@ -122,10 +122,10 @@ python3 .github/scripts/verify_http2_soak.py --seconds 180
 
 Both soaks execute the requested duration individually (CI: 60 seconds each). Gates require actual
 passing JUnit cases, duration, measured summaries and bounded resources. Android now requires 22
-cases per API 35/36/37.0: added encrypted-settings migration/tamper, network callback stop/permissions,
+cases on supported APIs: added encrypted-settings migration/tamper, network callback stop/permissions,
 real local H2 and full Fake TLS → core → TLS/H2 integration. Fixture CA trust is test-client-only.
 [Carrier model versus physical RU-01–14 matrix](RU_MOBILE_OPERATORS.md),
-[transports](TRANSPORTS_0.3.md), [actual report](TEST_REPORT_0.3.1-alpha.md).
+[transports](TRANSPORTS_0.3.md), [actual report](TEST_REPORT.md).
 
 
 ## 0.3.1 UI and DNS

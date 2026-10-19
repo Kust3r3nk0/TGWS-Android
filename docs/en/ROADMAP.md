@@ -1,7 +1,15 @@
 # TGWS-Android · Development roadmap
 
-Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Android 14/15 are no longer supported; prior CI evidence and reports remain historical. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
+Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Only API 36 and newer are supported. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
+
+## 0.3.6-alpha — Android 16+ only
+
+- Correct the RU/EN About label to Android 16+; APK minimum remains API 36.
+- Remove retired platform reports, release-note files and images from the current tree; preserve Git history. Use verified API 36/37 screenshots and update SVG labels/instructions.
+- CI checks minSdk, localized branding, resources, documentation and the emulator matrix. Android regressions check both locales and the actual About screen.
+- Upgrade regression now uses the SHA-pinned Android 16+ 0.3.5 baseline, preserving credentials, Keystore and settings.
+- versionCode 12, unchanged applicationId/debug certificate. Transports and Worker limits are unchanged; physical validation belongs to the owner.
 
 ## 0.3.5-alpha — credential continuity and session reliability
 
@@ -22,8 +30,6 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 - [x] TCP IPv4/IPv6 interleaving, 250 ms stagger, two attempts, bounded resources/deadlines
 - [x] Blackhole/refusal/cancellation/network-change regressions, migration and APK gate; previous tests preserved
 - [x] [Network failure research and options](NETWORK_COMPATIBILITY_0.3.4.md); strict TLS preserved
-- [x] Wrapper/CI: 190 JVM, zero Lint errors, 26 cases each API 35/36/37; APK/metadata verified
-- [x] [0.3.4 Debug pre-release](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.4-alpha-debug), preserved certificate/checksum/reports
 - [ ] Owner's physical carrier/problematic Wi-Fi validation
 
 ## TGWS-16-016 / 017 — WebView applicability and physical ownership
@@ -44,8 +50,6 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 - [x] Actual translucent cards/navigation while text remains opaque
 - [x] Both themes, standalone and with Liquid Glass
 - [x] Native backdrop compositing, visibility and persistence tests
-- [x] Final CI: 181 JVM, zero Lint errors, 25 Android cases each on API 35/36/37; native PNGs inspected
-- [x] [Checked 0.3.3 debug prerelease](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.3-alpha-debug) with preserved certificate, checksum and reports
 - [ ] Owner physical appearance/performance validation
 
 ## 0.3.2-alpha — Liquid Glass beta
@@ -53,13 +57,10 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 - [x] Optional glass panels/navigation in light and dark themes
 - [x] Persistent appearance switch, off by default, separate from MTProxy configuration
 - [x] Native UI test for actual rendering, persistence and disabling
-- [x] Final CI: 181 JVM, zero Lint errors, 23 Android cases each on API 35/36/37; native PNGs checked
-- [x] [Checked debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/v0.3.2-alpha-debug) with preserved certificate, checksum and reports
 - [ ] Owner physical appearance/performance validation
 
 ## 0.3.1-alpha — interface and DNS
 
-- [x] Final CI: 181 JVM and 22 Android cases each on API 35/36/37, actual light/dark screenshots
 
 - [x] Two Material 3 tabs, separate settings and save without starting
 - [x] Persistent light/dark/system themes and top-menu toggle
@@ -68,7 +69,7 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 - [x] DNS/network tests, Android UI/theme/persistence and CI screenshots
 - [ ] Owner physical UI/DNS/cellular/Telegram validation
 
-[Behavior and limits](DNS_AND_APPEARANCE.md) · [Report](TEST_REPORT_0.3.1-alpha.md).
+[Behavior and limits](DNS_AND_APPEARANCE.md) · [Report](TEST_REPORT.md).
 
 ## 0.3.0-alpha — extended transports and Android
 
@@ -84,13 +85,12 @@ Checks below refer to implementation and automated validation, not physical acce
 - [x] Wi-Fi ↔ cellular cleanup: cancel old DNS/HTTP/sockets, reset pool/backoff and create fresh native sessions
 - [x] Callback-based power behavior, no demand-free perpetual warmup or additional wake locks
 - [x] MegaFon/MTS/Beeline/T2 reference cards; active data-SIM versus registered PLMN and unknown/denied telemetry
-- [x] Android 15/16/17 instrumentation, Keystore migration and real local TLS/H2/Fake TLS integration
 - [x] Preserve standalone relay and experimental Worker server components with local tests
 - [ ] External CF/Worker → Telegram E2E; physical IPv6-only, handover and 30–60 minute screen-off tests
 - [ ] Owner physical RU-01–14 matrix on available SIMs; not a debug Pre-release blocker
 - [ ] Full experimental Worker flow control replacing its current 16 MiB/session budget
 
-[Transports and limits](TRANSPORTS_0.3.md) · [Carrier matrix](RU_MOBILE_OPERATORS.md) · [Report](TEST_REPORT_0.3.0-alpha.md).
+[Transports and limits](TRANSPORTS_0.3.md) · [Carrier matrix](RU_MOBILE_OPERATORS.md) · [Report](TEST_REPORT.md).
 No automatic remote-list refresh is enabled: configuration changes are explicit. Seamless migration and test DCs are not claimed.
 
 ## 0.2.0-alpha — reliability and compatibility
@@ -103,7 +103,7 @@ No automatic remote-list refresh is enabled: configuration changes are explicit.
 - [ ] Prolonged real Wi-Fi/LTE and physical Telegram 0.2.0 E2E
 - [ ] Extend vectors when upstream is separately upgraded; this version retains v1.11.2
 
-[Policy and limits](RELIABILITY_0.2.md) · [Actual results](TEST_REPORT_0.2.0-alpha.md).
+[Policy and limits](RELIABILITY_0.2.md) · [Actual results](TEST_REPORT.md).
 
 ## 0.1.3-alpha — alternate route for IP-filtered networks
 
@@ -117,7 +117,7 @@ Prioritized at the owner's request; not full Cloudflare support or a guaranteed 
 
 ## 0.1.2-alpha — branding and diagnostics
 - [x] Owner logo, adaptive icon and app label without Alpha
-- [ ] Android 16+ / minSdk 36; verify the updated API 36–37 CI matrix in a fresh run
+- [x] Android 16+ / minSdk 36; see the version report for API 36/37 verification
 - [x] Safe handshake rejection categories and counter distinct from listener failures
 - [x] Instrumented check of installed icon, label and minSdk
 - Publish checked debug APKs as GitHub Pre-releases with checksums and commit; retain the stable release gate.
@@ -145,8 +145,6 @@ This is a plan, not a statement that a release has shipped.
 - [x] Strict WebSocket/TLS/MTProto and malformed packet checks
 - [x] Bounded fallback, I/O deadlines, cancellation and safe diagnostic categories
 - [x] RU/EN resources, hidden secrets and explicit Keystore recovery
-- [x] Android instrumentation sources and API 34–37 CI matrix
-- [x] Execute all 10 instrumentation tests on each API 34–37 emulator (see test report)
 - [ ] Manual UI and network scenarios on a physical device
 - [ ] Device and Telegram end-to-end smoke test
 

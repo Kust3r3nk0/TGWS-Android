@@ -1,6 +1,6 @@
 # Russian carrier reference and validation
 
-[Русский](../RU_MOBILE_OPERATORS.md). 0.3.0-alpha / Android 15+.
+[Русский](../RU_MOBILE_OPERATORS.md). 0.3.0-alpha / Android 16+.
 **Owner physical-device validation: pending.**
 
 | Carrier | Primary PLMN | Reference APN | Reference login/password |

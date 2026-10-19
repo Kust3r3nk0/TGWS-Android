@@ -2,7 +2,7 @@
 
 The GitHub 0.2.0 plan covers reference vectors, strict handshakes, pools, rotation,
 controlled retry, cancellation and load testing. Flowseal v1.11.2 remains pinned;
-dependencies, package ID and Android 15+/minSdk 35 are unchanged.
+package ID is preserved; the current platform is Android 16+ / minSdk 36.
 
 Only **unused** direct WSS sockets enter the pool after TLS/Upgrade, before MTProto
 initialization. Each lease is consumed once; active/completed MTProto sessions are
@@ -39,5 +39,5 @@ statistics only. It does not connect to Telegram.
 
 Run the full Wrapper command with `-PsoakSeconds=180` for an extended run. The
 default is 2 seconds; CI uses 60; supported values are 1–3600.
-[Actual results](TEST_REPORT_0.2.0-alpha.md). Physical-device, prolonged public
+[Actual results](TEST_REPORT.md). Physical-device, prolonged public
 Wi-Fi/LTE, external relay and carrier tests remain unverified.

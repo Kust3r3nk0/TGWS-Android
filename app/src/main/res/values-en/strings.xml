@@ -3,7 +3,7 @@
     <string name="route_dns_answers">DNS A/AAAA answers (local only): %1$s</string>
     <string name="app_name">TGWS-Android</string>
     <string name="app_label">TGWS-Android</string>
-    <string name="version_label">Android 15+ · %1$s</string>
+    <string name="version_label">Android 16+ · %1$s</string>
     <string name="local_address">Local address: %1$s:%2$s</string>
     <string name="session_counts">Active sessions: %1$d · connecting: %2$d</string>
     <string name="transport_counts">Session transport: WSS %1$d · TCP %2$d · relay %3$d · CF %4$d · H2 %5$d</string>
