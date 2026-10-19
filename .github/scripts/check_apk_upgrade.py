@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import subprocess
 import urllib.request
+import zipfile
 
 BASELINE_URL = 'https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.4-alpha-debug/TGWS-Android-0.3.4-debug.apk'
 BASELINE_SHA = '453c6676053c439709508a16024267f502f079b8ce7b8b8cc9952c2bd997eab8'
@@ -27,6 +28,13 @@ def signer_digest(output):
     return matches[0].lower()
 
 
+def verify_signed_payload(original, signed):
+    with zipfile.ZipFile(original) as before, zipfile.ZipFile(signed) as after:
+        if set(before.namelist()) != set(after.namelist()) or any(
+                before.read(name) != after.read(name) for name in before.namelist()):
+            raise ValueError('Upgrade fixture signing changed the APK payload')
+
+
 def checked_phase(output, phase):
     if not re.search(r'^INSTRUMENTATION_RESULT: TGWS_UPGRADE=' + re.escape(phase) + r':passed\s*$', output, re.M):
         raise ValueError('Upgrade phase did not execute successfully: ' + failure_detail(output))
@@ -39,6 +47,7 @@ def failure_detail(output):
     details = []
     for text, category in [('Unable to find instrumentation info', 'RUNNER_NOT_FOUND'),
                            ('Permission Denial', 'PERMISSION_DENIED'), ('not signed with', 'SIGNATURE_MISMATCH'),
+                           ('does not have a signature matching', 'SIGNATURE_MISMATCH'),
                            ('Process crashed', 'PROCESS_CRASHED')]:
         if text in output:
             details.append(category)
@@ -86,31 +95,37 @@ def main():
         if hashlib.sha256(payload).hexdigest() != BASELINE_SHA:
             raise ValueError('Baseline release checksum mismatch')
         old.write_bytes(payload)
-        # Both APKs use the temporary CI debug key. The preserved publishing key never enters CI.
-        run(signer, 'sign', '--ks', args.keystore,
-            '--ks-key-alias', 'androiddebugkey', '--ks-pass', 'pass:android', '--key-pass', 'pass:android',
-            '--v1-signing-enabled', 'false', '--v4-signing-enabled', 'false', '--out', str(signed), str(old))
-        certificates = [signer_digest(run(signer, 'verify', '--print-certs', path)) for path in [
-            str(signed), 'app/build/outputs/apk/debug/app-debug.apk',
-            'app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk']]
-        if len(set(certificates)) != 1:
-            raise ValueError('Upgrade APKs use different temporary CI signing certificates')
-        print('Pinned 0.3.4 APK prepared for emulator upgrade test')
+        print('Pinned 0.3.4 APK downloaded and compiled upgrade runner verified')
         return
-    if not signed.is_file():
+    if not old.is_file() or hashlib.sha256(old.read_bytes()).hexdigest() != BASELINE_SHA:
         raise ValueError('Missing prepared upgrade fixture')
     adb = [str(Path(args.sdk) / 'platform-tools/adb'), '-s', args.serial]
-    current = Path('app/build/outputs/apk/debug/app-debug.apk')
-    tests = Path('app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk')
+    current = stage / 'current-ci-signed.apk'
+    tests = stage / 'tests-ci-signed.apk'
+    # Connected tests may rebuild/sign APKs. Prepare *all three* copies afterwards,
+    # preserving every ZIP payload byte; never import the publishing key into CI.
+    signer = str(Path(args.sdk) / 'build-tools/36.0.0/apksigner')
+    pairs = [(old, signed), (Path('app/build/outputs/apk/debug/app-debug.apk'), current),
+             (Path('app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk'), tests)]
+    certificates = []
+    for original, prepared in pairs:
+        run(signer, 'sign', '--ks', args.keystore, '--ks-key-alias', 'androiddebugkey',
+            '--ks-pass', 'pass:android', '--key-pass', 'pass:android', '--v1-signing-enabled', 'false',
+            '--v2-signing-enabled', 'true', '--v3-signing-enabled', 'true', '--v4-signing-enabled', 'false',
+            '--out', str(prepared), str(original))
+        verify_signed_payload(original, prepared)
+        certificates.append(signer_digest(run(signer, 'verify', '--print-certs', str(prepared))))
+    if len(set(certificates)) != 1:
+        raise ValueError('Upgrade APKs use different temporary CI signing certificates')
     version = re.search(r'versionCode\s*=\s*(\d+)', Path('app/build.gradle.kts').read_text()).group(1)
     run(*adb, 'uninstall', PACKAGE + '.test', allow_failure=True)
     run(*adb, 'uninstall', PACKAGE, allow_failure=True)
-    run(*adb, 'install', '-t', str(signed))
-    run(*adb, 'install', '-t', str(tests))
+    run(*adb, 'install', '--no-incremental', '-t', str(signed))
+    run(*adb, 'install', '--no-incremental', '-t', str(tests))
     runner = PACKAGE + '.test/' + PACKAGE + '.UpgradeInstrumentation'
     checked_phase(run(*adb, 'shell', 'am', 'instrument', '-w', '-r', '-e', 'phase', 'seed',
                       '-e', 'version', '10', runner), 'seed')
-    run(*adb, 'install', '-r', '-t', str(current))
+    run(*adb, 'install', '--no-incremental', '-r', '-t', str(current))
     checked_phase(run(*adb, 'shell', 'am', 'instrument', '-w', '-r', '-e', 'phase', 'verify',
                       '-e', 'version', version, runner), 'verify')
     output.mkdir(parents=True, exist_ok=True)
@@ -119,6 +134,7 @@ def main():
         'target_version_code': int(version), 'install_replace': True,
         'secret_preserved': True, 'ciphertext_unchanged': True, 'keystore_preserved': True,
         'settings_preserved': True, 'signing': 'temporary CI debug key on both APKs',
+        'payload_matches_build': True, 'ci_signer_sha256': certificates[0],
         'physical_testing': 'owner_pending', 'result': 'passed'}, indent=2) + '\n')
     print('APK upgrade verified: encrypted credentials, port, relay and appearance preserved')
 

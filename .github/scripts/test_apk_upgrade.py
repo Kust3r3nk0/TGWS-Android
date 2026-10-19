@@ -1,8 +1,20 @@
 import unittest
-from check_apk_upgrade import checked_phase, emulator_serial, check_runner, RUNNER, failure_detail, signer_digest
+from pathlib import Path
+import tempfile
+import zipfile
+from check_apk_upgrade import checked_phase, emulator_serial, check_runner, RUNNER, failure_detail, signer_digest, verify_signed_payload
 
 
 class UpgradeGateTest(unittest.TestCase):
+    def test_prepared_upgrade_apk_must_retain_every_build_payload_byte(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for name, payload in [('build.apk', b'checked'), ('same.apk', b'checked'), ('changed.apk', b'changed')]:
+                with zipfile.ZipFile(root / name, 'w') as apk:
+                    apk.writestr('classes.dex', payload)
+            verify_signed_payload(root / 'build.apk', root / 'same.apk')
+            with self.assertRaises(ValueError):
+                verify_signed_payload(root / 'build.apk', root / 'changed.apk')
     def test_signer_check_requires_single_sha256_certificate(self):
         certificate = 'Signer #1 certificate SHA-256 digest: ' + 'a' * 64 + '\n'
         self.assertEqual('a' * 64, signer_digest(certificate))
@@ -35,3 +47,5 @@ class UpgradeGateTest(unittest.TestCase):
                 'INSTRUMENTATION_RESULT: TGWS_UPGRADE_CHECK=VERSION\nINSTRUMENTATION_CODE: 0\n')
         self.assertEqual('PERMISSION_DENIED,seed:failed,RESULT_0,VERSION', failure_detail(text))
         self.assertEqual('NO_PUBLIC_STATUS', failure_detail('private.example/token=secret'))
+        self.assertEqual('PERMISSION_DENIED,SIGNATURE_MISMATCH', failure_detail(
+            'Permission Denial: package test does not have a signature matching the target app'))
