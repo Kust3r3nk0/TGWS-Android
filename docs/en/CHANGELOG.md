@@ -3,7 +3,7 @@
 ## 0.3.7-alpha — owner verification results
 
 - Record the owner's physical 0.3.6 report: Android 16 / One UI 8.5, direct and relay-only. Text, standard photos/voice, settings and appearance persistence confirmed.
-- Record start/stop, HD/video, automatic recovery and sustained stability failures. Causes unresolved; no fix is claimed.
+- Record the Obfuscated2 message, HD/video failures, automatic recovery and sustained stability failures. Causes unresolved; no fix is claimed.
 - RU/EN About shows the versioned report instead of a blanket untested label; add actual rendered-report and localized regression checks.
 - Align README, roadmap, stable gate and handoff with observed results. Future WebView components are not current failed native tests.
 - Separate owner 0.3.6 data from CI emulator evidence. Upgrade baseline 0.3.6, versionCode 13; native core/settings unchanged.
@@ -14,7 +14,7 @@
 - Remove retired platform reports, release-note files and images from the current tree; preserve Git history. Use verified API 36/37 screenshots and update SVG labels/instructions.
 - CI checks minSdk, localized branding, resources, documentation and the emulator matrix. Android regressions check both locales and the actual About screen.
 - Upgrade regression now uses the SHA-pinned Android 16+ 0.3.5 baseline, preserving credentials, Keystore and settings.
-- versionCode 12, unchanged applicationId/debug certificate. Transports and Worker limits are unchanged; physical validation belongs to the owner.
+- versionCode 12, unchanged applicationId/debug certificate. Transports and Worker limits are unchanged. The subsequent [partial owner report](OWNER_VALIDATION_0.3.6.md) records confirmed scenarios and failures.
 
 ## 0.3.5-alpha — credential continuity and session reliability
 

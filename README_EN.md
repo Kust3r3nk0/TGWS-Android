@@ -10,7 +10,7 @@
 
 **Unofficial, open-source Android 16+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
-> **0.3.7-alpha updates validation reporting, Android 16+.** The owner tested basic 0.3.6 functions on One UI 8.5 and reported HD/video, start/stop and network recovery failures. See actual results and scope below.
+> **0.3.7-alpha updates validation reporting, Android 16+.** The owner tested basic 0.3.6 functions on One UI 8.5 and reported an Obfuscated2 message, HD/video failures and network recovery failures. See actual results and scope below.
 
 ## Languages & technology
 

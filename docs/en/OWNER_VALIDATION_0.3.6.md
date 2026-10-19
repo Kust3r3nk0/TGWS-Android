@@ -25,3 +25,5 @@ This does not verify HTTP/2, Fake TLS, Auto CF or specific WebView channels. The
 Next: reproduce start/stop and network recovery failures with regressions, then isolate the shared HD/video path and transfer direction. The Worker 16 MiB cap alone cannot explain direct-mode failure.
 
 0.3.7 carries this versioned report in the app/docs; it does not claim fixes or new physical validation. [Structured report](../owner-validation.json) · [Automated 0.3.6 results](TEST_REPORT_0.3.6-alpha.md).
+
+Release reference: owner identified version 0.3.6-alpha. Published source `71fd2a2b886bdb423ed5823d5152c8d3967f2349`, checked tree `556fd3ea62df8eb1e7ebb435846e5ce1efc74b10`, APK SHA-256 `063373a78944f23265fcee73558d7c5e5a0c2a8b08199ced920faac0fdc75cab`. These are release metadata; no separate installed-file checksum verification was reported.

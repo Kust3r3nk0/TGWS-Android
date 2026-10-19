@@ -40,4 +40,4 @@ TGWS-16-017 physical results for 0.3.6 were reported by the owner; see the versi
 
 ## Owner response received
 
-19 October 2026: basic 0.3.6 scenarios confirmed, with start/stop, HD/video and network recovery failures. **Partially verified, with failures.** [Physical report](OWNER_VALIDATION_0.3.6.md). Build-time CI metadata/screenshots are historical snapshots, not evidence that this response is absent.
+19 October 2026: basic 0.3.6 scenarios confirmed, with an Obfuscated2 message, HD/video and network recovery failures. **Partially verified, with failures.** [Physical report](OWNER_VALIDATION_0.3.6.md). Build-time CI metadata/screenshots are historical snapshots, not evidence that this response is absent.

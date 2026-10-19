@@ -11,7 +11,7 @@
 **[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.7-alpha-debug/TGWS-Android-0.3.7-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Результаты тестов](docs/TEST_REPORT_0.3.7-alpha.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.3.7-alpha — обновление статусов проверки, Android 16+.** Владелец проверил базовые функции 0.3.6 на One UI 8.5; подтверждены сбои HD/видеокружков, start/stop и восстановления сети. Результаты и границы перечислены ниже.
+> **0.3.7-alpha — обновление статусов проверки, Android 16+.** Владелец проверил базовые функции 0.3.6 на One UI 8.5; сообщено об ошибке Obfuscated2, сбоях HD/видеокружков и восстановления сети. Результаты и границы перечислены ниже.
 
 ## Языки и технологии
 
