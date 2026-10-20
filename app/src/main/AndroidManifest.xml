@@ -7,7 +7,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <application android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules" android:label="@string/app_label" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"
+    <!-- Only user-confirmed installation of our verified GitHub APK. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <application android:name=".TgwsApplication" android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules" android:label="@string/app_label" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
@@ -15,6 +17,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <provider android:name="androidx.core.content.FileProvider"
+            android:authorities="io.github.kust3r3nk0.tgwsandroid.updates"
+            android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/tgws_update_paths" />
+        </provider>
         <service android:name=".ProxyService" android:exported="false"
             android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"

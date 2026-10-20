@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.10-alpha
+
+- Native Update Center, Stable/Preview channels, WorkManager, persistent options and check results.
+- Cancellable progress downloads, SHA-256 and full APK/rotation verification before Android-confirmed installation.
+- Documented release manifest/headings and UI/lifecycle/0.3.9 replacement-install regressions.
+
 ## 0.3.9-alpha — network fixes
 
 - Enabling Fake TLS keeps plain Obfuscated2 with the same secret compatible with Flowseal. TLS-looking random init bytes are authenticated as Obfuscated2 first; Fake TLS rejections have their own category.

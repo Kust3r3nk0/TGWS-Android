@@ -53,6 +53,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
+    private var updateRequest by mutableIntStateOf(0)
+    private fun revealUpdateIntent(){intent.removeExtra(OPEN_UPDATES)}
+    override fun onNewIntent(intent:Intent){
+        // This intent is a navigation command, not a replacement for the launcher
+        // identity. Keep the launch intent stable across lifecycle transitions.
+        super.onNewIntent(intent)
+        if(intent.getBooleanExtra(OPEN_UPDATES,false))updateRequest++
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -74,7 +82,8 @@ class MainActivity : ComponentActivity() {
                         else SystemBarStyle.light(android.graphics.Color.TRANSPARENT,android.graphics.Color.TRANSPARENT)
                     enableEdgeToEdge(statusBarStyle=bars,navigationBarStyle=bars)
                 }
-                var page by rememberSaveable{mutableIntStateOf(0)}
+                var page by rememberSaveable{mutableIntStateOf(if (intent.getBooleanExtra(OPEN_UPDATES, false)) 2 else 0)}
+                LaunchedEffect(updateRequest){if(updateRequest>0 || intent.getBooleanExtra(OPEN_UPDATES,false)){page=2;revealUpdateIntent()}}
                 var observedNetwork by remember{mutableStateOf(NetworkView())}
                 DisposableEffect(Unit){
                     var monitor:AndroidNetworkMonitor?=null
@@ -169,6 +178,17 @@ class MainActivity : ComponentActivity() {
                     onDispose { lifecycle.removeObserver(observer) }
                 }
 
+                if (page == 2 || page == 3) {
+                    TgwsUpdateHub(
+                        page = page, currentVersion = version, onPage = { page = it },
+                        onBack = { page = 1 },
+                        requestNotificationPermission = {
+                            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 12)
+                            }
+                        }
+                    )
+                } else {
                 AppScaffold(page=page,onPage={page=it;revealSecret=false},version=version,isDark=isDark,onToggleTheme={
                     themeMode=if(isDark)ThemeMode.LIGHT else ThemeMode.DARK;preferences.theme=themeMode
                 }){
@@ -380,12 +400,21 @@ class MainActivity : ComponentActivity() {
                             }
                         }){Text(stringResource(R.string.save_settings))}
                         }
+                        SectionCard(stringResource(R.string.update_section), Modifier.testTag("settings.updates")) {
+                            Text(stringResource(R.string.update_source_description),
+                                style = MaterialTheme.typography.bodySmall)
+                            OutlinedButton(modifier = Modifier.fillMaxWidth().testTag("settings.update.center"),
+                                onClick = { page = 2;revealSecret=false }) { Text(stringResource(R.string.update_center)) }
+                            OutlinedButton(modifier = Modifier.fillMaxWidth().testTag("settings.update.options"),
+                                onClick = { page = 3;revealSecret=false }) { Text(stringResource(R.string.update_settings)) }
+                        }
                         SectionCard(stringResource(R.string.about_title)){
                             Text(stringResource(R.string.version_label,version),modifier=Modifier.testTag("about.version"))
                             Text(stringResource(R.string.alpha_notice),style=MaterialTheme.typography.bodySmall,
                                 modifier=Modifier.testTag("about.notice"))
                         }
                     }
+                }
                 }
             }
         }
