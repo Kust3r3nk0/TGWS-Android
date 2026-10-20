@@ -64,7 +64,11 @@ class DiagnosticToolsInstrumentedTest {
             assertEquals(0,ProxyState.snapshot.rejectedHandshakes)
             assertEquals(saved,context.getSharedPreferences("settings",0).all)
             click("webview.refresh",true)
+            val systemProvider=android.webkit.WebView.getCurrentWebViewPackage()
             val provider=WebViewProviderReader.read()
+            assertEquals(if(systemProvider==null)ProviderState.MISSING else ProviderState.AVAILABLE,provider.state)
+            assertEquals(systemProvider?.packageName,provider.packageName)
+            if(systemProvider!=null)assertEquals(systemProvider.longVersionCode,provider.versionCode)
             provider.packageName?.let{ui.onNodeWithTag("webview.package").assertTextEquals(it)}
             provider.version?.let{ui.onNodeWithTag("webview.version").assertTextContains(it)}
             shot("diagnostics-webview-dark")
