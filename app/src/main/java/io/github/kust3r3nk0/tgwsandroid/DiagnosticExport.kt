@@ -6,6 +6,9 @@ import android.content.Intent
 import androidx.core.content.FileProvider
 import java.io.File
 
+/** Separate authority keeps exported reports outside the verified-APK install scope. */
+class DiagnosticFileProvider:FileProvider()
+
 /** Explicit, narrow read-only sharing. The cache contains redacted reports only. */
 internal object DiagnosticExport {
     fun prepare(context:Context,report:String):Intent {
@@ -15,7 +18,7 @@ internal object DiagnosticExport {
         val file=File.createTempFile("tgws-report-",".json",directory)
         try {
             file.writeText(report,Charsets.UTF_8)
-            val uri=FileProvider.getUriForFile(context,"${context.packageName}.updates",file)
+            val uri=FileProvider.getUriForFile(context,"${context.packageName}.diagnostics",file)
             return Intent(Intent.ACTION_SEND).setType("application/json").putExtra(Intent.EXTRA_STREAM,uri)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 .apply{clipData=ClipData.newRawUri("TGWS diagnostic report",uri)}

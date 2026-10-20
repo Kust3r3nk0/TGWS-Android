@@ -52,9 +52,12 @@ class DiagnosticToolsInstrumentedTest {
         }finally{bitmap.recycle()}
     }
     @Test fun actualProviderAndEmptyLoopbackCheckPreserveCredentialsAcrossRecreation(){
-        val saved=context.getSharedPreferences("settings",0).all.toMap()
+        val beforeStart=SettingsStore(context).load()
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             settle();click("proxy.toggle");ui.waitUntil(10000){ProxyState.snapshot.localAvailable}
+            // Explicit Start saves the form using a fresh GCM nonce. Diagnostics must not write it again.
+            assertEquals(beforeStart,SettingsStore(context).load())
+            val saved=context.getSharedPreferences("settings",0).all.toMap()
             click("nav.diagnostics");click("diagnostics.local.check",true)
             ui.waitUntil(5000){ui.onAllNodesWithTag("diagnostics.local.result").fetchSemanticsNodes().isNotEmpty()}
             ui.onNodeWithTag("diagnostics.local.result").assertTextEquals(context.getString(R.string.tools_local_available))
@@ -95,15 +98,18 @@ class DiagnosticToolsInstrumentedTest {
         val intent=DiagnosticExport.prepare(context,report)
         assertEquals(Intent.FLAG_GRANT_READ_URI_PERMISSION,intent.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION))
         val uri=requireNotNull(intent.getParcelableExtra(Intent.EXTRA_STREAM,android.net.Uri::class.java))
+        assertEquals(context.packageName+".diagnostics",uri.authority)
         val text=context.contentResolver.openInputStream(uri)!!.bufferedReader().use{it.readText()}
         assertEquals(2,JSONObject(text).getInt("schema"));assertFalse(text.contains("private.invalid"));assertFalse(text.contains("192.0.2.1"))
         repeat(8){DiagnosticExport.prepare(context,report)}
         assertTrue(File(context.cacheDir,"diagnostic_reports").listFiles()!!.size<=4)
         val forbidden=File(context.filesDir,"secret-fixture").apply{writeText("private")}
         try{
-            try{androidx.core.content.FileProvider.getUriForFile(context,"${context.packageName}.updates",forbidden);fail("Private files must not be shareable")}
+            try{androidx.core.content.FileProvider.getUriForFile(context,"${context.packageName}.diagnostics",forbidden);fail("Private files must not be shareable")}
             catch(_:IllegalArgumentException){}
         }finally{forbidden.delete()}
+        val reportFile=File(context.cacheDir,"diagnostic_reports/not-an-update.apk").apply{writeText("fixture")}
+        try{assertThrows(IllegalArgumentException::class.java){UpdateInstaller(context).installIntent(reportFile)}}finally{reportFile.delete()}
         File(context.cacheDir,"diagnostic_reports").deleteRecursively()
     }
     @Test fun disabledRecordingStillAllowsProviderInspectionWithoutRecreatingHistory(){
@@ -118,9 +124,11 @@ class DiagnosticToolsInstrumentedTest {
         }
     }
     @Test fun changingPortInvalidatesEarlierCheckWithoutSavingOrChangingSecret(){
-        val saved=context.getSharedPreferences("settings",0).all.toMap()
+        val beforeStart=SettingsStore(context).load()
         ActivityScenario.launch(MainActivity::class.java).use{
             settle();click("proxy.toggle");ui.waitUntil(10000){ProxyState.snapshot.localAvailable}
+            assertEquals(beforeStart,SettingsStore(context).load())
+            val saved=context.getSharedPreferences("settings",0).all.toMap()
             click("nav.diagnostics");click("diagnostics.local.check",true)
             ui.waitUntil(5000){ui.onAllNodesWithTag("diagnostics.local.result").fetchSemanticsNodes().isNotEmpty()}
             click("nav.home");click("proxy.toggle");ui.waitUntil(10000){!ProxyState.snapshot.running}
