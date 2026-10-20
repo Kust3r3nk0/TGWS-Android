@@ -20,8 +20,8 @@ class BrandingInstrumentedTest {
                 setLocales(LocaleList(Locale.forLanguageTag(language)))
             }
             val localized = context.createConfigurationContext(configuration)
-            val notice = localized.getString(R.string.alpha_notice)
-            assertTrue(notice.contains("Worker/CF"))
+            val notice = localized.getString(R.string.premium_release_notice)
+            assertTrue(notice.contains("Worker"))
             for (word in listOf("owner", "tested", "владел", "проверк", "One UI", "Telegram 13")) {
                 assertFalse(notice.contains(word, ignoreCase = true))
             }

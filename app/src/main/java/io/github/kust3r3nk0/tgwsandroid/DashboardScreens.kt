@@ -117,12 +117,13 @@ import kotlinx.coroutines.delay
         val uptime=uptimeMillis(history,now)?.div(1000)
         Text(stringResource(R.string.premium_uptime,uptime?.let{"${it/3600}:${(it/60%60).toString().padStart(2,'0')}:${(it%60).toString().padStart(2,'0')}"}?:stringResource(R.string.premium_no_data)))
         Text(stringResource(R.string.session_counts,s.sessions,s.pending))
+        Text(stringResource(R.string.transport_counts,s.wssSessions,s.tcpSessions,s.relaySessions,s.cfSessions,s.h2Sessions),style=MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){
             Column(Modifier.weight(1f)){Text(stringResource(R.string.premium_received),style=MaterialTheme.typography.bodySmall);Text(formatBytes(s.received))}
             Column(Modifier.weight(1f)){Text(stringResource(R.string.premium_sent),style=MaterialTheme.typography.bodySmall);Text(formatBytes(s.sent))}
         }
         if(s.rejectedHandshakes>0){
-            Text(stringResource(R.string.handshake_rejections,s.rejectedHandshakes),style=MaterialTheme.typography.bodySmall)
+            Text(stringResource(if(s.running)R.string.handshake_rejections else R.string.handshake_rejections_previous,s.rejectedHandshakes),style=MaterialTheme.typography.bodySmall)
             s.lastHandshakeRejection?.let{Text(stringResource(rejectionResource(it)),style=MaterialTheme.typography.bodySmall)}
         }
     }

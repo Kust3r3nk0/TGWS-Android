@@ -35,7 +35,7 @@
 
 ## Update Center
 
-- `app/src/main/res/drawable-nodpi/update_download_glass.png`: декоративная иллюстрация, созданная по утверждённому владельцем первому концепту; не содержит экранов или текста UI. Фирменный логотип переиспользуется.
+- `docs/images/update-center/update-download-legacy.png`: декоративная иллюстрация, созданная по утверждённому владельцем первому концепту; не содержит экранов или текста UI. Фирменный логотип переиспользуется.
 - `app/src/main/res/drawable/ic_update_*.xml`: Google Material Symbols, Apache-2.0; исходные URL указаны в каждом файле. Цвет задаёт Compose. [Лицензия](../licenses/MaterialSymbols-Apache-2.0.txt).
 
 Снимки `update-center/*-api36.png` получены из настоящего Compose UI в Actions 39348216792 (commit 5f33810), скопированы без изменений. Состояние доступного релиза использует только тестовые данные, не включённые в обычный APK. Подробности: [отчёт](../UPDATE_CENTER_VERIFICATION.md).

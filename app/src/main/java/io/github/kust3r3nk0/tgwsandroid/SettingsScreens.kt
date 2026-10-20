@@ -71,6 +71,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.TransportMode
         OutlinedButton(onClick={form.importSecret();if(reveal)onReveal()},enabled=editable && imported.isNotEmpty()){Text(stringResource(R.string.import_button))}
         if(form.secretUnavailable.value)Text(stringResource(R.string.secret_recovery_notice),color=MaterialTheme.colorScheme.error)
         OutlinedButton(onClick={form.generate();if(reveal)onReveal()},enabled=editable){Text(stringResource(if(form.secretUnavailable.value)R.string.secret_replace else R.string.secret_generate))}
+        Text(stringResource(R.string.telegram_link_notice),style=MaterialTheme.typography.bodySmall)
         Text(stringResource(R.string.secret_change_notice),style=MaterialTheme.typography.bodySmall)
         OutlinedButton(onClick=onCopy,enabled=form.valid && !form.busy.value,modifier=Modifier.fillMaxWidth()){Text(stringResource(R.string.copy_secret))}
         OutlinedButton(onClick=onLink,enabled=form.valid && !form.busy.value,modifier=Modifier.fillMaxWidth().testTag("telegram.copy_link")){Text(stringResource(R.string.copy_link))}

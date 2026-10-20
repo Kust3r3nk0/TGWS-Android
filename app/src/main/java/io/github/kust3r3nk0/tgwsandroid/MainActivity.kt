@@ -118,9 +118,9 @@ class MainActivity : ComponentActivity() {
                     AppScaffold(page,{navigate(it)},version,dark,{
                         theme=if(dark)ThemeMode.LIGHT else ThemeMode.DARK;preferences.theme=theme
                     },onBack={navigate(1)}){
-                        if(form.busy.value){LinearProgressIndicator(Modifier.fillMaxWidth().testTag("settings.loading"))}
+                        if(form.busy.value){LinearProgressIndicator(Modifier.fillMaxWidth().testTag("settings.loading"));Text(stringResource(R.string.settings_loading),style=MaterialTheme.typography.bodySmall)}
                         val error=form.errorResource.value ?: snapshot.issue?.let(::issueResource)
-                        if(error!=null)Text(stringResource(error),color=if(snapshot.issueIsWarning && form.errorResource.value==null)MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error)
+                        if(error!=null)Text(if(snapshot.issueIsWarning && form.errorResource.value==null)stringResource(R.string.session_event,stringResource(error))else stringResource(error),color=if(snapshot.issueIsWarning && form.errorResource.value==null)MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error)
                         form.feedbackResource.value?.let{Text(stringResource(it),style=MaterialTheme.typography.bodySmall)}
                         when(page){
                             0->PremiumHome(snapshot,network,form.portText.value,form.relayUrl.value,form.transportDraft.value,
