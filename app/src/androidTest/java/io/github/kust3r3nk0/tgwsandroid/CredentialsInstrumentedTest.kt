@@ -53,7 +53,7 @@ class CredentialsInstrumentedTest {
     @Test fun pastedPrefixedSecretsKeepWholeKeyAndDomainWhenSaved() {
         for (domain in listOf("", "example.com")) {
             ActivityScenario.launch(MainActivity::class.java).use {
-                ready(); node("nav.settings").click()
+                ready(); node("nav.settings").click();node("settings.connection").click()
                 node("settings.secret").text = TelegramSecret.encode(replacement, domain)
                 node("settings.save").click()
                 waitFor { SettingsStore(context).load().let { it.secret == replacement && it.transport.fakeTlsDomain == domain } }
@@ -63,10 +63,11 @@ class CredentialsInstrumentedTest {
     }
     @Test fun copyingDraftLinkPersistsExactCredentialsBeforeRecreation() {
         ActivityScenario.launch(MainActivity::class.java).use { activity ->
-            ready(); node("nav.settings").click()
+            ready(); node("nav.settings").click();node("settings.connection").click()
             node("settings.port").text = "2443"
             node("settings.secret").text = replacement
             node("nav.home").click()
+            node("nav.settings").click();node("settings.connection").click()
             node("telegram.copy_link").click()
             waitFor { SettingsStore(context).load().let { it.port == 2443 && it.secret == replacement } }
             assertTrue(device.wait(Until.gone(selector("settings.loading")), 10_000))
@@ -87,11 +88,11 @@ class CredentialsInstrumentedTest {
     }
     @Test fun malformedLongSecretCannotBeTruncatedIntoValidSavedKey() {
         ActivityScenario.launch(MainActivity::class.java).use {
-            ready(); node("nav.settings").click()
+            ready(); node("nav.settings").click();node("settings.connection").click()
             node("settings.secret").text = replacement + "broken"
             assertFalse(node("settings.save").isEnabled)
             node("nav.home").click()
-            assertFalse(node("telegram.copy_link").isEnabled)
+            assertFalse(node("telegram.share").isEnabled)
             assertEquals(original, SettingsStore(context).load().secret)
         }
     }

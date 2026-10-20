@@ -36,6 +36,7 @@ internal data class TransportDraft(val mode:TransportMode=TransportMode.DIRECT,v
             Text(stringResource(when(mode){TransportMode.DIRECT->R.string.mode_direct;TransportMode.RELAY_ONLY->R.string.mode_relay;TransportMode.AUTO_CLOUDFLARE->R.string.mode_cf}))
         }
     }
+    if(value.mode!=TransportMode.AUTO_CLOUDFLARE)Text(stringResource(if(value.mode==TransportMode.RELAY_ONLY)R.string.relay_enabled_notice else R.string.relay_direct_notice),style=MaterialTheme.typography.bodySmall)
     if(value.mode==TransportMode.AUTO_CLOUDFLARE){
         Text(stringResource(R.string.cf_order),style=MaterialTheme.typography.bodySmall)
         OutlinedTextField(value=value.domains,onValueChange={onChange(value.copy(domains=it.take(2048),h2=value.h2 && it.isNotBlank()))},

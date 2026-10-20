@@ -10,8 +10,13 @@ spec.loader.exec_module(publisher)
 
 
 class PublicationGuardsTest(unittest.TestCase):
+    def test_debug_publisher_accepts_stable_named_candidate_without_claiming_production(self):
+        self.assertEqual('0.4.0',publisher.build_version('versionName = "0.4.0"'))
+        self.assertEqual('0.3.10-alpha',publisher.build_version('versionName = "0.3.10-alpha"'))
+        for text in ['versionName = "0.4.0-debug;unsafe"','', 'versionName = "0.4.0-SNAPSHOT"']:
+            with self.assertRaises(ValueError):publisher.build_version(text)
     def test_upgrade_requires_matching_version_and_every_persistence_check(self):
-        report = dict(result='passed', baseline_version='0.3.9-alpha', target_version_code=16,
+        report = dict(result='passed', baseline_version='0.3.10-alpha', target_version_code=16,
                       install_replace=True, secret_preserved=True, ciphertext_unchanged=True, update_options_preserved=True,
                       keystore_preserved=True, settings_preserved=True, payload_matches_build=True,
                       ci_signer_sha256='a' * 64)

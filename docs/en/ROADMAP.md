@@ -3,6 +3,20 @@
 Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Only API 36 and newer are supported. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
 
+## 0.4.0 — Premium Minimal candidate
+
+- [x] Three tabs and dedicated pages for all existing settings
+- [x] Shared graphite/blue tokens, original logo, both themes and effects
+- [x] Sensitive drafts kept in ViewModel, never plaintext saved state
+- [x] Bounded diagnostics, measured uptime/traffic/setup and safe events
+- [x] Existing Update Center preserved, Stable default, Worker, signature and SHA-256
+- [x] Release configuration without debug signing and a production candidate verifier
+- [x] API 36/37 checks (56 each), 252 JVM tests and visual comparison
+- [ ] Trusted Release signature and owner physical acceptance including HD media
+- [ ] Separate owner approval and Stable v0.4.0 publication
+
+[Release gate and migration](RELEASE_0.4.0.md).
+
 ## 0.3.10-alpha — Update Center
 
 - Native screens matching the approved first concept, RU/EN and light/dark themes.
@@ -89,7 +103,7 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 
 ## 0.3.0-alpha — extended transports and Android
 
-This stage merges the former 0.3.0 and **all 0.4.0 items**. [Owner specification (RU)](../TZ_0.3.0-alpha.md).
+This stage merges the former 0.3.0 and **all former networking-stage 0.4.0 items**, distinct from Premium Minimal. [Owner specification (RU)](../TZ_0.3.0-alpha.md).
 Checks below refer to implementation and automated validation, not physical acceptance.
 
 - [x] Fake TLS HMAC hello/response, `ee` link import/export and record framing; pinned v1.11.2 vectors
@@ -163,7 +177,7 @@ This is a plan, not a statement that a release has shipped.
 - [ ] Manual UI and network scenarios on a physical device
 - [ ] Device and Telegram end-to-end smoke test
 
-## v1.0.0 — First stable release gates
+## v1.0.0 — Further protocol parity
 
 - [ ] Upstream feature parity or explicitly documented intentional deviations
 - [ ] Android 16+ validation on emulators and physical ARM64 hardware

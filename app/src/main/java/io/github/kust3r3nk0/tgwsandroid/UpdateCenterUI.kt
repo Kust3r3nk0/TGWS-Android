@@ -38,12 +38,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 
 private data class UpdatePalette(val background:Color,val card:Color,val border:Color,val accent:Color,val dim:Color,val hero:List<Color>)
-@Composable private fun palette():UpdatePalette = if(MaterialTheme.colorScheme.background.luminance()<.5f)
-    UpdatePalette(Color(0xFF090F11),Color(0xFF141B1E),Color(0xFF2B383B),Color(0xFF39E999),Color(0xFFADB8B9),listOf(Color(0xFF153E31),Color(0xFF0F201E),Color(0xFF11191C)))
-    else UpdatePalette(Color(0xFFF1F7F4),Color(0xFFFCFFFD),Color(0xFFCCDCD3),Color(0xFF006D42),Color(0xFF4E6258),listOf(Color(0xFFCAF2DC),Color(0xFFE5F4EB),Color(0xFFF6FBF8)))
+@Composable private fun palette(): UpdatePalette {
+    val c=MaterialTheme.colorScheme
+    return UpdatePalette(c.background,c.surface,c.outlineVariant,c.primary,c.onSurfaceVariant,
+        listOf(c.primaryContainer,c.surface,c.surface))
+}
 
 @Composable private fun UpdatePanel(modifier:Modifier=Modifier,spacing:androidx.compose.ui.unit.Dp=8.dp,content:@Composable ColumnScope.()->Unit){
     val c=palette()
@@ -54,7 +57,7 @@ private data class UpdatePalette(val background:Color,val card:Color,val border:
 }
 @Composable internal fun TgwsUpdateHub(page:Int,currentVersion:String,onPage:(Int)->Unit,onBack:()->Unit,
     requestNotificationPermission:()->Unit,model:UpdateViewModel=viewModel()){
-    val state by model.state.collectAsState()
+    val state by model.state.collectAsStateWithLifecycle()
     val context=LocalContext.current
     val installer=remember(context){UpdateInstaller(context)}
     val permission=rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()){model.permissionReturned()}
@@ -91,8 +94,8 @@ private data class UpdatePalette(val background:Color,val card:Color,val border:
         }},bottomBar={if(page==2 && state.release!=null)Column(Modifier.fillMaxWidth().background(c.background).navigationBarsPadding().padding(horizontal=16.dp,vertical=10.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
             if(state.downloading)OutlinedButton(onClick=onCancel,modifier=Modifier.fillMaxWidth().heightIn(min=50.dp).testTag("updates.cancel")){Text(stringResource(R.string.update_cancel))}
             else Button(onClick=onUpdate,enabled=!state.checking,modifier=Modifier.fillMaxWidth().heightIn(min=52.dp).testTag("updates.install"),contentPadding=PaddingValues(0.dp),
-                colors=ButtonDefaults.buttonColors(containerColor=c.accent,contentColor=if(c.accent.luminance()>.4f)Color(0xFF002D18)else Color.White)){
-                val gradient=if(c.accent.luminance()>.4f)listOf(Color(0xFF77F5AA),Color(0xFF00CE76))else listOf(Color(0xFF008552),c.accent)
+                colors=ButtonDefaults.buttonColors(containerColor=c.accent,contentColor=MaterialTheme.colorScheme.onPrimary)){
+                val gradient=listOf(c.accent,c.accent)
                 Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(gradient)).padding(14.dp),horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically){
                     Icon(if(state.ready)Icons.Default.Check else ImageVector.vectorResource(R.drawable.ic_update_download),null,Modifier.size(22.dp));Spacer(Modifier.width(8.dp))
                     Text(stringResource(if(state.ready)R.string.update_install else R.string.update_download),fontWeight=FontWeight.Bold)
@@ -173,7 +176,7 @@ private data class UpdatePalette(val background:Color,val card:Color,val border:
     val c=palette();val release=state.release
     Surface(Modifier.fillMaxWidth().testTag("updates.hero"),shape=RoundedCornerShape(24.dp),color=Color.Transparent,border=BorderStroke(1.dp,c.accent.copy(alpha=.18f))){
         Box(Modifier.fillMaxWidth().heightIn(min=208.dp).background(Brush.linearGradient(c.hero))){
-            if(release!=null)Image(painterResource(R.drawable.update_download_glass),null,Modifier.size(160.dp).align(Alignment.BottomEnd))
+            if(release!=null)Icon(ImageVector.vectorResource(R.drawable.ic_update_download),null,Modifier.size(64.dp).align(Alignment.BottomEnd).padding(12.dp),tint=c.accent)
             Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(18.dp)){
                 Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
                     Text(stringResource(if(release!=null)R.string.update_available else if(state.result==UpdateCheckResult.CURRENT)R.string.update_current else R.string.update_center),Modifier.weight(1f),style=MaterialTheme.typography.bodySmall,color=c.dim)

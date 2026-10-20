@@ -7,7 +7,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,41 +23,47 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable internal fun AppScaffold(page:Int,onPage:(Int)->Unit,version:String,isDark:Boolean,onToggleTheme:()->Unit,
-    content:@Composable ColumnScope.()->Unit){
+    onBack:()->Unit={},pages:androidx.compose.runtime.saveable.SaveableStateHolder=rememberSaveableStateHolder(),content:@Composable ColumnScope.()->Unit){
     val glass=LocalLiquidGlass.current || LocalTransparency.current
+    val c=MaterialTheme.colorScheme
     Box(Modifier.fillMaxSize().liquidGlass(panel=false,rounded=false)){
-    Scaffold(modifier=Modifier.semantics{testTagsAsResourceId=true},containerColor=if(glass)Color.Transparent else MaterialTheme.colorScheme.background,
-        contentColor=MaterialTheme.colorScheme.onBackground,
-        topBar={Surface(modifier=Modifier.liquidGlass(rounded=false),color=if(glass)Color.Transparent else MaterialTheme.colorScheme.background,
-            contentColor=MaterialTheme.colorScheme.onSurface){
-            Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal=20.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically){
-                Image(painterResource(R.drawable.tgws_symbol),null,Modifier.size(44.dp))
-                Column(Modifier.weight(1f).padding(start=12.dp)){
-                    Text(stringResource(R.string.app_name),style=MaterialTheme.typography.titleLarge)
-                    Text(version,style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        Scaffold(modifier=Modifier.semantics{testTagsAsResourceId=true},containerColor=if(glass)Color.Transparent else c.background,
+            contentColor=c.onBackground,
+            topBar={Surface(color=if(glass)Color.Transparent else c.background,modifier=Modifier.liquidGlass(rounded=false)){
+                Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal=16.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){
+                    if(page>=5)IconButton(onClick=onBack,modifier=Modifier.testTag("settings.back")){
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack,stringResource(R.string.update_back))
+                    }else Image(painterResource(R.drawable.tgws_symbol),null,Modifier.size(40.dp))
+                    Column(Modifier.weight(1f).padding(horizontal=10.dp)){
+                        Text(stringResource(R.string.app_name),style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
+                        Text(stringResource(when(page){0->R.string.premium_home_subtitle;4->R.string.premium_diagnostics_subtitle;else->R.string.premium_settings_subtitle}),style=MaterialTheme.typography.bodySmall,color=c.onSurfaceVariant)
+                    }
+                    IconButton(onClick=onToggleTheme,modifier=Modifier.testTag("theme.toggle")){
+                        Icon(painterResource(if(isDark)R.drawable.ic_sun else R.drawable.ic_moon),stringResource(if(isDark)R.string.theme_light else R.string.theme_dark),tint=c.onSurfaceVariant)
+                    }
                 }
-                IconButton(onClick=onToggleTheme,modifier=Modifier.testTag("theme.toggle")){
-                    Icon(painterResource(if(isDark)R.drawable.ic_sun else R.drawable.ic_moon),stringResource(if(isDark)R.string.theme_light else R.string.theme_dark))
+            }},
+            bottomBar={NavigationBar(Modifier.imePadding().liquidGlass(rounded=false),containerColor=if(glass)Color.Transparent else c.background,tonalElevation=0.dp){
+                listOf(Triple(0,"nav.home",R.drawable.ic_home),Triple(4,"nav.diagnostics",R.drawable.ic_premium_monitor_heart),Triple(1,"nav.settings",R.drawable.ic_settings)).forEach{(target,tag,icon)->
+                    NavigationBarItem(selected=page==target || (target==1 && page>=5),onClick={onPage(target)},modifier=Modifier.testTag(tag),
+                        colors=NavigationBarItemDefaults.colors(selectedIconColor=c.primary,selectedTextColor=c.primary,indicatorColor=c.primary.copy(alpha=.10f)),
+                        icon={Icon(painterResource(icon),null)},label={Text(stringResource(when(target){0->R.string.premium_home;4->R.string.diagnostics;else->R.string.premium_settings}),style=MaterialTheme.typography.labelSmall)})
                 }
+            }}){insets->
+            pages.SaveableStateProvider(page){
+                Column(Modifier.fillMaxSize().padding(insets).consumeWindowInsets(insets).testTag("page.scroll")
+                    .verticalScroll(rememberScrollState()).padding(horizontal=16.dp,vertical=10.dp),
+                    verticalArrangement=Arrangement.spacedBy(12.dp),content=content)
             }
-        }},
-        bottomBar={NavigationBar(Modifier.imePadding().liquidGlass(rounded=false),containerColor=if(glass)Color.Transparent else NavigationBarDefaults.containerColor) {
-            NavigationBarItem(selected=page==0,onClick={onPage(0)},modifier=Modifier.testTag("nav.home"),
-                icon={Icon(painterResource(R.drawable.ic_home),null)},label={Text(stringResource(R.string.nav_home))})
-            NavigationBarItem(selected=page==1,onClick={onPage(1)},modifier=Modifier.testTag("nav.settings"),
-                icon={Icon(painterResource(R.drawable.ic_settings),null)},label={Text(stringResource(R.string.nav_settings))})
-        }}){insets->
-        key(page){Column(Modifier.fillMaxSize().padding(insets).consumeWindowInsets(insets).testTag("page.scroll")
-            .verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(18.dp),content=content)}
-    }
+        }
     }
 }
 
 @Composable internal fun SectionCard(title:String,modifier:Modifier=Modifier,content:@Composable ColumnScope.()->Unit){
-    Card(modifier.fillMaxWidth().liquidGlass(),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(
+    Card(modifier.fillMaxWidth().liquidGlass(),shape=RoundedCornerShape(20.dp),border=androidx.compose.foundation.BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant.copy(alpha=.45f)),colors=CardDefaults.cardColors(
         containerColor=if(LocalLiquidGlass.current || LocalTransparency.current)Color.Transparent else MaterialTheme.colorScheme.surface,
         contentColor=MaterialTheme.colorScheme.onSurface)){
-        Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+        Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
             Text(title,style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.primary)
             content()
         }

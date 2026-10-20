@@ -70,6 +70,7 @@ class ProxyService : Service() {
         // Repeated explicit starts keep the existing listener and sessions intact.
         if (destroyed || stopping || loading || server != null) return
         fatalError = false
+        ProxyState.recordDiagnostics = AppPreferences(this).diagnostics
         ProxyState.snapshot = ProxySnapshot(phase = ProxyPhase.STARTING)
         try {
             startForeground(NOTIFICATION_ID, notification())

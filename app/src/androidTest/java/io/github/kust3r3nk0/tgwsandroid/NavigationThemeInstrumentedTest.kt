@@ -132,10 +132,10 @@ class NavigationThemeInstrumentedTest {
         ActivityScenario.launch(MainActivity::class.java).use{activity->
             settled();assertFalse(device.hasObject(selector("settings.secret")))
             assertNotNull(node("home.network",Direction.DOWN))
-            node("nav.settings").click()
+            node("nav.settings").click();node("settings.connection",Direction.DOWN).click()
             node("settings.port",Direction.DOWN).text="2443"
             node("nav.home").click();assertFalse(device.hasObject(selector("settings.port")))
-            node("nav.settings").click();assertEquals("2443",node("settings.port",Direction.DOWN).text)
+            node("nav.settings").click();node("settings.connection",Direction.DOWN).click();assertEquals("2443",node("settings.port",Direction.DOWN).text)
             node("settings.save",Direction.DOWN).click();eventually{SettingsStore(context).port==2443}
             activity.recreate();settled()
             // rememberScrollState restores the bottom viewport after recreation.
@@ -160,7 +160,7 @@ class NavigationThemeInstrumentedTest {
         val legacy=context.getSharedPreferences("app_preferences",Context.MODE_PRIVATE)
         assertTrue(legacy.edit().putString("dns","CLOUDFLARE").commit())
         ActivityScenario.launch(MainActivity::class.java).use{activity->
-            settled();node("nav.settings").click()
+            settled();node("nav.settings").click();node("settings.appearance",Direction.DOWN).click()
             assertNotNull(node("dns.system",Direction.DOWN))
             assertNull(device.findObject(selector("dns.CLOUDFLARE")))
             node("theme.DARK",Direction.UP).click()
@@ -171,11 +171,12 @@ class NavigationThemeInstrumentedTest {
             node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.LIGHT}
             node("nav.home").click();screenshot("home-light",dark=false)
             node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.DARK};screenshot("home-dark",dark=true)
-            node("nav.settings").click()
+            node("nav.settings").click();node("settings.appearance",Direction.DOWN).click()
+            node("settings.back").click();node("settings.about",Direction.DOWN).click()
             val version=context.packageManager.getPackageInfo(context.packageName,0).versionName
             assertEquals("Android 16+ · $version",node("about.version",Direction.DOWN).text)
             screenshot("about-dark",dark=true)
-            assertEquals(context.getString(R.string.alpha_notice),node("about.notice",Direction.DOWN).text)
+            assertEquals(context.getString(R.string.premium_release_notice),node("about.notice",Direction.DOWN).text)
             screenshot("about-notice-dark",dark=true)
             assertEquals(before,prefs.getString("secret_encrypted",null))
         }
@@ -196,7 +197,7 @@ class NavigationThemeInstrumentedTest {
         ActivityScenario.launch(MainActivity::class.java).use{activity->
             settled();screenshot("glass-disabled",dark=false)
             val normal=margin()
-            node("nav.settings").click()
+            node("nav.settings").click();node("settings.appearance",Direction.DOWN).click()
             assertFalse(node("appearance.glass",Direction.UP).isChecked)
             node("appearance.glass").click();eventually{AppPreferences(context).liquidGlass}
             activity.recreate();settled()
@@ -208,7 +209,7 @@ class NavigationThemeInstrumentedTest {
             node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.DARK}
             screenshot("glass-dark",dark=true)
             readableText(R.string.app_name,dark=true);readableText(R.string.status_stopped,dark=true)
-            node("nav.settings").click();node("appearance.glass",Direction.UP).click()
+            node("nav.settings").click();node("settings.appearance",Direction.DOWN).click();node("appearance.glass",Direction.UP).click()
             eventually{!AppPreferences(context).liquidGlass}
             activity.recreate();settled()
             assertFalse(node("appearance.glass",Direction.UP).isChecked)
@@ -229,7 +230,7 @@ class NavigationThemeInstrumentedTest {
         val protectedPrefs=context.getSharedPreferences("settings",Context.MODE_PRIVATE)
         val before=protectedPrefs.all.toMap()
         ActivityScenario.launch(MainActivity::class.java).use{activity->
-            settled();node("nav.settings").click()
+            settled();node("nav.settings").click();node("settings.appearance",Direction.DOWN).click()
             assertFalse(node("appearance.transparency",Direction.DOWN).isChecked)
             node("appearance.transparency").click();eventually{AppPreferences(context).transparency}
             assertFalse(AppPreferences(context).liquidGlass)
@@ -241,11 +242,11 @@ class NavigationThemeInstrumentedTest {
             node("theme.toggle").click();eventually{AppPreferences(context).theme==ThemeMode.DARK}
             screenshot("transparency-dark",dark=true)
             readableText(R.string.app_name,dark=true);readableText(R.string.status_stopped,dark=true)
-            node("nav.settings").click();node("appearance.glass",Direction.UP).click()
+            node("nav.settings").click();node("settings.appearance",Direction.DOWN).click();node("appearance.glass",Direction.UP).click()
             eventually{AppPreferences(context).liquidGlass && AppPreferences(context).transparency}
             node("nav.home").click();screenshot("transparency-combined",dark=true)
             readableText(R.string.app_name,dark=true);readableText(R.string.status_stopped,dark=true)
-            node("nav.settings").click();node("appearance.transparency",Direction.DOWN).click()
+            node("nav.settings").click();node("settings.appearance",Direction.DOWN).click();node("appearance.transparency",Direction.DOWN).click()
             eventually{!AppPreferences(context).transparency}
             assertTrue(AppPreferences(context).liquidGlass)
             node("appearance.glass",Direction.UP).click()
