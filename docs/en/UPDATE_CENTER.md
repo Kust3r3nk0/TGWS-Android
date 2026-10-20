@@ -1,5 +1,8 @@
 # TGWS Update Center
 
+Starting with candidate 0.4.0, Update Center uses shared graphite/blue Premium Minimal tokens. Repository/Worker/Installer and release-note categories remain intact. Stable is the default channel. [Release signing and migration](RELEASE_0.4.0.md).
+
+
 [Русский](../UPDATE_CENTER.md). Native Compose / Material 3, Android 16+. Open **Settings → App updates**.
 
 The center checks published official GitHub Releases, not commits. It shows actual release versions and notes. APK URLs come exclusively from the release assets; links in notes are never update sources.

@@ -14,9 +14,24 @@ android {
         applicationId = "io.github.kust3r3nk0.tgwsandroid"
         minSdk = 36
         targetSdk = 37
-        versionCode = 16
-        versionName = "0.3.10-alpha"
+        versionCode = 17
+        versionName = "0.4.0"
         testInstrumentationRunner = "io.github.kust3r3nk0.tgwsandroid.UpgradeInstrumentation"
+    }
+    // Release credentials come only from the local/CI environment, never from Git.
+    val releaseStore = providers.environmentVariable("TGWS_RELEASE_STORE_FILE").orNull
+    if (releaseStore != null) signingConfigs.create("production") {
+        storeFile = file(releaseStore)
+        storePassword = providers.environmentVariable("TGWS_RELEASE_STORE_PASSWORD").orNull
+        keyAlias = providers.environmentVariable("TGWS_RELEASE_KEY_ALIAS").orNull
+        keyPassword = providers.environmentVariable("TGWS_RELEASE_KEY_PASSWORD").orNull
+    }
+    buildTypes {
+        release {
+            isDebuggable = false
+            // No debug signing fallback. Without credentials this produces unsigned candidate only.
+            signingConfig = signingConfigs.findByName("production")
+        }
     }
     buildFeatures { compose = true }
     sourceSets["test"].kotlin.directories.add("src/sharedTest/java")
@@ -68,6 +83,7 @@ dependencies {
     // Full APK cryptographic verification, including proof-of-rotation capabilities.
     implementation("com.android.tools.build:apksig:9.4.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
     // Historical DoH regressions remain test-only; no DoH provider is shipped in the APK.
     testImplementation("com.squareup.okhttp3:okhttp-dnsoverhttps:5.5.0")
     androidTestImplementation("com.squareup.okhttp3:okhttp-dnsoverhttps:5.5.0")

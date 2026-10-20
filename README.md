@@ -4,14 +4,16 @@
   <img src="docs/images/tgws-github-cover-ru.svg" width="100%" alt="TGWS-Android — нативный MTProto-прокси для Android, русский баннер" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.3.10--alpha-orange)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.4.0_candidate-blue)
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 16+.** Разработка: **Makarov Lab's 3.0™**.
 
 **[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.10-alpha-debug/TGWS-Android-0.3.10-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.3.10-alpha — Android 16+.** Исправлены совместимость Obfuscated2/Fake TLS, сроки активных медиа-передач и реакция на изменение доступности сети. Личные отчёты не публикуются.
+> **0.4.0 — кандидат Premium Minimal для Android 16+.** Три вкладки, отдельные подразделы настроек, ограниченная безопасная диагностика и общий дизайн центра обновлений. Stable будет опубликован только после доверенной Release-подписи и отдельного подтверждения владельца. Последняя опубликованная Debug-сборка по ссылке выше — 0.3.10-alpha.
+
+[Подготовка Release, подпись и миграция](docs/RELEASE_0.4.0.md) · [Изменения 0.4.0](docs/releases/0.4.0.md).
 
 ## Языки и технологии
 
@@ -53,8 +55,7 @@ Android Keystore, Gradle и GitHub Actions. [Источники изображе
 
 ## Интерфейс и системный DNS
 
-В нижнем меню две вкладки: **Главная страница** (запуск, Telegram, сеть) и
-**Настройки приложения и MTProxy**. Светлая/тёмная/системная тема сохраняется;
+В нижнем меню три вкладки: **Главная**, **Диагностика**, **Настройки**. Параметры подключения, транспорта, оформления и обновлений вынесены в подразделы. Светлая/тёмная/системная тема сохраняется;
 кнопка в верхнем меню быстро переключает светлый и тёмный режим. UI использует Material 3.
 В разделе «Оформление» доступен **Liquid Glass · бета**: стеклянные панели и навигация
 в обеих темах. По умолчанию выключен; выбор сохраняется и применяется сразу.
