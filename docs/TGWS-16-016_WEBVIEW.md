@@ -4,12 +4,21 @@
 One UI 8.5/9.0; минимум всего приложения — Android 16 / API 36.
 [English](en/WEBVIEW_COMPATIBILITY.md) · [порядок физических проверок](TGWS-16-017_PHYSICAL_TESTING.md).
 
+## Диагностика провайдера в 0.4.1
+
+Теперь доступна нативная карточка системного провайдера и запись его изменений в безопасный журнал. Единственный вызов платформы — `android.webkit.WebView.getCurrentWebViewPackage()`. По [документации Android](https://developer.android.com/reference/android/webkit/WebView#getCurrentWebViewPackage()) он **не загружает WebView**. Свежие версии провайдера читаются как метаданные; WebKit и встроенный веб-интерфейс не добавлены.
+
+Сведения обновляются при показе Activity, изменении выбранного пакета и явном запросе. Отсутствие провайдера отличается от ошибки запроса. Stable/Beta/Dev/Canary определяются только по известным package name; AOSP/OEM не объявляются Latest Stable. Console, страницы, renderer и чужие приложения здесь не логируются: у TGWS нет соответствующего веб-компонента и доступа к чужим журналам.
+
+CI guard разрешает ровно этот metadata-only вызов в проверенном адаптере и пользовательские строковые подписи. Создание движка, import WebView, JS bridge, другие вызовы WebView и WebKit-зависимость по-прежнему блокируются; отрицательные тесты сохранены.
+
+
 ## Применимость к текущему приложению
 
 Аудит 0.3.4-alpha: **встроенных WebView-компонентов нет**. `MainActivity` использует
 Jetpack Compose/Material 3; `tg://proxy` открывается внешним `ACTION_VIEW` Intent.
 Сетевое ядро — Kotlin/Java sockets, TLS и OkHttp, без браузера и JavaScript.
-В production-исходниках/manifest и объявленных зависимостях нет WebView, WebKit или JS bridge.
+В production нет встроенного WebView, WebKit или JS bridge; metadata-only адаптер описан выше.
 
 Поэтому AndroidX WebKit **не добавляется**, WebView не создаётся, renderer callbacks,
 восстановление веб-страницы и WebView feature checks сейчас **неприменимы**.

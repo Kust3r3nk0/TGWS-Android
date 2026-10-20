@@ -21,6 +21,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -33,9 +36,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState:Bundle?){
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val version=packageManager.getPackageInfo(packageName,0).versionName.orEmpty()
+        val packageInfo=packageManager.getPackageInfo(packageName,0)
+        val version=packageInfo.versionName.orEmpty()
         setContent {
             val form:ProxyFormModel=viewModel()
+            val tools:DiagnosticToolsModel=viewModel()
+            val shareScope=rememberCoroutineScope()
             val preferences=remember{AppPreferences(this@MainActivity)}
             var theme by remember{mutableStateOf(preferences.theme)}
             var glass by remember{mutableStateOf(preferences.liquidGlass)}
@@ -46,6 +52,7 @@ class MainActivity : ComponentActivity() {
             val pageStates=rememberSaveableStateHolder()
             var updateParent by rememberSaveable{mutableIntStateOf(1)}
             var network by remember{mutableStateOf(NetworkView())}
+            LaunchedEffect(form.portText.value){tools.selectPort(form.portText.value)}
             LaunchedEffect(updateRequest){
                 if(updateRequest>0 || intent.getBooleanExtra(OPEN_UPDATES,false)){
                     updateParent=1;page=2;reveal=false;intent.removeExtra(OPEN_UPDATES)
@@ -53,16 +60,21 @@ class MainActivity : ComponentActivity() {
             }
             DisposableEffect(Unit){
                 var monitor:AndroidNetworkMonitor?=null
-                fun start(){if(monitor==null)monitor=AndroidNetworkMonitor(this@MainActivity,Handler(Looper.getMainLooper())){_,view->network=view}.also{it.start()}}
+                val providers=ProviderPackageMonitor(this@MainActivity,{tools.provider.packageName},{tools.refreshProvider()})
+                fun start(){
+                    providers.start()
+                    if(monitor==null)monitor=AndroidNetworkMonitor(this@MainActivity,Handler(Looper.getMainLooper())){_,view->network=view}.also{it.start()}
+                }
                 val observer=LifecycleEventObserver{_,event->when(event){
-                    Lifecycle.Event.ON_START->start()
-                    Lifecycle.Event.ON_STOP->{monitor?.close();monitor=null}
+                    Lifecycle.Event.ON_START->{ProxyState.recordDiagnostics=preferences.diagnostics;tools.refreshProvider();start()}
+                    Lifecycle.Event.ON_STOP->{monitor?.close();monitor=null;providers.close();tools.cancelCheck()}
                     Lifecycle.Event.ON_PAUSE->reveal=false
+                    Lifecycle.Event.ON_RESUME->tools.refreshProvider()
                     else->Unit
                 }}
                 lifecycle.addObserver(observer)
-                if(lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))start()
-                onDispose{lifecycle.removeObserver(observer);monitor?.close()}
+                if(lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)){ProxyState.recordDiagnostics=preferences.diagnostics;tools.refreshProvider();start()}
+                onDispose{lifecycle.removeObserver(observer);monitor?.close();providers.close()}
             }
             DisposableEffect(reveal){
                 if(reveal)window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -127,7 +139,18 @@ class MainActivity : ComponentActivity() {
                         when(page){
                             0->PremiumHome(snapshot,network,form.portText.value,form.relayUrl.value,form.transportDraft.value,
                                 !form.busy.value,form.valid,::toggle,::shareLink,::copySecret,::openTelegram,{navigate(5)},{navigate(4)})
-                            4->PremiumDiagnostics(snapshot.copy(network=network),ProxyState.diagnostics,::probe,{copySensitive(getString(R.string.diagnostics),it)})
+                            4->PremiumDiagnostics(snapshot.copy(network=network),ProxyState.diagnostics,::probe,{copySensitive(getString(R.string.diagnostics),it)},
+                                recording=recording,report={DiagnosticReport.render(snapshot.copy(network=network),ProxyState.diagnostics,tools.provider,version,packageInfo.longVersionCode,Build.VERSION.SDK_INT)},
+                                onShare={report->shareScope.launch{
+                                    try{
+                                        val share=withContext(Dispatchers.IO){DiagnosticExport.prepare(applicationContext,report)}
+                                        if(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))startActivity(Intent.createChooser(share,getString(R.string.journal_share)))
+                                    }catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
+                                    catch(_:Exception){form.errorResource.value=R.string.journal_export_failed}
+                                }},onClear={ProxyState.clearDiagnostics()}){
+                                DiagnosticTools(snapshot.copy(network=network),tools.provider,tools.checking,tools.localResult,
+                                    {tools.checkLocal(form.portText.value)},{tools.cancelCheck()},{tools.refreshProvider()})
+                            }
                             5->ConnectionSettings(form,!snapshot.running && !form.busy.value,reveal,{reveal=!reveal},::copySecret,::copyLink)
                             6->SectionCard(stringResource(R.string.transport_settings)){
                                 if(snapshot.running)Text(stringResource(R.string.stop_to_edit))

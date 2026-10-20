@@ -60,3 +60,7 @@
 | [0.4.0/updates-settings-dark.png](0.4.0/updates-settings-dark.png) | `updates-settings-dark.png` | `5cb187bfb92ed2acb8ce22f465309922603646c6655bd63e70ecd33d4805813d` |
 | [0.4.0/updates-current-light.png](0.4.0/updates-current-light.png) | `updates-current-light.png` | `b61a7964747c7ba55c72991e47c35cd22617d02c367bc89cf0c4690fc3b9a360` |
 | [0.4.0/updates-settings-light.png](0.4.0/updates-settings-light.png) | `updates-settings-light.png` | `6130c125c2ee8ec5fe437e0b09ac1734ebfa2c4f82c98d63301e2ccb2445e0c1` |
+
+## Диагностика 0.4.1
+
+`0.4.1/journal-dark.png` и `0.4.1/webview-dark.png` — неизменённые снимки настоящего приложения из CI API 36, source `41e34af33828eb7f264c5f9d5243cdb00480a2ab`, artifact `12286452994`. Не генеративные изображения. [Сценарии, SHA-256 и ограничения](../VERIFICATION_0.4.1.md). Исходный логотип `tgws_symbol` сохранён.

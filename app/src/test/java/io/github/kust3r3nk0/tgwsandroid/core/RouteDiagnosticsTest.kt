@@ -4,6 +4,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RouteDiagnosticsTest {
+    @Test fun reconnectDoesNotExposeStalePhaseMeasurements(){
+        val book=RouteDiagnostics();book.mark("route",2,false,TransportKind.WSS,RouteStatus.CONNECTING)
+        book.mark("route",2,false,TransportKind.WSS,RouteStatus.AVAILABLE,timings=SetupTimings(1,2,3,4))
+        assertNotNull(book.snapshot().single().setupMillis)
+        book.mark("route",2,false,TransportKind.WSS,RouteStatus.CONNECTING)
+        assertNull(book.snapshot().single().setupMillis);assertNull(book.snapshot().single().timings)
+        assertEquals(2,book.snapshot().single().attempts)
+    }
+    @Test fun wrappedSetupFailuresAreClassifiedWithBoundedCycleSafeCauseTraversal(){
+        val dns=java.io.IOException("private endpoint",java.net.UnknownHostException("private endpoint"))
+        assertEquals(ServerIssue.DNS,setupFailure(dns,ServerIssue.WSS_HANDSHAKE))
+        assertEquals(ServerIssue.TLS,setupFailure(java.util.concurrent.ExecutionException(javax.net.ssl.SSLHandshakeException("private")),ServerIssue.RELAY))
+        val a=java.io.IOException();val b=java.io.IOException();a.initCause(b);b.initCause(a)
+        assertEquals(ServerIssue.RELAY,setupFailure(a,ServerIssue.RELAY))
+        var deep:Exception=java.net.UnknownHostException();repeat(10){deep=java.io.IOException(deep)}
+        assertEquals(ServerIssue.RELAY,setupFailure(deep,ServerIssue.RELAY))
+    }
     @Test fun actualSetupTimeBackoffTrafficAndNetworkResetAreNotFabricated(){
         var nano=1000L;var wall=100000L
         val book=RouteDiagnostics({nano},{wall})

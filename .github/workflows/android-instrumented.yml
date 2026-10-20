@@ -2,7 +2,6 @@ name: Android device tests
 
 on:
   pull_request:
-    branches: [main]
     paths:
       - 'app/**'
       - 'gradle/**'

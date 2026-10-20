@@ -109,14 +109,13 @@ import kotlinx.coroutines.delay
         }
     }
 }
-@Composable internal fun PremiumDiagnostics(s:ProxySnapshot,history:DiagnosticHistoryState,onProbe:()->Unit,onCopy:(String)->Unit){
+@Composable internal fun PremiumDiagnostics(s:ProxySnapshot,history:DiagnosticHistoryState,onProbe:()->Unit,onCopy:(String)->Unit,recording:Boolean=true,report:()->String={DiagnosticReport.render(s,history)},
+    onShare:(String)->Unit={},onClear:()->Unit={},extra:@Composable ()->Unit={}){
     val owner=LocalLifecycleOwner.current
     var now by remember{mutableLongStateOf(SystemClock.elapsedRealtime())}
     LaunchedEffect(owner,s.running){owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED){
         do{now=SystemClock.elapsedRealtime();if(s.running)delay(1000)}while(s.running)
     }}
-    var allEvents by remember{mutableStateOf(false)}
-    var preview by remember{mutableStateOf<String?>(null)}
     SectionCard(stringResource(R.string.premium_service),Modifier.testTag("diagnostics.status")){
         Text(stringResource(statusResource(s.phase)),style=MaterialTheme.typography.headlineSmall)
         val uptime=uptimeMillis(history,now)?.div(1000)
@@ -148,38 +147,10 @@ import kotlinx.coroutines.delay
         Metric(stringResource(R.string.premium_transport),transportLabel(s),R.drawable.ic_premium_hub,Modifier.weight(1f))
         Metric(stringResource(R.string.premium_network),networkLabel(s.network),if(s.network.kind==AccessKind.CELLULAR)R.drawable.ic_premium_signal_cellular_alt else R.drawable.ic_update_wifi,Modifier.weight(1f))
     }
-    SectionCard(stringResource(R.string.premium_events),Modifier.testTag("diagnostics.events")){
-        if(history.events.isEmpty())Text(stringResource(R.string.premium_no_events))
-        history.events.takeLast(5).asReversed().forEach{EventLine(it)}
-        TextButton(onClick={allEvents=true},modifier=Modifier.testTag("diagnostics.all")){Text(stringResource(R.string.premium_all_events))}
-        OutlinedButton(onClick={preview=DiagnosticReport.render(s)},modifier=Modifier.testTag("diagnostics.report")){Text(stringResource(R.string.report_preview))}
-    }
+    DiagnosticJournal(history,recording,report,onCopy,onShare,onClear)
+    extra()
     SectionCard(stringResource(R.string.premium_route_checks)){
-        DiagnosticsPanel(s,onProbe,onCopy)
-    }
-    if(allEvents)AlertDialog(onDismissRequest={allEvents=false},title={Text(stringResource(R.string.premium_events))},
-        text={Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){
-            history.events.asReversed().forEach{EventLine(it)}
-        }},confirmButton={TextButton(onClick={allEvents=false}){Text(stringResource(R.string.close))}})
-    preview?.let{report->AlertDialog(onDismissRequest={preview=null},title={Text(stringResource(R.string.report_preview))},
-        text={Text(report,Modifier.heightIn(max=400.dp).verticalScroll(rememberScrollState()))},
-        confirmButton={TextButton(onClick={onCopy(report);preview=null}){Text(stringResource(R.string.report_copy))}},
-        dismissButton={TextButton(onClick={preview=null}){Text(stringResource(R.string.close))}})}
-}
-@Composable private fun EventLine(e:DiagnosticEvent){
-    val message=when{
-        e.phase!=null->stringResource(statusResource(e.phase))
-        e.issue!=null->stringResource(issueResource(e.issue))
-        e.rejected!=null->stringResource(R.string.premium_rejected_event,e.rejected)
-        e.transport!=null->e.transport.name+" · "+stringResource(R.string.route_available)
-        else->stringResource(if(e.success)R.string.network_validated else R.string.network_unvalidated)
-    }
-    Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){
-        Text(java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(e.timeMillis)),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-        Column{
-            Text(stringResource(when(e.category){EventCategory.SERVICE->R.string.premium_service;EventCategory.NETWORK->R.string.premium_network;EventCategory.ROUTE->R.string.premium_route;EventCategory.CLIENT->R.string.premium_client}),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(message,style=MaterialTheme.typography.bodySmall,color=if(e.success)MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error)
-        }
+        DiagnosticsPanel(s,onProbe,onCopy,report)
     }
 }
 internal fun formatBytes(bytes:Long):String {

@@ -38,7 +38,9 @@ class DiagnosticHistoryTest {
     }
     @Test fun unchangedSnapshotsCannotCreateEventsOrSyntheticLatency(){
         val history=DiagnosticHistory();val current=ProxySnapshot()
+        val before=history.state
         repeat(1000){history.accept(current,current,100,100)}
+        assertSame(before,history.state)
         assertTrue(history.state.events.isEmpty());assertTrue(history.state.samples.isEmpty());assertNull(uptimeMillis(history.state,100))
     }
     @Test fun networkAddressesAndOperatorMetadataNeverEnterEventHistory(){

@@ -46,19 +46,20 @@ jobs:
           ./gradlew --no-daemon :app:testDebugUnitTest :app:lintRelease :app:assembleRelease
           mkdir -p artifacts/production-candidate
           python3 .github/scripts/verify_release_apk.py --apk app/build/outputs/apk/release/app-release.apk --sdk "$ANDROID_HOME" --certificate "$RELEASE_CERT_SHA256" --output artifacts/production-candidate/verification.json
-          cp app/build/outputs/apk/release/app-release.apk artifacts/production-candidate/TGWS-Android-0.4.0.apk
-          python3 .github/scripts/create_update_manifest.py --apk-name TGWS-Android-0.4.0.apk --channel STABLE --output artifacts/production-candidate/update-manifest.json
+          candidate_version=$(python3 -c 'import json; print(json.load(open("artifacts/production-candidate/verification.json"))["version"])')
+          cp app/build/outputs/apk/release/app-release.apk "artifacts/production-candidate/TGWS-Android-${candidate_version}.apk"
+          python3 .github/scripts/create_update_manifest.py --apk-name "TGWS-Android-${candidate_version}.apk" --channel STABLE --output artifacts/production-candidate/update-manifest.json
           cp CHANGELOG.md artifacts/production-candidate/CHANGELOG-RU.md
           cp docs/en/CHANGELOG.md artifacts/production-candidate/CHANGELOG-EN.md
-          cp docs/releases/0.4.0.md artifacts/production-candidate/RELEASE-NOTES-RU.md
-          cp docs/en/releases/0.4.0.md artifacts/production-candidate/RELEASE-NOTES-EN.md
+          cp "docs/releases/${candidate_version}.md" artifacts/production-candidate/RELEASE-NOTES-RU.md
+          cp "docs/en/releases/${candidate_version}.md" artifacts/production-candidate/RELEASE-NOTES-EN.md
           git rev-parse HEAD > artifacts/production-candidate/SOURCE-COMMIT
           cd artifacts/production-candidate
-          sha256sum TGWS-Android-0.4.0.apk update-manifest.json CHANGELOG-*.md RELEASE-NOTES-*.md verification.json SOURCE-COMMIT > SHA256SUMS
+          sha256sum "TGWS-Android-${candidate_version}.apk" update-manifest.json CHANGELOG-*.md RELEASE-NOTES-*.md verification.json SOURCE-COMMIT > SHA256SUMS
       - name: Upload candidate for owner testing (does not publish a Release)
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: TGWS-Android-0.4.0-production-candidate-${{ github.sha }}
+          name: TGWS-Android-production-candidate-${{ github.sha }}
           path: artifacts/production-candidate/
           if-no-files-found: error
           retention-days: 14

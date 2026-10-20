@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.4.1 — extended diagnostics
+
+Test update based on the 0.4.0 candidate / PR #22. Android 16+, version code 18. Application ID, protected configuration and keys are preserved. No production publication.
+
+## New features
+
+- Categorized INFO / WARNING / ERROR journal: service, storage/configuration, network, DNS, TLS, TCP, WebSocket, relay, HTTP/2, routes, MTProto clients, local checks and system WebView.
+- Combined severity/category filters, first/last occurrence times and repeat counts; up to 128 in-memory events and 32 actual setup measurements.
+- Route details: DC/media, transport, stage, attempts, measured DNS/TCP/TLS/HTTP times, close code and safe close category. Missing measurements stay unknown.
+- Cancellable one-shot loopback TCP check without sending a secret; it does not authenticate MTProto or confirm Telegram connectivity.
+- Observation-based troubleshooting suggestions and explicit preview/copy/sharing of redacted JSON reports.
+
+## Fixes
+
+- Reconnecting no longer displays timings from the previous attempt.
+- Wrapped native connection failures retain their DNS/TLS/TCP category through bounded, cycle-safe cause traversal.
+- Route failures, closures, repeated failures and handshake rejection reasons are retained.
+- Cancelling a local check closes its socket; stale completion cannot reset a newer check indicator.
+
+## Optimization
+
+- Repeated warnings coalesce within 10 seconds. Logcat emits occurrences 1, 2, 4, 8…; distinct successful setup measurements remain distinct.
+- Lazy journal list, manual checks only and foreground-only provider package monitoring.
+
+## Technical
+
+Selected WebView provider/package/version and changes are recorded without loading an engine, adding WebKit or creating web UI. No page/renderer exists in TGWS and other apps’ logs are inaccessible. Channel is inferred only for known package names; latest Stable/Beta is never assumed. Future numeric versions are supported without a hardcoded version threshold.
+
+Report schema 2 excludes secrets, relay/IP/DNS addresses, carrier and messages. Read-only FileProvider scope adds only the report cache directory. TLS, system DNS, native transports, Keystore and Update Center remain intact; built-in Cloudflare DNS stays removed.
+
+
+
 
 ## 0.4.0 — Premium Minimal candidate
 

@@ -3,6 +3,16 @@
 Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Only API 36 and newer are supported. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
 
+## 0.4.1 — extended diagnostics · test update
+
+- [x] Categories, levels, filters, route closure details and repeat aggregation
+- [x] Explicit local check, troubleshooting and redacted JSON export
+- [x] Metadata-only system WebView diagnostics, without loading an engine
+- [x] Wrapped failure and stale timing regression tests
+- [x] Full CI: 270 JVM, 61 Android cases/API 36 and 37, APK upgrade with Keystore preservation
+
+[Changes and limits](releases/0.4.1.md).
+
 ## 0.4.0 — Premium Minimal candidate
 
 - [x] Three tabs and dedicated pages for all existing settings

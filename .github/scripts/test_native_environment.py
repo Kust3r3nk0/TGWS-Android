@@ -10,6 +10,21 @@ import verify_native_ui as native
 
 
 class NativeUiContractTest(unittest.TestCase):
+    def test_reviewed_provider_metadata_call_does_not_allow_engine_or_javascript(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.source(root, native.PROVIDER_FILE, native.PROVIDER_READ)
+            self.assertFalse(native.verify(root)['embedded_webview'])
+            for extra in ['WebView(context)', 'import android.webkit.WebView',
+                          'android.webkit.WebView.setWebContentsDebuggingEnabled(true)',
+                          'val info=android.webkit.WebView.getCurrentWebViewPackage(); WebView(context)']:
+                self.source(root, native.PROVIDER_FILE, native.PROVIDER_READ + '\n' + extra)
+                with self.assertRaises(ValueError):
+                    native.verify(root)
+            self.source(root, 'app/src/main/Other.kt', native.PROVIDER_READ)
+            self.source(root, native.PROVIDER_FILE, native.PROVIDER_READ)
+            with self.assertRaises(ValueError):
+                native.verify(root)
+
     def source(self, root, path, text):
         target = Path(root, path)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -19,6 +34,7 @@ class NativeUiContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             self.source(root, 'app/src/main/Main.kt', 'fun main() = setContent { Text("Native") }')
             self.source(root, 'app/src/androidTest/Environment.kt', 'android.webkit.WebView.getCurrentWebViewPackage()')
+            self.source(root, 'app/src/main/res/values/strings.xml', '<string name="provider">System WebView</string>')
             self.assertFalse(native.verify(root)['embedded_webview'])
 
     def test_new_embedded_integration_or_dependency_requires_review(self):
