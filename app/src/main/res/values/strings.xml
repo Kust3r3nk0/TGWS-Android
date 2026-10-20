@@ -201,8 +201,9 @@
     <string name="tools_local_notice">Однократное TCP-подключение к выбранному порту 127.0.0.1 без передачи секрета. Это проверка listener, а не подтверждение MTProto или доступности Telegram.</string>
     <string name="tools_local_time">Время локального подключения: %1$d мс</string>
     <string name="tools_local_run">Проверить локальный порт</string>
-    <string name="tools_local_available">Локальный порт принимает TCP-подключения.</string>
-    <string name="tools_local_refused">Подключение отклонено: проверьте запуск прокси и выбранный порт.</string>
+    <string name="tools_local_available">При последней проверке порт принял TCP-подключение.</string>
+    <string name="tools_local_refused">При последней проверке подключение отклонено: проверьте запуск прокси и выбранный порт.</string>
+    <string name="journal_preview">Предпросмотр</string>
     <string name="tools_local_failed">Локальная проверка завершилась ошибкой ввода-вывода.</string>
     <string name="tools_webview_version">Версия: %1$s</string>
     <string name="tools_webview_channel">Канал по имени пакета: %1$s</string>

@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.dp
     var categoryName by rememberSaveable{mutableStateOf<String?>(null)}
     var preview by remember{mutableStateOf<String?>(null)}
     var confirmClear by remember{mutableStateOf(false)}
+    val palette=MaterialTheme.colorScheme
+    val chipColors=FilterChipDefaults.filterChipColors(selectedContainerColor=palette.primary.copy(alpha=.16f),
+        selectedLabelColor=palette.onSurface,selectedLeadingIconColor=palette.primary)
     SectionCard(stringResource(R.string.premium_events),Modifier.testTag("diagnostics.events")){
         Text(stringResource(R.string.journal_counts,
             history.events.filter{it.level==EventLevel.ERROR}.sumOf{it.occurrences.toLong()},
@@ -35,11 +38,11 @@ import androidx.compose.ui.unit.dp
         val level=levelName?.let(EventLevel::valueOf)
         val category=categoryName?.let(EventCategory::valueOf)
         val filtered=remember(history.events,level,category){filterEvents(history.events,level,category)}
-        AlertDialog(onDismissRequest={expanded=false},modifier=Modifier.testTag("journal.dialog"),title={Text(stringResource(R.string.premium_events))},
+        AlertDialog(onDismissRequest={expanded=false},containerColor=palette.surface,modifier=Modifier.testTag("journal.dialog"),title={Text(stringResource(R.string.premium_events))},
             text={Column(Modifier.heightIn(max=480.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
-                    FilterChip(level==null,{levelName=null},label={Text(stringResource(R.string.journal_all))},modifier=Modifier.testTag("journal.level.ALL"))
-                    EventLevel.entries.forEach{item->FilterChip(level==item,{levelName=item.name},label={Text(stringResource(levelResource(item)))},modifier=Modifier.testTag("journal.level.${item.name}"))}
+                    FilterChip(level==null,{levelName=null},colors=chipColors,label={Text(stringResource(R.string.journal_all))},modifier=Modifier.testTag("journal.level.ALL"))
+                    EventLevel.entries.forEach{item->FilterChip(level==item,{levelName=item.name},colors=chipColors,label={Text(stringResource(levelResource(item)))},modifier=Modifier.testTag("journal.level.${item.name}"))}
                 }
                 var menu by remember{mutableStateOf(false)}
                 Box{
@@ -58,12 +61,12 @@ import androidx.compose.ui.unit.dp
                 TextButton(onClick={confirmClear=true},enabled=history.events.isNotEmpty() || history.samples.isNotEmpty(),modifier=Modifier.testTag("journal.clear")){Text(stringResource(R.string.journal_clear))}
             }},
             confirmButton={TextButton(onClick={expanded=false}){Text(stringResource(R.string.close))}},
-            dismissButton={TextButton(onClick={preview=report()}){Text(stringResource(R.string.report_preview))}})
+            dismissButton={TextButton(onClick={preview=report()}){Text(stringResource(R.string.journal_preview))}})
     }
-    if(confirmClear)AlertDialog(onDismissRequest={confirmClear=false},title={Text(stringResource(R.string.journal_clear))},
+    if(confirmClear)AlertDialog(onDismissRequest={confirmClear=false},containerColor=palette.surface,title={Text(stringResource(R.string.journal_clear))},
         text={Text(stringResource(R.string.journal_clear_notice))},confirmButton={TextButton(onClick={onClear();confirmClear=false},modifier=Modifier.testTag("journal.clear.confirm")){Text(stringResource(R.string.journal_clear))}},
         dismissButton={TextButton(onClick={confirmClear=false}){Text(stringResource(R.string.close))}})
-    preview?.let{value->AlertDialog(onDismissRequest={preview=null},title={Text(stringResource(R.string.report_preview))},
+    preview?.let{value->AlertDialog(onDismissRequest={preview=null},containerColor=palette.surface,title={Text(stringResource(R.string.report_preview))},
         text={Column(Modifier.heightIn(max=360.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)){
             Text(stringResource(R.string.journal_export_notice),style=MaterialTheme.typography.bodySmall)
             Text(value,Modifier.testTag("journal.preview"),style=MaterialTheme.typography.bodySmall)

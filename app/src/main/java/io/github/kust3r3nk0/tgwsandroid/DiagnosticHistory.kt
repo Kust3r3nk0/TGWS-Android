@@ -91,7 +91,7 @@ internal class DiagnosticHistory(private val onEvent:(DiagnosticEvent)->Unit={})
                         route=EventRoute.from(route))
                 }
             }
-            state=result.copy(samples=(result.samples+samples).takeLast(MAX_SAMPLES))
+            state=if(samples.isEmpty())result else result.copy(samples=(result.samples+samples).takeLast(MAX_SAMPLES))
             events.forEach{record(it,elapsed)}
             result=state
         }
