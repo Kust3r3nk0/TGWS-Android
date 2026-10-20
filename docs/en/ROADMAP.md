@@ -9,7 +9,7 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 - [x] Explicit local check, troubleshooting and redacted JSON export
 - [x] Metadata-only system WebView diagnostics, without loading an engine
 - [x] Wrapped failure and stale timing regression tests
-- [ ] Full CI and API 36/37 matrix for this update
+- [x] Full CI: 270 JVM, 61 Android cases/API 36 and 37, APK upgrade with Keystore preservation
 
 [Changes and limits](releases/0.4.1.md).
 

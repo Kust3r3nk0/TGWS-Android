@@ -8,16 +8,20 @@
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 16+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.4.0-debug/TGWS-Android-0.4.0-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
+**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.4.1-debug/TGWS-Android-0.4.1-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.4.0 — кандидат Premium Minimal для Android 16+.** Три вкладки, отдельные подразделы настроек, ограниченная безопасная диагностика и общий дизайн центра обновлений. Stable будет опубликован только после доверенной Release-подписи и отдельного подтверждения владельца. По ссылке выше доступен проверенный Debug-кандидат 0.4.0.
+> **0.4.1 — тестовое обновление Premium Minimal для Android 16+.** Подробный безопасный журнал, проверка локального порта, подсказки и диагностика системного WebView. APK доступен по ссылке выше; это Debug Pre-release, не Production. [Проверки и ограничения](docs/VERIFICATION_0.4.1.md).
 
 [Подготовка Release, подпись и миграция](docs/RELEASE_0.4.0.md) · [Изменения 0.4.0](docs/releases/0.4.0.md).
 
 ## Новое тестовое обновление 0.4.1
 
-Категории и уровни ошибок, фильтры, подробности закрытия маршрутов, ограничение повторов, безопасный JSON-отчёт и локальная проверка TCP-порта. В диагностике отображается фактический системный WebView-провайдер и версия без запуска браузерного движка. [Изменения и ограничения](docs/releases/0.4.1.md). Предыдущий проверенный APK 0.4.0 остаётся доступен до завершения CI 0.4.1.
+Категории и уровни ошибок, фильтры, подробности закрытия маршрутов, ограничение повторов, безопасный JSON-отчёт и локальная проверка TCP-порта. В диагностике отображается фактический системный WebView-провайдер и версия без запуска браузерного движка. [Изменения и ограничения](docs/releases/0.4.1.md). CI пройден: 270 JVM-тестов и по 61 Android-тесту на API 36/37. [Как пользоваться диагностикой](docs/DIAGNOSTICS.md).
+
+<table><tr><td><img src="docs/images/0.4.1/journal-dark.png" width="260" alt="Категории и уровни ошибок TGWS 0.4.1" /></td><td><img src="docs/images/0.4.1/webview-dark.png" width="260" alt="Локальная проверка и системный WebView TGWS 0.4.1" /></td></tr></table>
+
+Реальные снимки 0.4.1 на CI-эмуляторе API 36: воспроизведён занятый порт и проверен действующий локальный listener. Показан фактически установленный WebView, без сертификации latest. [Источник](docs/VERIFICATION_0.4.1.md).
 
 ## Языки и технологии
 
@@ -116,7 +120,7 @@ CI запускается при push в `main`, Pull Request и вручную.
 сохраняются отдельно. Actions и Wrapper закреплены по проверенным SHA.
 Отдельный workflow при PR и вручную проверяет Android API 36 и 37.0.
 
-[Скачать 0.4.0 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.4.0-debug/TGWS-Android-0.4.0-debug.apk)
+[Скачать 0.4.1 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.4.1-debug/TGWS-Android-0.4.1-debug.apk)
 
 ## Транспорты 0.3.0
 
