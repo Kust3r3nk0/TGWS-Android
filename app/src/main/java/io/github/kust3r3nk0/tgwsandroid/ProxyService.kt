@@ -28,7 +28,9 @@ class ProxyService : Service() {
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val closedSessions=java.util.concurrent.ConcurrentLinkedQueue<io.github.kust3r3nk0.tgwsandroid.core.SessionClosed>()
+    private val closedSessions=BoundedEventQueue<io.github.kust3r3nk0.tgwsandroid.core.SessionClosed>(
+        DiagnosticHistory.MAX_EVENTS,{task->mainHandler.post{task()}},
+        {session->ProxyState.record(sessionEvent(session,System.currentTimeMillis()))})
     private val settingsExecutor = Executors.newSingleThreadExecutor { task -> Thread(task, "TGWS-settings") }
     private var server: MtprotoServer? = null
     private var loading = false
@@ -98,8 +100,7 @@ class ProxyService : Service() {
                         server = MtprotoServer(settings.port, settings.secret,
                             onEvent = { event ->
                                 if(event is ServerEvent.Closed) {
-                                    closedSessions.add(event.session)
-                                    mainHandler.post{drainClosedSessions()}
+                                    closedSessions.offer(event.session)
                                 } else mainHandler.post { receive(event) }
                             },
                             onFatalError = { mainHandler.post { if (!destroyed && !stopping) fail(ProxyState.snapshot.issue ?: ProxyIssue.SESSION) } },
@@ -183,9 +184,7 @@ class ProxyService : Service() {
     }
 
     private fun drainClosedSessions(){
-        while(true){val session=closedSessions.poll()?:return
-            ProxyState.record(sessionEvent(session,System.currentTimeMillis()))
-        }
+        closedSessions.drain()
     }
 
     private fun fail(issue: ProxyIssue) {
