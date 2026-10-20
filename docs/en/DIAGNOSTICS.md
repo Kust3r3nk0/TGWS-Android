@@ -2,7 +2,7 @@
 
 Open **Diagnostics**. Service and transport counters describe actual observations; a listening local port does not confirm Telegram connectivity.
 
-To report a problem without a computer: enable recording in Settings → Diagnostics, reproduce it, open **All events**, combine severity/category filters, then preview the report and explicitly copy or share its JSON file through Android.
+To report a problem without a computer: enable recording in Settings → Diagnostics, reproduce it, open **Full event log**, combine severity/category filters, then preview the report and explicitly copy or share its JSON file through Android.
 
 INFO describes normal events. WARNING describes an individual client/route failure or unvalidated network. ERROR describes a local service/configuration/storage failure. One client event does not stop other sessions. Repeated warnings coalesce; JSON includes first/last times and counts. Safe typed logcat output uses `TGWSDiagnostics` with repeat limits.
 

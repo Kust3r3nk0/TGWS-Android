@@ -24,6 +24,9 @@ class CredentialsInstrumentedTest {
     private val original = "00112233445566778899aabbccddeeff"
     private val replacement = "ffeeddccbbaa99887766554433221100"
     @Before fun setup() {
+        // Connect Accessibility before the first Compose tree is created. Activating the
+        // UiAutomator service afterwards can leave API 37 with a stale virtual-ID tree.
+        device.waitForIdle()
         SettingsStore(context).recover(8443, original)
         instrumentation.runOnMainSync { ProxyState.snapshot = ProxySnapshot() }
     }
