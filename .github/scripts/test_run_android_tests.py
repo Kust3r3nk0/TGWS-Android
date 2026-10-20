@@ -14,6 +14,7 @@ class AndroidEntryPointTest(unittest.TestCase):
             for name, content in {
                 'adb': f'''#!/bin/sh
 case "$3 $4 $5" in
+  'install --no-incremental -r') echo install-target >> steps; exit 0;;
   'shell appops get') echo 'REQUEST_INSTALL_PACKAGES: {install_mode}'; exit 0;;
   'shell appops set')
     if [ "$8" = allow ]; then echo install-granted >> steps; else echo install-restored-$8 >> steps; exit {restore_status}; fi
@@ -48,27 +49,27 @@ printf "{api}\\r\\n"
     def test_gradle_failure_stops_before_report_gate(self):
         status, steps = self.run_script(gradle_status=1)
         self.assertNotEqual(0, status)
-        self.assertEqual(['environment-before', 'install-granted', 'gradle', 'environment-after', 'screenshots', 'install-restored-default'], steps)
+        self.assertEqual(['environment-before', 'install-target', 'install-granted', 'gradle', 'environment-after', 'screenshots', 'install-restored-default'], steps)
 
     def test_failed_screenshot_pull_cannot_mask_gradle_failure(self):
         status, steps = self.run_script(gradle_status=9, pull_status=7)
         self.assertEqual(9, status)
-        self.assertEqual(['environment-before', 'install-granted', 'gradle', 'environment-after', 'screenshots', 'install-restored-default'], steps)
+        self.assertEqual(['environment-before', 'install-target', 'install-granted', 'gradle', 'environment-after', 'screenshots', 'install-restored-default'], steps)
 
     def test_success_checks_actual_reports(self):
         status, steps = self.run_script()
         self.assertEqual(0, status)
-        self.assertEqual(['environment-before', 'install-granted', 'gradle', 'environment-after', 'report-gate', 'screenshots', 'install-restored-default'], steps)
+        self.assertEqual(['environment-before', 'install-target', 'install-granted', 'gradle', 'environment-after', 'report-gate', 'screenshots', 'install-restored-default'], steps)
 
     def test_failed_report_gate_cannot_be_hidden_by_screenshot_pull(self):
         status, steps = self.run_script(report_status=1)
         self.assertNotEqual(0, status)
-        self.assertEqual(['environment-before', 'install-granted', 'gradle', 'environment-after', 'report-gate', 'install-restored-default'], steps)
+        self.assertEqual(['environment-before', 'install-target', 'install-granted', 'gradle', 'environment-after', 'report-gate', 'install-restored-default'], steps)
 
     def test_screenshot_collection_failure_is_visible(self):
         status, steps = self.run_script(pull_status=1)
         self.assertNotEqual(0, status)
-        self.assertEqual(['environment-before', 'install-granted', 'gradle', 'environment-after', 'report-gate', 'screenshots', 'install-restored-default'], steps)
+        self.assertEqual(['environment-before', 'install-target', 'install-granted', 'gradle', 'environment-after', 'report-gate', 'screenshots', 'install-restored-default'], steps)
 
     def test_failed_before_inventory_does_not_start_tests(self):
         status, steps = self.run_script(before_status=7)
@@ -78,12 +79,12 @@ printf "{api}\\r\\n"
     def test_failed_after_inventory_cannot_mask_test_failure(self):
         status, steps = self.run_script(gradle_status=9, after_status=7)
         self.assertEqual(9, status)
-        self.assertEqual(['environment-before', 'install-granted', 'gradle', 'environment-after', 'screenshots', 'install-restored-default'], steps)
+        self.assertEqual(['environment-before', 'install-target', 'install-granted', 'gradle', 'environment-after', 'screenshots', 'install-restored-default'], steps)
 
     def test_after_inventory_failure_is_visible_when_tests_pass(self):
         status, steps = self.run_script(after_status=7)
         self.assertEqual(7, status)
-        self.assertEqual(['environment-before', 'install-granted', 'gradle', 'environment-after', 'install-restored-default'], steps)
+        self.assertEqual(['environment-before', 'install-target', 'install-granted', 'gradle', 'environment-after', 'install-restored-default'], steps)
 
     def test_prior_denied_install_permission_is_restored_after_failure(self):
         status, steps = self.run_script(gradle_status=9, install_mode='deny')

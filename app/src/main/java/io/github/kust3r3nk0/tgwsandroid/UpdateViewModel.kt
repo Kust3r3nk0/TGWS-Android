@@ -22,6 +22,7 @@ class UpdateViewModel(application:Application):AndroidViewModel(application){
         check=viewModelScope.launch{try{repository.check()}catch(error:CancellationException){throw error}catch(error:UpdateException){repository.error(error.issue)}}
     }
     fun options(value:UpdateOptions){
+        pendingInstall=false
         check?.cancel()
         download?.cancel();readyFile=null
         viewModelScope.launch{try{repository.options(value)}catch(error:CancellationException){throw error}
@@ -39,7 +40,7 @@ class UpdateViewModel(application:Application):AndroidViewModel(application){
                 repository.ready(true)
             }
             catch(error:CancellationException){repository.cancelled();throw error}
-            catch(error:Exception){repository.error(if(error is UpdateException)error.issue else UpdateIssue.STORAGE)}
+            catch(error:Exception){pendingInstall=false;repository.error(if(error is UpdateException)error.issue else UpdateIssue.STORAGE)}
         }
     }
     fun cancel(){pendingInstall=false;download?.cancel()}

@@ -76,6 +76,6 @@ internal class UpdateRepository(
     fun verifying(){mutable.update{it.copy(verifying=true)}}
     fun ready(value:Boolean){mutable.update{it.copy(ready=value,downloading=false,verifying=false)}}
     fun cancelled(){mutable.update{it.copy(downloading=false,verifying=false,downloaded=0,issue=null)}}
-    fun error(issue:UpdateIssue){mutable.update{it.copy(downloading=false,verifying=false,issue=issue)}}
+    fun error(issue:UpdateIssue){mutable.update{it.copy(downloading=false,verifying=false,ready=false,installPermissionNeeded=false,issue=issue)}}
     fun permission(value:Boolean){mutable.update{it.copy(installPermissionNeeded=value)}}
 }

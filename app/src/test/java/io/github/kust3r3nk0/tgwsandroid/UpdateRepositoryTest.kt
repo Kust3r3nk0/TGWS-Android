@@ -8,6 +8,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class UpdateRepositoryTest {
+    @Test fun rejectedCachedApkCanBeDownloadedAgain()=runBlocking {
+        val repo=UpdateRepository(MemoryUpdatePersistence(),GithubUpdateSource(FixtureUpdateHttp()),"1.0.0",1,36)
+        repo.initialize();repo.ready(true);repo.permission(true)
+        repo.error(UpdateIssue.INVALID_APK)
+        assertFalse(repo.state.value.ready)
+        assertFalse(repo.state.value.installPermissionNeeded)
+        assertEquals(UpdateIssue.INVALID_APK,repo.state.value.issue)
+        repo.downloading(500)
+        assertTrue(repo.state.value.downloading);assertNull(repo.state.value.issue)
+    }
     @Test fun changingSettingsDoesNotWaitForSlowGithub()=runBlocking {
         val started=CompletableDeferred<Unit>();val finish=CompletableDeferred<Unit>()
         val http=object:UpdateHttp {

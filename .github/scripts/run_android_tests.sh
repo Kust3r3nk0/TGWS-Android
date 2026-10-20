@@ -17,6 +17,9 @@ python3 .github/scripts/collect_android_environment.py --output app/build/report
 # Provision it from the emulator host, then restore it after instrumentation,
 # including failed tests. This never grants installation permission in the APK.
 test_package=io.github.kust3r3nk0.tgwsandroid
+# The preceding upgrade regression removes its signed fixtures. Install the
+# original build first so app-ops target a real package; Gradle uses the same APK.
+adb -s emulator-5554 install --no-incremental -r -t app/build/outputs/apk/debug/app-debug.apk
 previous_install_op=$(adb -s emulator-5554 shell appops get "$test_package" REQUEST_INSTALL_PACKAGES)
 previous_install_mode=default
 if [[ "$previous_install_op" =~ REQUEST_INSTALL_PACKAGES:\ (allow|deny|ignore|default|foreground) ]]; then
