@@ -201,6 +201,15 @@ class ProxyServiceInstrumentedTest {
                 context.startService(Intent(context, ProxyService::class.java).setAction(ProxyService.ACTION_PROBE))
             }
             instrumentation.waitForIdleSync()
+            // startService returns before the system dispatches onStartCommand.
+            // Wait for its service record to disappear; polling stopService would
+            // hide a real leaked service by stopping it from the test itself.
+            val services=context.getSystemService(android.app.ActivityManager::class.java)
+            @Suppress("DEPRECATION")
+            fun emptyServiceStopped()=services.getRunningServices(10).none{
+                it.service.className==ProxyService::class.java.name
+            }
+            eventually{emptyServiceStopped()}
             assertFalse(snapshot().running)
             assertTrue(notifications.activeNotifications.none { it.id == 1443 })
             var serviceWasStillRunning = false

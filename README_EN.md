@@ -185,3 +185,5 @@ One UI, carrier, Telegram and Stable/Beta results are confirmed by the owner.
 ## Update Center
 
 [Native app updates](docs/en/UPDATE_CENTER.md): GitHub Releases, explicit Stable/Preview channels, WorkManager and full APK signing verification, integrated into the existing settings.
+
+[Native Update Center screenshots and automated verification (RU)](docs/UPDATE_CENTER_VERIFICATION.md).

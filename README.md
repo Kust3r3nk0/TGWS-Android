@@ -214,3 +214,5 @@ app/src/main/java/io/github/kust3r3nk0/tgwsandroid/
 ## Update Center
 
 [Нативный центр обновлений](docs/UPDATE_CENTER.md): GitHub Releases, Stable/Preview, WorkManager и проверка подписи APK. Настройки доступны в отдельном разделе приложения.
+
+[Настоящие экраны Update Center и автоматические проверки](docs/UPDATE_CENTER_VERIFICATION.md).

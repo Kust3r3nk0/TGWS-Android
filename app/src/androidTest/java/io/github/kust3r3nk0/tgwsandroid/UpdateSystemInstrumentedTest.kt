@@ -28,7 +28,7 @@ class UpdateSystemInstrumentedTest {
     }
     private fun await(condition:()->Boolean){val end=SystemClock.elapsedRealtime()+5000
         while(!condition()){check(SystemClock.elapsedRealtime()<end){"Android update handoff deadline"};SystemClock.sleep(20)}}
-    @Test fun notificationHasCorrectTextAndOpensTheExistingUpdateCenter()=runBlocking {
+    @Test fun notificationHasCorrectTextAndOpensTheExistingUpdateCenter()=runBlocking<Unit> {
         instrumentation.uiAutomation.grantRuntimePermission(context.packageName,Manifest.permission.POST_NOTIFICATIONS)
         val http=FixtureUpdateHttp().apply{release("0.3.11-alpha",17,true)}
         val storage=MemoryUpdatePersistence().apply{preferences=UpdateOptions(channel=UpdateChannel.PREVIEW)}
