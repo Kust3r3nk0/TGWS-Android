@@ -8,6 +8,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.unit.Density
@@ -64,7 +65,10 @@ class UpdateUiInstrumentedTest {
     @Test fun settingsActionsSurviveActivityRecreationAndNotificationReopensCenter(){
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             ui.waitUntil(10000){ui.onAllNodesWithTag("settings.loading").fetchSemanticsNodes().isEmpty()}
-            click("nav.settings");click("settings.update.center",true)
+            click("nav.settings")
+            ui.onNodeWithTag("settings.about").performScrollTo()
+            val savedScroll=ui.onNodeWithTag("page.scroll").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
+            click("settings.update.center")
             ui.waitUntil(10000){repository.state.value.release!=null}
             ui.onNodeWithTag("updates.version").assertTextEquals("v0.4.1-alpha")
             shot("updates-center-dark")
@@ -81,6 +85,9 @@ class UpdateUiInstrumentedTest {
             ui.onNodeWithTag("updates.hero").assertExists()
             scenario.onActivity{assertTrue(it.intent.filterEquals(launchIntent))}
             assertEquals(720L,storage.options().minutes);assertFalse(storage.options().auto)
+            click("updates.back")
+            val restoredScroll=ui.onNodeWithTag("page.scroll").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
+            assertEquals(savedScroll,restoredScroll,1f)
         }
     }
     @Test fun lightThemeLatestStateAndEverySwitchRemainFunctional(){

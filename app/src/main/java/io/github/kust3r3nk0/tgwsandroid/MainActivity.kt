@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.testTag
@@ -42,6 +43,7 @@ class MainActivity : ComponentActivity() {
             var recording by remember{mutableStateOf(preferences.diagnostics)}
             var reveal by remember{mutableStateOf(false)}
             var page by rememberSaveable{mutableIntStateOf(if(intent.getBooleanExtra(OPEN_UPDATES,false))2 else 0)}
+            val pageStates=rememberSaveableStateHolder()
             var updateParent by rememberSaveable{mutableIntStateOf(1)}
             var network by remember{mutableStateOf(NetworkView())}
             LaunchedEffect(updateRequest){
@@ -117,7 +119,7 @@ class MainActivity : ComponentActivity() {
                     BackHandler(enabled=page!=0){navigate(if(page>=5)1 else 0)}
                     AppScaffold(page,{navigate(it)},version,dark,{
                         theme=if(dark)ThemeMode.LIGHT else ThemeMode.DARK;preferences.theme=theme
-                    },onBack={navigate(1)}){
+                    },onBack={navigate(1)},pages=pageStates){
                         if(form.busy.value){LinearProgressIndicator(Modifier.fillMaxWidth().testTag("settings.loading"));Text(stringResource(R.string.settings_loading),style=MaterialTheme.typography.bodySmall)}
                         val error=form.errorResource.value ?: snapshot.issue?.let(::issueResource)
                         if(error!=null)Text(if(snapshot.issueIsWarning && form.errorResource.value==null)stringResource(R.string.session_event,stringResource(error))else stringResource(error),color=if(snapshot.issueIsWarning && form.errorResource.value==null)MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error)

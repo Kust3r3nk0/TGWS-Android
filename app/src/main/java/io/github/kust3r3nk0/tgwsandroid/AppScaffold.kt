@@ -23,9 +23,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable internal fun AppScaffold(page:Int,onPage:(Int)->Unit,version:String,isDark:Boolean,onToggleTheme:()->Unit,
-    onBack:()->Unit={},content:@Composable ColumnScope.()->Unit){
+    onBack:()->Unit={},pages:androidx.compose.runtime.saveable.SaveableStateHolder=rememberSaveableStateHolder(),content:@Composable ColumnScope.()->Unit){
     val glass=LocalLiquidGlass.current || LocalTransparency.current
-    val holder=rememberSaveableStateHolder()
     val c=MaterialTheme.colorScheme
     Box(Modifier.fillMaxSize().liquidGlass(panel=false,rounded=false)){
         Scaffold(modifier=Modifier.semantics{testTagsAsResourceId=true},containerColor=if(glass)Color.Transparent else c.background,
@@ -51,7 +50,7 @@ import androidx.compose.ui.unit.dp
                         icon={Icon(painterResource(icon),null)},label={Text(stringResource(when(target){0->R.string.premium_home;4->R.string.diagnostics;else->R.string.premium_settings}),style=MaterialTheme.typography.labelSmall)})
                 }
             }}){insets->
-            holder.SaveableStateProvider(page){
+            pages.SaveableStateProvider(page){
                 Column(Modifier.fillMaxSize().padding(insets).consumeWindowInsets(insets).testTag("page.scroll")
                     .verticalScroll(rememberScrollState()).padding(horizontal=16.dp,vertical=10.dp),
                     verticalArrangement=Arrangement.spacedBy(12.dp),content=content)

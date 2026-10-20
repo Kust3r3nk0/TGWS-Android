@@ -21,7 +21,8 @@ import io.github.kust3r3nk0.tgwsandroid.core.TransportMode
 @Composable internal fun SettingsRow(title:Int,description:String,tag:String,icon:Int,onClick:()->Unit){
     Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable(role=Role.Button,onClick=onClick).testTag(tag).padding(vertical=2.dp),
         verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
-        Icon(painterResource(icon),null,Modifier.size(24.dp),tint=MaterialTheme.colorScheme.primary)
+        if(icon==R.drawable.tgws_symbol)androidx.compose.foundation.Image(painterResource(icon),null,Modifier.size(24.dp))
+        else Icon(painterResource(icon),null,Modifier.size(24.dp),tint=MaterialTheme.colorScheme.primary)
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
             Text(stringResource(title),style=MaterialTheme.typography.titleSmall)
             Text(description,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
