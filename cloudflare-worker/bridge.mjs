@@ -4,7 +4,7 @@ export const routes = Object.freeze({
   4: '149.154.167.91', 5: '149.154.171.5', 203: '91.105.192.100',
 });
 const PACKET = 4 * 1024 * 1024 + 4;
-export const defaults = Object.freeze({ sessions: 4, connect: 6000, init: 10000,
+export const defaults = Object.freeze({ sessions: 6, connect: 6000, init: 10000,
   write: 10000, idle: 300000, queue: PACKET, messages: 64,
   // Cloudflare WebSocket.send has no drain API; do not remove this lifetime
   // safety budget without implementing verifiable downstream flow control.
