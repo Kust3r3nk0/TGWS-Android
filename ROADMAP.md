@@ -9,7 +9,7 @@
 - [x] HTTP Upgrade, Close и причина завершения каждой сессии в безопасном журнале
 - [x] Общий endpoint cooldown, runtime backoff и освобождение WS/TCP ресурсов без увеличения лимитов
 - [x] Регрессии Worker, протокола, отмены и сохранения диагностики; CI-модуль Worker с checksum
-- [ ] Полный CI и матрица API 36/37
+- CI и матрица API 36/37: [проверки PR #26](https://github.com/Kust3r3nk0/TGWS-Android/pull/26/checks).
 
 [Аудит и обновление Worker](docs/RELAY_STABILITY_0.4.2.md).
 

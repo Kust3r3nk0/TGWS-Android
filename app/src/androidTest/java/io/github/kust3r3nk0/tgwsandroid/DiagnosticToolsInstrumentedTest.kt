@@ -45,9 +45,10 @@ class DiagnosticToolsInstrumentedTest {
             instrumentation.runOnMainSync{ProxyState.record(sessionEvent(core,System.currentTimeMillis()))}
             click("nav.diagnostics");click("diagnostics.all",true)
             val message=context.getString(R.string.journal_session_ended,"7","REMOTE_CLOSE")
-            ui.onNodeWithText(message).assertExists()
-            ui.onNodeWithText(context.getString(R.string.journal_close,"1011","TCP_ERROR")).assertExists()
-            scenario.recreate();settle();ui.onNodeWithText(message).assertExists()
+            val inJournal=hasAnyAncestor(hasTestTag("journal.dialog"))
+            ui.onNode(hasText(message) and inJournal).assertExists()
+            ui.onNode(hasText(context.getString(R.string.journal_close,"1011","TCP_ERROR")) and inJournal).assertExists()
+            scenario.recreate();settle();ui.onNode(hasText(message) and inJournal).assertExists()
             ui.onNodeWithText(context.getString(R.string.journal_preview)).performClick();ui.waitForIdle()
             val report=ui.onNodeWithTag("journal.preview").fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString(""){it.text}
             val events=JSONObject(report).getJSONArray("events")

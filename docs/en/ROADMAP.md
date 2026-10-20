@@ -9,7 +9,7 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 - [x] Safe Upgrade/Close and individual session termination diagnostics
 - [x] Endpoint cooldown, runtime backoff and WS/TCP ownership without raising limits
 - [x] Worker/protocol/cancellation regressions and a checksummed CI Worker module
-- [ ] Full CI and API 36/37 matrix
+- CI and API 36/37 matrix: [PR #26 checks](https://github.com/Kust3r3nk0/TGWS-Android/pull/26/checks).
 
 [Audit and Worker upgrade](RELAY_STABILITY_0.4.2.md).
 
