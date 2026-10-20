@@ -3,6 +3,11 @@
 Android 16+ / API 36+, versionCode 19. Built from `feature/0.4.1-diagnostics`.
 The existing UI, encrypted settings, protocol routes and TLS checks remain intact.
 
+PR #24 was merged into the source branch during this work. Its six-session pilot
+and admission regression are preserved; this update does not raise the limit to
+eight. Other memory/byte/queue bounds stay unchanged. CI does not certify the pilot
+in an external Cloudflare runtime.
+
 The audit found missing Upgrade status/reason, early post-Upgrade failures outside
 backoff, lost peer Close metadata when the echo failed, abrupt normal client EOF,
 active sockets outside factory cancellation, a Worker reader-lock leak before its
@@ -40,7 +45,7 @@ module lacks these fixes. Old Worker versions remain protocol-compatible but lac
 new HTTP categories: 503/CAPACITY (Retry-After 2s), 503/CONFIGURATION,
 502/UPSTREAM_CONNECT and 504/UPSTREAM_TIMEOUT.
 
-Limits stay **4 sessions/isolate**, **4 MiB + 4 bytes queued**, **64 queued messages**,
+Limits stay **6 sessions/isolate**, **4 MiB + 4 bytes queued**, **64 queued messages**,
 and **16 MiB/session summed in both directions**. A slot stays occupied until both
 WS and TCP closure are confirmed. Missing close confirmation is not bypassed by a
 timer. Worker WebSocket.send lacks drain/backpressure; large media may still reach

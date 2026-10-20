@@ -142,9 +142,9 @@ test('default capacity admits six pending sessions but rejects seventh', async (
   const pending = Array.from({ length: defaults.sessions }, () => f.handler(request(), env));
   assert.equal((await f.handler(request(), env)).status, 503);
   assert.equal(f.dials, 6);
-  assert.deepEqual((await Promise.all(pending)).map(response => response.status), Array(6).fill(502));
+  assert.deepEqual((await Promise.all(pending)).map(response => response.status), Array(6).fill(504));
   // All expired connection attempts have released their isolate capacity.
-  assert.equal((await f.handler(request(), env)).status, 502);
+  assert.equal((await f.handler(request(), env)).status, 504);
   assert.equal(f.dials, 7);
 });
 test('socket close rejection before opened is observed and cancels setup', async () => {
