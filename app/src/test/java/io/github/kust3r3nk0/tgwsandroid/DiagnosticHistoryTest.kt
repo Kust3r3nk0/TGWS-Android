@@ -41,6 +41,16 @@ class DiagnosticHistoryTest {
         repeat(1000){history.accept(current,current,100,100)}
         assertTrue(history.state.events.isEmpty());assertTrue(history.state.samples.isEmpty());assertNull(uptimeMillis(history.state,100))
     }
+    @Test fun networkAddressesAndOperatorMetadataNeverEnterEventHistory(){
+        val history=DiagnosticHistory()
+        val current=ProxySnapshot(network=NetworkView(kind=AccessKind.WIFI,validated=true,
+            dnsServers=listOf("10.20.30.40"),privateDnsName="private.example",operator=OperatorView(simName="private-carrier")),
+            routes=listOf(route(1).copy(timings=SetupTimings(resolvedAddresses=listOf("192.168.1.22")))))
+        history.accept(ProxySnapshot(),current,1,1)
+        val report=history.state.toString()
+        for(value in listOf("10.20.30.40","private.example","private-carrier","192.168.1.22"))assertFalse(report.contains(value))
+        assertEquals(1,history.state.samples.size)
+    }
     @Test fun failedRoutesAreNotSuccessfulLatencyMeasurements(){
         val history=DiagnosticHistory();history.accept(ProxySnapshot(),ProxySnapshot(routes=listOf(route(1,RouteStatus.UNAVAILABLE))),1,1)
         assertTrue(history.state.samples.isEmpty())

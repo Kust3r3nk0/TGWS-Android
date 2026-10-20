@@ -60,11 +60,11 @@ import kotlinx.coroutines.delay
     }
     Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){
         Metric(stringResource(R.string.premium_telegram),stringResource(if(s.sessions>0 && s.received>0)R.string.premium_data_received else R.string.premium_no_confirmation),R.drawable.ic_update_wifi,Modifier.weight(1f))
-        Metric(stringResource(R.string.premium_transport),transportLabel(s),R.drawable.ic_update_speed,Modifier.weight(1f))
+        Metric(stringResource(R.string.premium_transport),transportLabel(s),R.drawable.ic_premium_hub,Modifier.weight(1f))
     }
     Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){
-        Metric(stringResource(R.string.premium_network),networkLabel(network),R.drawable.ic_update_wifi,Modifier.weight(1f).testTag("home.network"))
-        Metric(stringResource(R.string.premium_route),stringResource(modeResource(transport.mode)),R.drawable.ic_settings,Modifier.weight(1f))
+        Metric(stringResource(R.string.premium_network),networkLabel(network),if(network.kind==AccessKind.CELLULAR)R.drawable.ic_premium_signal_cellular_alt else R.drawable.ic_update_wifi,Modifier.weight(1f).testTag("home.network"))
+        Metric(stringResource(R.string.premium_route),stringResource(modeResource(transport.mode)),R.drawable.ic_premium_route,Modifier.weight(1f))
     }
     SectionCard(stringResource(R.string.premium_relay)){
         Text(stringResource(if(relay.isBlank() && transport.workers.isBlank() && transport.domains.isBlank())R.string.premium_not_configured else R.string.premium_endpoint_hidden),color=c.onSurfaceVariant)
@@ -76,9 +76,9 @@ import kotlinx.coroutines.delay
     }
     Text(stringResource(R.string.premium_quick_actions),style=MaterialTheme.typography.titleSmall)
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
-        Action(R.string.premium_share,R.drawable.ic_update_download,"telegram.share",ready&&valid,onShare,Modifier.weight(1f))
-        Action(R.string.copy_secret,R.drawable.ic_settings,"telegram.copy_secret",ready&&valid,onCopy,Modifier.weight(1f))
-        Action(R.string.open_telegram,R.drawable.ic_home,"telegram.open",ready&&valid,onOpen,Modifier.weight(1f))
+        Action(R.string.premium_share,R.drawable.ic_premium_share,"telegram.share",ready&&valid,onShare,Modifier.weight(1f))
+        Action(R.string.copy_secret,R.drawable.ic_premium_content_copy,"telegram.copy_secret",ready&&valid,onCopy,Modifier.weight(1f))
+        Action(R.string.open_telegram,R.drawable.ic_premium_send,"telegram.open",ready&&valid,onOpen,Modifier.weight(1f))
     }
     TextButton(onClick=onDiagnostics,modifier=Modifier.testTag("home.diagnostics")){Text(stringResource(R.string.premium_open_diagnostics))}
     Text(stringResource(R.string.local_notice),style=MaterialTheme.typography.bodySmall,color=c.onSurfaceVariant)
@@ -140,8 +140,8 @@ import kotlinx.coroutines.delay
         Text(stringResource(R.string.premium_setup_notice),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
     Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){
-        Metric(stringResource(R.string.premium_transport),transportLabel(s),R.drawable.ic_update_speed,Modifier.weight(1f))
-        Metric(stringResource(R.string.premium_network),networkLabel(s.network),R.drawable.ic_update_wifi,Modifier.weight(1f))
+        Metric(stringResource(R.string.premium_transport),transportLabel(s),R.drawable.ic_premium_hub,Modifier.weight(1f))
+        Metric(stringResource(R.string.premium_network),networkLabel(s.network),if(s.network.kind==AccessKind.CELLULAR)R.drawable.ic_premium_signal_cellular_alt else R.drawable.ic_update_wifi,Modifier.weight(1f))
     }
     SectionCard(stringResource(R.string.premium_events),Modifier.testTag("diagnostics.events")){
         if(history.events.isEmpty())Text(stringResource(R.string.premium_no_events))

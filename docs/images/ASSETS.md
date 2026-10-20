@@ -39,3 +39,7 @@
 - `app/src/main/res/drawable/ic_update_*.xml`: Google Material Symbols, Apache-2.0; исходные URL указаны в каждом файле. Цвет задаёт Compose. [Лицензия](../licenses/MaterialSymbols-Apache-2.0.txt).
 
 Снимки `update-center/*-api36.png` получены из настоящего Compose UI в Actions 39348216792 (commit 5f33810), скопированы без изменений. Состояние доступного релиза использует только тестовые данные, не включённые в обычный APK. Подробности: [отчёт](../UPDATE_CENTER_VERIFICATION.md).
+
+## Premium Minimal 0.4.0
+
+`ic_premium_*.xml` — Google Material Symbols Outlined, Apache-2.0, commit `49d4db35df873165d6bd6ba09b063c7dafbac2f4`. Точные исходные URL сохранены в XML; [лицензия](../licenses/MaterialSymbols-Apache-2.0.txt). Фирменный `tgws_symbol` не изменялся.

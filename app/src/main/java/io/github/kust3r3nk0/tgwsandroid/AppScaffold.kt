@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.dp
                 }
             }},
             bottomBar={NavigationBar(Modifier.imePadding().liquidGlass(rounded=false),containerColor=if(glass)Color.Transparent else c.background,tonalElevation=0.dp){
-                listOf(Triple(0,"nav.home",R.drawable.ic_home),Triple(4,"nav.diagnostics",R.drawable.ic_update_speed),Triple(1,"nav.settings",R.drawable.ic_settings)).forEach{(target,tag,icon)->
+                listOf(Triple(0,"nav.home",R.drawable.ic_home),Triple(4,"nav.diagnostics",R.drawable.ic_premium_monitor_heart),Triple(1,"nav.settings",R.drawable.ic_settings)).forEach{(target,tag,icon)->
                     NavigationBarItem(selected=page==target || (target==1 && page>=5),onClick={onPage(target)},modifier=Modifier.testTag(tag),
                         colors=NavigationBarItemDefaults.colors(selectedIconColor=c.primary,selectedTextColor=c.primary,indicatorColor=c.primary.copy(alpha=.10f)),
                         icon={Icon(painterResource(icon),null)},label={Text(stringResource(when(target){0->R.string.premium_home;4->R.string.diagnostics;else->R.string.premium_settings}),style=MaterialTheme.typography.labelSmall)})
