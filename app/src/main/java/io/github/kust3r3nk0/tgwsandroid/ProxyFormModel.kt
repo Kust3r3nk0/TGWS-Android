@@ -46,6 +46,12 @@ internal class ProxyFormModel(application: Application) : AndroidViewModel(appli
             finally{busy.value=false}
         }
     }
+    fun editSecret(input:String){
+        val edit=SecretInput.parse(input)
+        secretText.value=edit.secret
+        edit.domain?.let{transportDraft.value=transportDraft.value.copy(fakeDomain=it)}
+        feedbackResource.value=if(edit.domain!=null)R.string.import_success else null
+    }
     fun importSecret(){
         try {
             val text=imported.value

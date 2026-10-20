@@ -50,4 +50,5 @@
     <string name="premium_route_checks">Route checks</string>
     <string name="premium_rejected_event">Rejected headers: %1$d</string>
     <string name="premium_reconnecting">Reconnecting</string>
+    <string name="premium_update_summary">GitHub Releases · APK signature verification</string>
 </resources>

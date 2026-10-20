@@ -19,7 +19,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint
 import io.github.kust3r3nk0.tgwsandroid.core.TransportMode
 
 @Composable internal fun SettingsRow(title:Int,description:String,tag:String,icon:Int,onClick:()->Unit){
-    Row(Modifier.fillMaxWidth().heightIn(min=64.dp).clickable(role=Role.Button,onClick=onClick).testTag(tag).padding(vertical=6.dp),
+    Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable(role=Role.Button,onClick=onClick).testTag(tag).padding(vertical=2.dp),
         verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
         Icon(painterResource(icon),null,Modifier.size(24.dp),tint=MaterialTheme.colorScheme.primary)
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
@@ -29,25 +29,36 @@ import io.github.kust3r3nk0.tgwsandroid.core.TransportMode
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight,null,tint=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+@Composable private fun SettingsGroup(title:String,modifier:Modifier=Modifier,content:@Composable ColumnScope.()->Unit){
+    val c=MaterialTheme.colorScheme
+    Card(modifier.fillMaxWidth().liquidGlass(),shape=androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+        border=androidx.compose.foundation.BorderStroke(1.dp,c.outlineVariant.copy(alpha=.45f)),
+        colors=CardDefaults.cardColors(containerColor=if(LocalLiquidGlass.current||LocalTransparency.current)androidx.compose.ui.graphics.Color.Transparent else c.surface)){
+        Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){
+            Text(title,style=MaterialTheme.typography.labelMedium,color=c.primary)
+            content()
+        }
+    }
+}
 @Composable internal fun PremiumSettings(onPage:(Int)->Unit,theme:ThemeMode,mode:TransportMode,recording:Boolean){
-    SectionCard(stringResource(R.string.premium_connection)){
+    SettingsGroup(stringResource(R.string.premium_connection)){
         SettingsRow(R.string.mtproxy_settings,stringResource(R.string.premium_connection_summary),"settings.connection",R.drawable.ic_premium_link){onPage(5)}
     }
-    SectionCard(stringResource(R.string.transport_settings)){
+    SettingsGroup(stringResource(R.string.transport_settings)){
         SettingsRow(R.string.premium_transport,stringResource(modeResource(mode)),"settings.transport",R.drawable.ic_premium_hub){onPage(6)}
     }
-    SectionCard(stringResource(R.string.appearance_title)){
+    SettingsGroup(stringResource(R.string.appearance_title)){
         SettingsRow(R.string.premium_appearance,stringResource(when(theme){ThemeMode.SYSTEM->R.string.theme_system;ThemeMode.DARK->R.string.theme_dark;ThemeMode.LIGHT->R.string.theme_light}),"settings.appearance",R.drawable.ic_sun){onPage(7)}
     }
-    SectionCard(stringResource(R.string.update_section),Modifier.testTag("settings.updates")){
-        SettingsRow(R.string.update_center,stringResource(R.string.update_source_description),"settings.update.center",R.drawable.ic_update_download){onPage(2)}
+    SettingsGroup(stringResource(R.string.update_section),Modifier.testTag("settings.updates")){
+        SettingsRow(R.string.update_center,stringResource(R.string.premium_update_summary),"settings.update.center",R.drawable.ic_update_download){onPage(2)}
         HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
         SettingsRow(R.string.update_auto,stringResource(R.string.update_settings),"settings.update.options",R.drawable.ic_settings){onPage(3)}
     }
-    SectionCard(stringResource(R.string.diagnostics)){
+    SettingsGroup(stringResource(R.string.diagnostics)){
         SettingsRow(R.string.premium_diagnostic_options,stringResource(if(recording)R.string.premium_recording_on else R.string.premium_recording_off),"settings.diagnostics",R.drawable.ic_update_speed){onPage(9)}
     }
-    SectionCard(stringResource(R.string.about_title)){
+    SettingsGroup(stringResource(R.string.about_title)){
         SettingsRow(R.string.premium_about,stringResource(R.string.premium_about_summary),"settings.about",R.drawable.tgws_symbol){onPage(8)}
     }
 }
@@ -57,7 +68,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.TransportMode
         if(!editable)Text(stringResource(R.string.stop_to_edit),style=MaterialTheme.typography.bodySmall)
         OutlinedTextField(port,{port=it.filter{c->c in '0'..'9'}.take(5)},Modifier.fillMaxWidth().testTag("settings.port"),
             label={Text(stringResource(R.string.local_port))},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),enabled=editable,singleLine=true)
-        OutlinedTextField(secret,{secret=it.trim()},Modifier.fillMaxWidth().testTag("settings.secret"),label={Text(stringResource(R.string.secret_label))},
+        OutlinedTextField(secret,form::editSecret,Modifier.fillMaxWidth().testTag("settings.secret"),label={Text(stringResource(R.string.secret_label))},
             visualTransformation=if(reveal)VisualTransformation.None else PasswordVisualTransformation(),keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Password),
             enabled=editable && !form.secretUnavailable.value,singleLine=true,isError=secret.isNotEmpty() && !SettingsValidation.validSecret(secret),
             supportingText={Text(stringResource(R.string.secret_input_help))},trailingIcon={TextButton(onClick=onReveal,enabled=secret.isNotEmpty() || relay.isNotEmpty()){

@@ -77,3 +77,16 @@ internal object RelayRecordCodec {
         return url
     }
 }
+
+/** Preserve complete dd/ee credentials; malformed text never becomes a valid truncated key. */
+internal data class SecretInput(val secret:String,val domain:String?=null){
+    override fun toString()="SecretInput(redacted)"
+    companion object {
+        fun parse(input:String):SecretInput {
+            val text=input.trim()
+            val decoded=runCatching{io.github.kust3r3nk0.tgwsandroid.core.TelegramSecret.decode(text)}.getOrNull()
+            return if(decoded!=null && text.length>32)SecretInput(decoded.secret,decoded.domain)
+                else SecretInput(text.take(2048))
+        }
+    }
+}

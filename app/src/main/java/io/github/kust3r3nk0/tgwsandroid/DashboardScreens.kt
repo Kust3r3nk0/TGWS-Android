@@ -59,7 +59,7 @@ import kotlinx.coroutines.delay
         }
     }
     Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){
-        Metric(stringResource(R.string.premium_telegram),stringResource(if(s.sessions>0 && s.received>0)R.string.premium_data_received else R.string.premium_no_confirmation),R.drawable.ic_update_wifi,Modifier.weight(1f))
+        Metric(stringResource(R.string.premium_telegram),stringResource(if(s.sessions>0 && s.received>0)R.string.premium_data_received else R.string.premium_no_confirmation),R.drawable.ic_premium_send,Modifier.weight(1f))
         Metric(stringResource(R.string.premium_transport),transportLabel(s),R.drawable.ic_premium_hub,Modifier.weight(1f))
     }
     Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){
@@ -67,12 +67,17 @@ import kotlinx.coroutines.delay
         Metric(stringResource(R.string.premium_route),stringResource(modeResource(transport.mode)),R.drawable.ic_premium_route,Modifier.weight(1f))
     }
     SectionCard(stringResource(R.string.premium_relay)){
-        Text(stringResource(if(relay.isBlank() && transport.workers.isBlank() && transport.domains.isBlank())R.string.premium_not_configured else R.string.premium_endpoint_hidden),color=c.onSurfaceVariant)
-        val active=s.relaySessions+s.cfSessions+s.h2Sessions>0
-        Text(stringResource(if(active)R.string.route_available else R.string.premium_no_confirmation),style=MaterialTheme.typography.bodySmall)
-        val measured=s.routes.filter{it.status==RouteStatus.AVAILABLE && it.kind in setOf(TransportKind.RELAY,TransportKind.WORKER,TransportKind.CLOUDFLARE,TransportKind.HTTP2)}.maxByOrNull{it.checkedAtMillis}
-        measured?.setupMillis?.let{Text(stringResource(R.string.premium_setup_value,it),style=MaterialTheme.typography.bodySmall)}
-        TextButton(onClick=onRelay,modifier=Modifier.testTag("home.relay.settings")){Text(stringResource(R.string.premium_relay_edit))}
+        Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
+            Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
+                Text(stringResource(if(relay.isBlank() && transport.workers.isBlank() && transport.domains.isBlank())R.string.premium_not_configured else R.string.premium_endpoint_hidden),color=c.onSurfaceVariant,style=MaterialTheme.typography.bodySmall)
+                Text(stringResource(if(s.relaySessions+s.cfSessions+s.h2Sessions>0)R.string.route_available else R.string.premium_no_confirmation),style=MaterialTheme.typography.bodySmall)
+            }
+            IconButton(onClick=onRelay,modifier=Modifier.testTag("home.relay.settings")){
+                Icon(painterResource(R.drawable.ic_settings),stringResource(R.string.premium_relay_edit),tint=c.primary)
+            }
+        }
+        s.routes.filter{it.status==RouteStatus.AVAILABLE && it.kind in setOf(TransportKind.RELAY,TransportKind.WORKER,TransportKind.CLOUDFLARE,TransportKind.HTTP2)}
+            .maxByOrNull{it.checkedAtMillis}?.setupMillis?.let{Text(stringResource(R.string.premium_setup_value,it),style=MaterialTheme.typography.bodySmall)}
     }
     Text(stringResource(R.string.premium_quick_actions),style=MaterialTheme.typography.titleSmall)
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
@@ -98,9 +103,9 @@ import kotlinx.coroutines.delay
     }
 }
 @Composable private fun Action(label:Int,icon:Int,tag:String,enabled:Boolean,click:()->Unit,modifier:Modifier){
-    FilledTonalButton(onClick=click,enabled=enabled,modifier=modifier.heightIn(min=88.dp).testTag(tag),shape=RoundedCornerShape(16.dp),contentPadding=PaddingValues(8.dp)){
+    FilledTonalButton(onClick=click,enabled=enabled,modifier=modifier.heightIn(min=88.dp).testTag(tag),shape=RoundedCornerShape(16.dp),contentPadding=PaddingValues(8.dp),colors=ButtonDefaults.filledTonalButtonColors(containerColor=MaterialTheme.colorScheme.surface,contentColor=MaterialTheme.colorScheme.onSurface)){
         Column(horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(8.dp)){
-            Icon(painterResource(icon),null,Modifier.size(22.dp));Text(stringResource(label),style=MaterialTheme.typography.labelMedium)
+            Icon(painterResource(icon),null,Modifier.size(22.dp),tint=MaterialTheme.colorScheme.primary);Text(stringResource(label),style=MaterialTheme.typography.labelMedium)
         }
     }
 }
