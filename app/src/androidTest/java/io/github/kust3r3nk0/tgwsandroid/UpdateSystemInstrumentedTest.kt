@@ -36,7 +36,9 @@ class UpdateSystemInstrumentedTest {
         repo.initialize();val release=repo.check()!!;UpdateGraph.useForTests(repo)
         val manager=context.getSystemService(NotificationManager::class.java)
         val id=(release.id and 0x7fffffff).toInt()
-        try{ActivityScenario.launch(MainActivity::class.java).use{
+        try{ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            var launchIntent:android.content.Intent?=null
+            scenario.onActivity{launchIntent=android.content.Intent(it.intent)}
             assertTrue(UpdateNotifier(context).show(release));assertTrue(UpdateNotifier(context).show(release))
             await{manager.activeNotifications.any{it.id==id}}
             val posted=manager.activeNotifications.filter{it.id==id};assertEquals(1,posted.size)
@@ -46,6 +48,7 @@ class UpdateSystemInstrumentedTest {
             assertTrue(notification.flags and Notification.FLAG_ONLY_ALERT_ONCE!=0)
             notification.contentIntent.send()
             assertTrue(device.wait(Until.hasObject(By.pkg(context.packageName).res("updates.hero")),10000))
+            scenario.onActivity{assertTrue(it.intent.filterEquals(launchIntent))}
         }}finally{manager.cancel(id);UpdateGraph.useForTests(null)}
     }
     @Test fun verifiedApkReachesAndroidInstallerWithoutAutomaticConfirmation(){

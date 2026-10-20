@@ -83,6 +83,9 @@ dependencies {
     androidTestImplementation("androidx.test:core:1.7.0")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    // Compose otherwise selects Espresso 3.5.0, whose hidden InputManager API
+    // was removed on API 37. Use the current stable AndroidX Test integration.
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
     androidTestImplementation("com.squareup.okhttp3:mockwebserver3:5.5.0")
     androidTestImplementation("androidx.test.uiautomator:uiautomator:2.4.0")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")

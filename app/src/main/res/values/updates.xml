@@ -33,11 +33,10 @@
     <string name="update_notifications">Уведомления об обновлениях</string>
     <string name="update_notifications_description">Системные уведомления Android</string>
     <string name="update_wifi">Загрузка только по Wi-Fi</string>
-    <string name="update_wifi_description">Не расходовать мобильный трафик на APK. Проверка версий доступна в любой сети.</string>
+    <string name="update_wifi_description">Не расходовать мобильный трафик на APK</string>
     <string name="update_channel">Канал обновлений</string>
     <string name="update_channel_stable">Стабильный</string>
     <string name="update_channel_preview">Предварительный (Alpha / Debug)</string>
-    <string name="update_channel_description">Предварительный канал включается отдельно. Установщик принимает только APK с совместимой подписью.</string>
     <string name="update_current_version">Текущая версия</string>
     <string name="update_last_check">Последняя успешная проверка</string>
     <string name="update_never">Проверка ещё не выполнялась</string>

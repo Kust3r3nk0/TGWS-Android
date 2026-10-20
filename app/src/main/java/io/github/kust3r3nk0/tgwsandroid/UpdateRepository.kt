@@ -40,6 +40,7 @@ internal class UpdateRepository(
     }}
     suspend fun check():GithubRelease?=withContext(Dispatchers.IO){initialize();checks.withLock runCheck@{
         val start=writes.withLock{
+            if(mutable.value.downloading)return@withLock null
             val options=storage.options();val now=clock();val history=storage.history()
             val allowedAt=maxOf(history.retryAt,if(history.lastAttempt>0)history.lastAttempt+60_000 else 0)
             if(now<allowedAt){mutable.update{it.copy(retryAt=allowedAt)};null}
@@ -51,7 +52,7 @@ internal class UpdateRepository(
             val release=source.check(installedVersion,installedCode,sdk,options.channel)
             writes.withLock{
                 val current=storage.options()
-                if(current.channel!=options.channel)return@withLock mutable.value.release
+                if(current.channel!=options.channel || mutable.value.downloading)return@withLock mutable.value.release
                 val result=if(release==null)UpdateCheckResult.CURRENT else UpdateCheckResult.AVAILABLE
                 val success=clock()
                 storage.cache(release);storage.save(UpdateHistory(success,now,0,result))
@@ -64,7 +65,7 @@ internal class UpdateRepository(
         catch(error:Exception){
             val failure=if(error is UpdateException)error else UpdateException(UpdateIssue.NETWORK)
             val retry=maxOf(failure.retryAt,clock()+if(failure.issue in listOf(UpdateIssue.FORBIDDEN,UpdateIssue.RATE_LIMIT))15*60_000 else 60_000)
-            writes.withLock{if(storage.options().channel==options.channel){
+            writes.withLock{if(storage.options().channel==options.channel && !mutable.value.downloading){
                 storage.save(history.copy(lastAttempt=now,retryAt=retry,result=UpdateCheckResult.FAILED,issue=failure.issue))
                 mutable.update{it.copy(result=UpdateCheckResult.FAILED,issue=failure.issue,retryAt=retry)}
             }}

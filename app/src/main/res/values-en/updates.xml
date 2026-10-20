@@ -33,11 +33,10 @@
     <string name="update_notifications">Update notifications</string>
     <string name="update_notifications_description">Android system notifications</string>
     <string name="update_wifi">Download over Wi-Fi only</string>
-    <string name="update_wifi_description">Use Wi-Fi for APKs. Version checks can use any connection.</string>
+    <string name="update_wifi_description">Use Wi-Fi when downloading APKs</string>
     <string name="update_channel">Update channel</string>
     <string name="update_channel_stable">Stable</string>
     <string name="update_channel_preview">Preview (Alpha / Debug)</string>
-    <string name="update_channel_description">Preview releases require explicit selection. The installer accepts only compatible APK signing identities.</string>
     <string name="update_current_version">Installed version</string>
     <string name="update_last_check">Last successful check</string>
     <string name="update_never">Not checked yet</string>

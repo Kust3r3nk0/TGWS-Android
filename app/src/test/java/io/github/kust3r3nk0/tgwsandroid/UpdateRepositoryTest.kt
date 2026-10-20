@@ -8,6 +8,21 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class UpdateRepositoryTest {
+    @Test fun backgroundCheckCannotReplaceAnActiveDownloadCandidate()=runBlocking {
+        val fixture=FixtureUpdateHttp().apply{release("9.0.0",99)}
+        val started=CompletableDeferred<Unit>();val finish=CompletableDeferred<Unit>()
+        val http=object:UpdateHttp {
+            override suspend fun text(url:String,limit:Int):String{started.complete(Unit);finish.await();return fixture.text(url,limit)}
+            override suspend fun download(url:String,target:java.io.File,expectedSize:Long,progress:(Long)->Unit)=error("Unused")
+        }
+        var now=100000L
+        val repo=UpdateRepository(MemoryUpdatePersistence(),GithubUpdateSource(http),"1.0.0",1,36,{now})
+        repo.initialize();val check=launch{repo.check()};started.await()
+        repo.downloading(500);repo.progress(123);finish.complete(Unit);check.join()
+        assertNull(repo.state.value.release)
+        assertTrue(repo.state.value.downloading);assertEquals(123L,repo.state.value.downloaded)
+        val requests=fixture.requests;now+=61000;repo.check();assertEquals(requests,fixture.requests)
+    }
     @Test fun rejectedCachedApkCanBeDownloadedAgain()=runBlocking {
         val repo=UpdateRepository(MemoryUpdatePersistence(),GithubUpdateSource(FixtureUpdateHttp()),"1.0.0",1,36)
         repo.initialize();repo.ready(true);repo.permission(true)

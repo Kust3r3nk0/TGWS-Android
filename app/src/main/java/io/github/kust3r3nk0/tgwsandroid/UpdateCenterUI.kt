@@ -45,11 +45,11 @@ private data class UpdatePalette(val background:Color,val card:Color,val border:
     UpdatePalette(Color(0xFF090F11),Color(0xFF141B1E),Color(0xFF2B383B),Color(0xFF39E999),Color(0xFFADB8B9),listOf(Color(0xFF153E31),Color(0xFF0F201E),Color(0xFF11191C)))
     else UpdatePalette(Color(0xFFF1F7F4),Color(0xFFFCFFFD),Color(0xFFCCDCD3),Color(0xFF006D42),Color(0xFF4E6258),listOf(Color(0xFFCAF2DC),Color(0xFFE5F4EB),Color(0xFFF6FBF8)))
 
-@Composable private fun UpdatePanel(modifier:Modifier=Modifier,content:@Composable ColumnScope.()->Unit){
+@Composable private fun UpdatePanel(modifier:Modifier=Modifier,spacing:androidx.compose.ui.unit.Dp=8.dp,content:@Composable ColumnScope.()->Unit){
     val c=palette()
     Card(modifier.fillMaxWidth().liquidGlass(),shape=RoundedCornerShape(20.dp),border=BorderStroke(1.dp,c.border.copy(alpha=.55f)),
         colors=CardDefaults.cardColors(containerColor=if(LocalLiquidGlass.current||LocalTransparency.current)c.card.copy(alpha=.86f)else c.card,contentColor=MaterialTheme.colorScheme.onSurface)){
-        Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp),content=content)
+        Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(spacing),content=content)
     }
 }
 @Composable internal fun TgwsUpdateHub(page:Int,currentVersion:String,onPage:(Int)->Unit,onBack:()->Unit,
@@ -81,18 +81,19 @@ private data class UpdatePalette(val background:Color,val card:Color,val border:
     val canCheck=!state.checking && !state.downloading && now>=state.retryAt
     Scaffold(Modifier.imePadding().semantics{testTagsAsResourceId=true},containerColor=c.background,contentColor=MaterialTheme.colorScheme.onBackground,
         topBar={Row(Modifier.fillMaxWidth().background(c.background).statusBarsPadding().padding(horizontal=6.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically){
-            IconButton(onClick=onBack,modifier=Modifier.testTag("updates.back")){Icon(Icons.AutoMirrored.Filled.ArrowBack,stringResource(R.string.update_back))}
+            IconButton(onClick=onBack,modifier=Modifier.testTag("updates.back")){Icon(Icons.AutoMirrored.Filled.ArrowBack,stringResource(R.string.update_back),tint=c.dim)}
             if(page==2)Image(painterResource(R.drawable.tgws_symbol),null,Modifier.size(32.dp))
             Column(Modifier.weight(1f).padding(horizontal=10.dp)){
                 Text(stringResource(if(page==2)R.string.app_name else R.string.update_auto),style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
                 if(page==2)Text(stringResource(R.string.update_center),style=MaterialTheme.typography.bodySmall,color=c.dim)
             }
-            if(page==2)IconButton(onClick=onSettings,modifier=Modifier.testTag("updates.settings")){Icon(Icons.Default.MoreVert,stringResource(R.string.update_settings))}
+            if(page==2)IconButton(onClick=onSettings,modifier=Modifier.testTag("updates.settings")){Icon(Icons.Default.MoreVert,stringResource(R.string.update_settings),tint=c.dim)}
         }},bottomBar={if(page==2 && state.release!=null)Column(Modifier.fillMaxWidth().background(c.background).navigationBarsPadding().padding(horizontal=16.dp,vertical=10.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
             if(state.downloading)OutlinedButton(onClick=onCancel,modifier=Modifier.fillMaxWidth().heightIn(min=50.dp).testTag("updates.cancel")){Text(stringResource(R.string.update_cancel))}
             else Button(onClick=onUpdate,enabled=!state.checking,modifier=Modifier.fillMaxWidth().heightIn(min=52.dp).testTag("updates.install"),contentPadding=PaddingValues(0.dp),
                 colors=ButtonDefaults.buttonColors(containerColor=c.accent,contentColor=if(c.accent.luminance()>.4f)Color(0xFF002D18)else Color.White)){
-                Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(c.accent.copy(alpha=.7f),c.accent))).padding(14.dp),horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically){
+                val gradient=if(c.accent.luminance()>.4f)listOf(Color(0xFF77F5AA),Color(0xFF00CE76))else listOf(Color(0xFF008552),c.accent)
+                Row(Modifier.fillMaxWidth().background(Brush.verticalGradient(gradient)).padding(14.dp),horizontalArrangement=Arrangement.Center,verticalAlignment=Alignment.CenterVertically){
                     Icon(if(state.ready)Icons.Default.Check else ImageVector.vectorResource(R.drawable.ic_update_download),null,Modifier.size(22.dp));Spacer(Modifier.width(8.dp))
                     Text(stringResource(if(state.ready)R.string.update_install else R.string.update_download),fontWeight=FontWeight.Bold)
                 }
@@ -113,15 +114,15 @@ private data class UpdatePalette(val background:Color,val card:Color,val border:
                     Text(if(state.verifying)stringResource(R.string.update_verifying)else stringResource(R.string.update_progress,state.downloaded/1024,state.total/1024),color=c.dim)
                 }}
                 item{UpdateFeedback(state)}
-                item{ManualCheck(canCheck,"updates.refresh",onCheck)}
+                if(state.release==null)item{ManualCheck(canCheck,"updates.refresh",onCheck)}
             }else{
                 item{UpdateSwitch(Icons.Default.Refresh,R.string.update_auto,R.string.update_auto_description,state.options.auto,"updates.auto"){onOptions(state.options.copy(auto=it))}}
-                item{UpdatePanel{
-                    Text(stringResource(R.string.update_period),style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
+                item{UpdatePanel(spacing=0.dp){
+                    Text(stringResource(R.string.update_period),Modifier.padding(bottom=8.dp),style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
                     UpdateOptions.periods.forEachIndexed{index,period->
                         if(index>0)HorizontalDivider(color=c.border.copy(alpha=.4f))
                         val selected=state.options.minutes==period
-                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if(selected)c.accent.copy(alpha=.10f)else Color.Transparent)
+                        Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clip(RoundedCornerShape(14.dp)).background(if(selected)c.accent.copy(alpha=.10f)else Color.Transparent)
                             .selectable(selected,onClick={onOptions(state.options.copy(minutes=period))},enabled=state.options.auto,role=Role.RadioButton)
                             .testTag("updates.period.$period").padding(vertical=2.dp),verticalAlignment=Alignment.CenterVertically){
                             RadioButton(selected,onClick=null,enabled=state.options.auto,colors=RadioButtonDefaults.colors(selectedColor=c.accent))
@@ -133,17 +134,8 @@ private data class UpdatePalette(val background:Color,val card:Color,val border:
                     onOptions(state.options.copy(notify=it));if(it)requestNotificationPermission()}}
                 item{UpdateSwitch(ImageVector.vectorResource(R.drawable.ic_update_wifi),R.string.update_wifi,R.string.update_wifi_description,state.options.wifiOnly,"updates.wifi"){onOptions(state.options.copy(wifiOnly=it))}}
                 item{UpdatePanel{
-                    Text(stringResource(R.string.update_channel),style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
-                    UpdateChannel.entries.forEach{channel->Row(Modifier.fillMaxWidth().selectable(state.options.channel==channel,onClick={onOptions(state.options.copy(channel=channel))},role=Role.RadioButton)
-                        .testTag("updates.channel.${channel.name}"),verticalAlignment=Alignment.CenterVertically){
-                        RadioButton(state.options.channel==channel,onClick=null,colors=RadioButtonDefaults.colors(selectedColor=c.accent))
-                        Text(stringResource(if(channel==UpdateChannel.STABLE)R.string.update_channel_stable else R.string.update_channel_preview),Modifier.weight(1f))
-                    }}
-                    Text(stringResource(R.string.update_channel_description),style=MaterialTheme.typography.bodySmall,color=c.dim)
-                }}
-                item{UpdatePanel{
                     InfoLine(stringResource(R.string.update_current_version),currentVersion)
-                    InfoLine(stringResource(R.string.update_channel),stringResource(if(state.options.channel==UpdateChannel.STABLE)R.string.update_channel_stable else R.string.update_channel_preview))
+                    ChannelChoice(state.options,onOptions)
                     InfoLine(stringResource(R.string.update_last_check),if(state.lastSuccess>0)java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(state.lastSuccess))else stringResource(R.string.update_never))
                     Text(stringResource(resultResource(state.result)),style=MaterialTheme.typography.bodySmall,color=c.dim,modifier=Modifier.testTag("updates.result"))
                 }}
@@ -151,6 +143,24 @@ private data class UpdatePalette(val background:Color,val card:Color,val border:
                 item{ManualCheck(canCheck,"updates.manual",onCheck)}
                 item{Text(stringResource(R.string.update_approximate_schedule),style=MaterialTheme.typography.bodySmall,color=c.dim)}
             }
+        }
+    }
+}
+@Composable private fun ChannelChoice(options:UpdateOptions,onOptions:(UpdateOptions)->Unit){
+    var expanded by remember{mutableStateOf(false)}
+    val c=palette()
+    Box{
+        Row(Modifier.fillMaxWidth().heightIn(min=48.dp).clickable(role=Role.Button){expanded=true}.testTag("updates.channel.menu"),
+            verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
+            Text(stringResource(R.string.update_channel),Modifier.weight(1f),color=c.dim,style=MaterialTheme.typography.bodySmall)
+            Text(stringResource(if(options.channel==UpdateChannel.STABLE)R.string.update_channel_stable else R.string.update_channel_preview),Modifier.weight(1f),style=MaterialTheme.typography.bodySmall)
+            Icon(Icons.Default.KeyboardArrowDown,null,Modifier.size(20.dp),tint=c.dim)
+        }
+        DropdownMenu(expanded,onDismissRequest={expanded=false}){
+            UpdateChannel.entries.forEach{channel->DropdownMenuItem(
+                text={Text(stringResource(if(channel==UpdateChannel.STABLE)R.string.update_channel_stable else R.string.update_channel_preview))},
+                leadingIcon={RadioButton(options.channel==channel,onClick=null)},
+                onClick={expanded=false;onOptions(options.copy(channel=channel))},modifier=Modifier.testTag("updates.channel.${channel.name}"))}
         }
     }
 }

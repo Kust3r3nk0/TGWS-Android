@@ -56,7 +56,9 @@ class MainActivity : ComponentActivity() {
     private var updateRequest by mutableIntStateOf(0)
     private fun revealUpdateIntent(){intent.removeExtra(OPEN_UPDATES)}
     override fun onNewIntent(intent:Intent){
-        super.onNewIntent(intent);setIntent(intent)
+        // This intent is a navigation command, not a replacement for the launcher
+        // identity. Keep the launch intent stable across lifecycle transitions.
+        super.onNewIntent(intent)
         if(intent.getBooleanExtra(OPEN_UPDATES,false))updateRequest++
     }
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,7 +83,7 @@ class MainActivity : ComponentActivity() {
                     enableEdgeToEdge(statusBarStyle=bars,navigationBarStyle=bars)
                 }
                 var page by rememberSaveable{mutableIntStateOf(if (intent.getBooleanExtra(OPEN_UPDATES, false)) 2 else 0)}
-                LaunchedEffect(updateRequest){if(intent.getBooleanExtra(OPEN_UPDATES,false)){page=2;revealUpdateIntent()}}
+                LaunchedEffect(updateRequest){if(updateRequest>0 || intent.getBooleanExtra(OPEN_UPDATES,false)){page=2;revealUpdateIntent()}}
                 var observedNetwork by remember{mutableStateOf(NetworkView())}
                 DisposableEffect(Unit){
                     var monitor:AndroidNetworkMonitor?=null

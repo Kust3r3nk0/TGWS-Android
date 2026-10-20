@@ -69,18 +69,22 @@ class UpdateUiInstrumentedTest {
             ui.onNodeWithTag("updates.version").assertTextEquals("v0.3.11-alpha")
             shot("updates-center-dark")
             click("updates.settings");ui.onNodeWithTag("updates.period.360").assertIsSelected()
+            ui.onNodeWithTag("updates.back").assertIsDisplayed()
             shot("updates-settings-dark")
             click("updates.period.720",true);ui.waitUntil{storage.options().minutes==720L}
             click("updates.auto",true);ui.waitUntil{!storage.options().auto}
             scroll("updates.manual");ui.onNodeWithTag("updates.manual").assertIsEnabled()
             scenario.recreate();ui.waitForIdle()
             scroll("updates.period.720");ui.onNodeWithTag("updates.period.720").assertIsSelected().assertIsNotEnabled()
-            scenario.onActivity{it.startActivity(Intent(it,MainActivity::class.java).putExtra(OPEN_UPDATES,true).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP))}
+            var launchIntent:Intent?=null
+            scenario.onActivity{launchIntent=Intent(it.intent);it.startActivity(Intent(it,MainActivity::class.java).putExtra(OPEN_UPDATES,true).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP))}
             ui.onNodeWithTag("updates.hero").assertExists()
+            scenario.onActivity{assertTrue(it.intent.filterEquals(launchIntent))}
             assertEquals(720L,storage.options().minutes);assertFalse(storage.options().auto)
         }
     }
     @Test fun lightThemeLatestStateAndEverySwitchRemainFunctional(){
+        AppPreferences(context).theme=ThemeMode.LIGHT
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             var state by mutableStateOf(UpdateState(result=UpdateCheckResult.CURRENT,options=UpdateOptions(auto=false)))
             var page by mutableIntStateOf(2);var checks=0
@@ -92,7 +96,7 @@ class UpdateUiInstrumentedTest {
             click("updates.period.15",true);assertEquals(15L,state.options.minutes)
             click("updates.notify",true);assertFalse(state.options.notify)
             click("updates.wifi",true);assertTrue(state.options.wifiOnly)
-            click("updates.channel.PREVIEW",true);assertEquals(UpdateChannel.PREVIEW,state.options.channel)
+            click("updates.channel.menu",true);click("updates.channel.PREVIEW");assertEquals(UpdateChannel.PREVIEW,state.options.channel)
             click("updates.manual",true);assertEquals(1,checks)
             ui.onNodeWithTag("updates.scroll").performScrollToIndex(0);shot("updates-settings-light")
         }
@@ -109,12 +113,13 @@ class UpdateUiInstrumentedTest {
                 }
             }}}
             ui.onNodeWithTag("updates.install").assertIsDisplayed()
-            click("updates.refresh",true);assertEquals(1,checks)
             shot("updates-large-font-dark")
             click("updates.settings");scroll("updates.manual");ui.onNodeWithTag("updates.manual").assertIsDisplayed()
+            click("updates.manual");assertEquals(1,checks)
         }
     }
     @Test fun englishUpdateScreenUsesAndroidResourceLocalization(){
+        AppPreferences(context).theme=ThemeMode.LIGHT
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             val configuration=android.content.res.Configuration(context.resources.configuration).apply{setLocales(android.os.LocaleList.forLanguageTags("en"))}
             val translated=context.createConfigurationContext(configuration)

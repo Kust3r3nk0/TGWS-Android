@@ -4,7 +4,7 @@
 
 The center checks published official GitHub Releases, not commits. It shows actual release versions and notes. APK URLs come exclusively from the release assets; links in notes are never update sources.
 
-Stable is the default channel. Preview (Alpha / Debug) requires explicit selection. Both SemVer and versionCode must increase, the Android minimum must match the APK, and its signing identity must be compatible with the installed app.
+Stable is the default channel. Tap the Update channel row in the information card to explicitly select Preview (Alpha / Debug). Both SemVer and versionCode must increase, the Android minimum must match the APK, and its signing identity must be compatible with the installed app.
 
 Automatic checks use one unique WorkManager periodic task. Intervals: 15 minutes, 1/3/6/12 hours, daily or weekly; default 6 hours. Timing is approximate and subject to Android constraints. Disabling automatic checks cancels the task. Notifications are separate, permission/channel-aware and deduplicated per release. Manual checks remain available independently of the schedule, subject to a 60-second minimum and persisted HTTP 403/429 backoff.
 
