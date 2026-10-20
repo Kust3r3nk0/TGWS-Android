@@ -70,16 +70,16 @@ test('isolate capacity counts pending connect, not only accepted WebSockets', as
   assert.equal(f.dials, 1);
   await first;
 });
-test('default capacity admits six pending sessions but rejects seventh', async () => {
-  assert.equal(defaults.sessions, 6);
+test('default capacity admits eight pending sessions but rejects ninth', async () => {
+  assert.equal(defaults.sessions, 8);
   const f = fixture({ opened: new Promise(() => {}), limits: { connect: 30 } });
   const pending = Array.from({ length: defaults.sessions }, () => f.handler(request(), env));
   assert.equal((await f.handler(request(), env)).status, 503);
-  assert.equal(f.dials, 6);
-  assert.deepEqual((await Promise.all(pending)).map(response => response.status), Array(6).fill(502));
+  assert.equal(f.dials, 8);
+  assert.deepEqual((await Promise.all(pending)).map(response => response.status), Array(8).fill(502));
   // All expired connection attempts have released their isolate capacity.
   assert.equal((await f.handler(request(), env)).status, 502);
-  assert.equal(f.dials, 7);
+  assert.equal(f.dials, 9);
 });
 test('socket close rejection before opened is observed and cancels setup', async () => {
   for (const opened of [new Promise(()=>{}),Promise.resolve()]) {
