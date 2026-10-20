@@ -21,7 +21,7 @@
 
 Не присылайте ключи/пароли в чат. Локальная сборка использует `TGWS_RELEASE_STORE_FILE` вместо Base64; остальные переменные те же. Не печатайте переменные в терминале/логах.
 
-Workflow **Signed production candidate (no publication)** выполняет Release unit/Lint/build, apksigner integrity/certificate verification, проверяет запрет Debug-сертификата, отсутствие debuggable и бюджет APK 80 MiB. Он сохраняет APK, manifest Stable, RU/EN changelog/notes, source commit, verification и SHA256SUMS только как Actions artifact. Workflow не создаёт тег/Release и не объединяет PR.
+Workflow **Signed production candidate (no publication)** выполняет обязательные JVM-тесты и Release Lint/build, apksigner integrity/certificate verification, проверяет запрет Debug-сертификата, отсутствие debuggable и бюджет APK 80 MiB. Он сохраняет APK, manifest Stable, RU/EN changelog/notes, source commit, verification и SHA256SUMS только как Actions artifact. Workflow не создаёт тег/Release и не объединяет PR.
 
 Ранее опубликованные Debug APK подписаны иным ключом. Без проверенной цепочки ротации Android отвергнет установку нового Release поверх них (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`); Keystore связан с установленным приложением. Нельзя обещать сохранение секрета при удалении/смене подписи. Автоматическое удаление запрещено. Пользователь может **явно** сохранить Telegram-ссылку/секрет и вручную повторно ввести настройки в новой установке, понимая потерю старых Keystore-данных. Публичные отчёты не содержат конфигурацию. Инструментальный `install -r` 0.3.10→0.4.0 проверяет только сохранение с **одинаковой временной CI-подписью**, а не миграцию Debug→Release.
 

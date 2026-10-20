@@ -43,3 +43,5 @@
 ## Premium Minimal 0.4.0
 
 `ic_premium_*.xml` — Google Material Symbols Outlined, Apache-2.0, commit `49d4db35df873165d6bd6ba09b063c7dafbac2f4`. Точные исходные URL сохранены в XML; [лицензия](../licenses/MaterialSymbols-Apache-2.0.txt). Фирменный `tgws_symbol` не изменялся.
+
+В `ic_premium_*.xml` удалён AppCompat-атрибут `colorControlNormal`; геометрия Google сохранена, tint задаёт Compose. Зависимость AppCompat не добавляется.

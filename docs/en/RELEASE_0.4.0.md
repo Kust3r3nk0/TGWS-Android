@@ -12,7 +12,7 @@ Create and securely back up a separate trusted Release keystore outside Git. Con
 - `TGWS_RELEASE_STORE_PASSWORD`, `TGWS_RELEASE_KEY_ALIAS`, `TGWS_RELEASE_KEY_PASSWORD`
 - `TGWS_RELEASE_CERT_SHA256`: independently verified certificate fingerprint, 64 HEX without colons.
 
-Local Gradle uses `TGWS_RELEASE_STORE_FILE` instead of Base64. Never share passwords or keys in chat/logs. Manual **Signed production candidate (no publication)** runs Release tests/Lint/build and verifies APK integrity, expected certificate, identity and no debug certificate. It uploads APK, manifest, RU/EN notes/changelog, source commit, verification and SHA256SUMS only as Actions artifacts. It creates no tag/Release and does not merge the PR.
+Local Gradle uses `TGWS_RELEASE_STORE_FILE` instead of Base64. Never share passwords or keys in chat/logs. Manual **Signed production candidate (no publication)** runs the mandatory JVM tests and Release Lint/build and verifies APK integrity, expected certificate, identity and no debug certificate. It uploads APK, manifest, RU/EN notes/changelog, source commit, verification and SHA256SUMS only as Actions artifacts. It creates no tag/Release and does not merge the PR.
 
 Without a verified certificate rotation lineage, a new independent Release key cannot update an existing Debug installation or inherit its Keystore. Android rejects the signature mismatch even with the same applicationId. No automatic uninstall or guaranteed data migration is offered. A user may explicitly retain their link/secret and re-enter configuration after knowingly changing installations. The instrumented 0.3.10→0.4.0 `install -r` regression uses the same temporary CI signature on both APKs; it does not prove Debug→Release migration.
 

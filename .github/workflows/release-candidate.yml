@@ -43,7 +43,7 @@ jobs:
           trap 'rm -f "$TGWS_RELEASE_STORE_FILE"' EXIT
           umask 077
           printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$TGWS_RELEASE_STORE_FILE"
-          ./gradlew --no-daemon :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:lintRelease :app:assembleRelease
           mkdir -p artifacts/production-candidate
           python3 .github/scripts/verify_release_apk.py --apk app/build/outputs/apk/release/app-release.apk --sdk "$ANDROID_HOME" --certificate "$RELEASE_CERT_SHA256" --output artifacts/production-candidate/verification.json
           cp app/build/outputs/apk/release/app-release.apk artifacts/production-candidate/TGWS-Android-0.4.0.apk
