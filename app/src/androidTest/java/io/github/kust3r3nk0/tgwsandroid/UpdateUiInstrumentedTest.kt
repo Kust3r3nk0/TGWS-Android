@@ -37,8 +37,8 @@ class UpdateUiInstrumentedTest {
         instrumentation.waitForIdleSync()
         AppPreferences(context).theme=ThemeMode.DARK
         storage=MemoryUpdatePersistence().apply{preferences=UpdateOptions(channel=UpdateChannel.PREVIEW)}
-        http.release("0.3.11-alpha",17,true).put("body","## Новые функции\n- Центр обновлений и фоновая проверка новых версий.\n## Исправления\n- Проверка подписи APK перед установкой.\n## Оптимизация\n- Ограничение буферов и отмена загрузки.")
-        repository=UpdateRepository(storage,GithubUpdateSource(http),"0.3.10-alpha",16,android.os.Build.VERSION.SDK_INT,{System.currentTimeMillis()-120000})
+        http.release("0.4.1-alpha",18,true).put("body","## Новые функции\n- Центр обновлений и фоновая проверка новых версий.\n## Исправления\n- Проверка подписи APK перед установкой.\n## Оптимизация\n- Ограничение буферов и отмена загрузки.")
+        repository=UpdateRepository(storage,GithubUpdateSource(http),"0.4.0",17,android.os.Build.VERSION.SDK_INT,{System.currentTimeMillis()-120000})
         runBlocking{repository.initialize()};UpdateGraph.useForTests(repository)
     }
     @After fun cleanup(){
@@ -66,7 +66,7 @@ class UpdateUiInstrumentedTest {
             ui.waitUntil(10000){ui.onAllNodesWithTag("settings.loading").fetchSemanticsNodes().isEmpty()}
             click("nav.settings");click("settings.update.center",true)
             ui.waitUntil(10000){repository.state.value.release!=null}
-            ui.onNodeWithTag("updates.version").assertTextEquals("v0.3.11-alpha")
+            ui.onNodeWithTag("updates.version").assertTextEquals("v0.4.1-alpha")
             shot("updates-center-dark")
             click("updates.settings");ui.onNodeWithTag("updates.period.360").assertIsSelected()
             ui.onNodeWithTag("updates.back").assertIsDisplayed()
@@ -88,7 +88,7 @@ class UpdateUiInstrumentedTest {
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             var state by mutableStateOf(UpdateState(result=UpdateCheckResult.CURRENT,options=UpdateOptions(auto=false)))
             var page by mutableIntStateOf(2);var checks=0
-            scenario.onActivity{it.setContent{TgwsTheme(ThemeMode.LIGHT){UpdateHubScreen(page,"0.3.10-alpha",state,
+            scenario.onActivity{it.setContent{TgwsTheme(ThemeMode.LIGHT){UpdateHubScreen(page,"0.4.0",state,
                 {page=2},{page=3},{state=state.copy(options=it)},{checks++},{},{},{})}}}
             ui.onNodeWithTag("updates.version").assertTextEquals(context.getString(R.string.update_current_title))
             ui.onNodeWithTag("updates.install").assertDoesNotExist();shot("updates-current-light")
@@ -103,12 +103,12 @@ class UpdateUiInstrumentedTest {
     }
     @Test fun largeFontGlassAndTransparencyKeepActionsAccessible(){
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
-            val release=runBlocking{GithubUpdateSource(http).check("0.3.10-alpha",16,36,UpdateChannel.PREVIEW)}!!
+            val release=runBlocking{GithubUpdateSource(http).check("0.4.0",17,36,UpdateChannel.PREVIEW)}!!
             var page by mutableIntStateOf(2);var checks=0
             scenario.onActivity{it.setContent{TgwsTheme(ThemeMode.DARK,true,true){
                 val density=LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(density.density,1.6f)){
-                    UpdateHubScreen(page,"0.3.10-alpha",UpdateState(release=release,result=UpdateCheckResult.AVAILABLE),
+                    UpdateHubScreen(page,"0.4.0",UpdateState(release=release,result=UpdateCheckResult.AVAILABLE),
                         {page=2},{page=3},{},{checks++},{},{},{})
                 }
             }}}
@@ -124,7 +124,7 @@ class UpdateUiInstrumentedTest {
             val configuration=android.content.res.Configuration(context.resources.configuration).apply{setLocales(android.os.LocaleList.forLanguageTags("en"))}
             val translated=context.createConfigurationContext(configuration)
             scenario.onActivity{it.setContent{CompositionLocalProvider(LocalContext provides translated,LocalConfiguration provides configuration){
-                TgwsTheme(ThemeMode.LIGHT){UpdateHubScreen(3,"0.3.10-alpha",UpdateState(),{},{},{},{},{},{},{})}
+                TgwsTheme(ThemeMode.LIGHT){UpdateHubScreen(3,"0.4.0",UpdateState(),{},{},{},{},{},{},{})}
             }}}
             ui.onNodeWithTag("updates.auto").assertContentDescriptionEquals("Automatic checking")
             ui.onNodeWithText("Every 6 hours (default)").assertIsDisplayed()
