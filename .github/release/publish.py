@@ -60,6 +60,12 @@ def single_file(directory, name):
     return matches[0]
 
 
+def build_version(gradle):
+    match=re.search(r'versionName\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+(?:-alpha)?)"',gradle)
+    if not match:raise ValueError('Unsupported application version for checked debug publication')
+    return match.group(1)
+
+
 def main():
     inputs = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())['inputs']
     validate_inputs(inputs)
@@ -74,7 +80,7 @@ def main():
         run = json.loads(command('gh', 'api', f'repos/{repository}/actions/runs/{inputs[key]}'))
         verify_run(run, source, name, repository)
     gradle = Path('app/build.gradle.kts').read_text()
-    version = re.search(r'versionName\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+-alpha)"', gradle).group(1)
+    version = build_version(gradle)
     version_code = int(re.search(r'versionCode\s*=\s*(\d+)', gradle).group(1))
     min_sdk = int(re.search(r'minSdk\s*=\s*(\d+)', gradle).group(1))
     output = Path('debug-release-assets')
