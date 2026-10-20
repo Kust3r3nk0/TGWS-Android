@@ -4,7 +4,7 @@
   <img src="docs/images/tgws-github-cover-ru.svg" width="100%" alt="TGWS-Android — нативный MTProto-прокси для Android, русский баннер" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.4.0_candidate-blue)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.4.1_test_update-blue)
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 16+.** Разработка: **Makarov Lab's 3.0™**.
 
@@ -14,6 +14,10 @@
 > **0.4.0 — кандидат Premium Minimal для Android 16+.** Три вкладки, отдельные подразделы настроек, ограниченная безопасная диагностика и общий дизайн центра обновлений. Stable будет опубликован только после доверенной Release-подписи и отдельного подтверждения владельца. По ссылке выше доступен проверенный Debug-кандидат 0.4.0.
 
 [Подготовка Release, подпись и миграция](docs/RELEASE_0.4.0.md) · [Изменения 0.4.0](docs/releases/0.4.0.md).
+
+## Новое тестовое обновление 0.4.1
+
+Категории и уровни ошибок, фильтры, подробности закрытия маршрутов, ограничение повторов, безопасный JSON-отчёт и локальная проверка TCP-порта. В диагностике отображается фактический системный WebView-провайдер и версия без запуска браузерного движка. [Изменения и ограничения](docs/releases/0.4.1.md). Предыдущий проверенный APK 0.4.0 остаётся доступен до завершения CI 0.4.1.
 
 ## Языки и технологии
 
@@ -130,11 +134,11 @@ CI запускается при push в `main`, Pull Request и вручную.
 
 Если оператор блокирует IP Telegram, прямой WSS → TCP может не помочь.
 Начиная с 0.1.3-alpha можно указать собственное WSS-реле на доступном внешнем узле.
-Владелец использовал прямой режим и реле на Wi-Fi/мобильной сети в 0.3.6; в поездках есть отказы. Доступность конкретного узла не гарантируется.
+Доступность прямых маршрутов и реле зависит от текущей сети; конкретный узел проверяется отдельно.
 [Настройка, сервер реле и ограничения](docs/MOBILE_NETWORKS.md).
 
 Для пробы через Cloudflare без VPS: [Worker и инструкция](cloudflare-worker/README.md).
-Нужен аккаунт Cloudflare; результат владельца для прямого режима/реле не устанавливает доступность всех Worker-узлов у Мегафона. Это отдельная
+Нужен аккаунт Cloudflare; доступность Worker зависит от сети и настроенного узла. Это отдельная
 экспериментальная заготовка с лимитом 16 MiB на сессию, не новый APK и не
 подтверждённый обход. Подстановка SNI `cloudflare.com` не создаёт рабочий узел.
 

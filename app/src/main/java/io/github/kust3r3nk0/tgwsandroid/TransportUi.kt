@@ -62,7 +62,7 @@ internal data class TransportDraft(val mode:TransportMode=TransportMode.DIRECT,v
     Text(stringResource(R.string.fake_tls_notice),style=MaterialTheme.typography.bodySmall)
 }
 
-@Composable internal fun DiagnosticsPanel(snapshot:ProxySnapshot,onProbe:()->Unit,onCopy:(String)->Unit){
+@Composable internal fun DiagnosticsPanel(snapshot:ProxySnapshot,onProbe:()->Unit,onCopy:(String)->Unit,report:()->String={DiagnosticReport.render(snapshot)}){
     var expanded by remember{mutableStateOf(false)}
     var carriers by remember{mutableStateOf(false)}
     var preview by remember{mutableStateOf<String?>(null)}
@@ -109,7 +109,7 @@ internal data class TransportDraft(val mode:TransportMode=TransportMode.DIRECT,v
                 Text(stringResource(R.string.carrier_card,stringResource(name),card.primaryPlmn,card.apn))
             }
         }
-        OutlinedButton(onClick={preview=DiagnosticReport.render(snapshot)}){Text(stringResource(R.string.report_preview))}
+        OutlinedButton(onClick={preview=report()}){Text(stringResource(R.string.report_preview))}
     }
     preview?.let{report->AlertDialog(onDismissRequest={preview=null},title={Text(stringResource(R.string.report_preview))},
         text={Text(report,Modifier.heightIn(max=360.dp).verticalScroll(rememberScrollState()))},

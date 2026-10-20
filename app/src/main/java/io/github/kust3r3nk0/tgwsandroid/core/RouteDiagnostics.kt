@@ -25,7 +25,9 @@ internal class RouteDiagnostics(private val nano:()->Long=System::nanoTime,priva
         val elapsed=if(completed)starts.remove(key)?.let{java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(nano()-it).coerceAtLeast(0)}else previous.setupMillis
         entries[key]=previous.copy(media=media,kind=kind,status=status,issue=issue,
             stage=when{issue==ServerIssue.DNS->RouteStage.DNS;issue==ServerIssue.TLS->RouteStage.TLS;status==RouteStatus.AVAILABLE->RouteStage.READY;else->RouteStage.SETUP},
-            checkedAtMillis=if(completed)wall()else previous.checkedAtMillis,setupMillis=elapsed,timings=if(completed)timings else previous.timings,
+            checkedAtMillis=if(completed)wall()else previous.checkedAtMillis,
+            setupMillis=if(status==RouteStatus.CONNECTING)null else elapsed,
+            timings=if(status==RouteStatus.CONNECTING)null else if(completed)timings else previous.timings,
             attempts=if(status==RouteStatus.CONNECTING)(previous.attempts+1).coerceAtLeast(0)else previous.attempts,
             closeCode=if(status==RouteStatus.CONNECTING || status==RouteStatus.AVAILABLE)null else previous.closeCode,
             closeCategory=if(status==RouteStatus.CONNECTING || status==RouteStatus.AVAILABLE)null else previous.closeCategory)
@@ -52,11 +54,22 @@ internal class RouteDiagnostics(private val nano:()->Long=System::nanoTime,priva
 }
 
 /** Classify the failed native setup layer, without copying exception text or private endpoints. */
-internal fun setupFailure(error:Exception,fallback:ServerIssue):ServerIssue=when(error){
+internal fun setupFailure(error:Exception,fallback:ServerIssue):ServerIssue {
+    var current:Throwable?=error
+    val visited=java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Throwable,Boolean>())
+    repeat(8){
+        val cause=current?:return fallback
+        if(!visited.add(cause))return fallback
+        val issue=when(cause){
     is javax.net.ssl.SSLException->ServerIssue.TLS
     is java.net.UnknownHostException->ServerIssue.DNS
     is NetworkUnavailable->ServerIssue.NETWORK
     is java.net.SocketTimeoutException->ServerIssue.TIMEOUT
     is java.net.SocketException->ServerIssue.TCP
-    else->fallback
+            else->null
+        }
+        if(issue!=null)return issue
+        current=cause.cause
+    }
+    return fallback
 }

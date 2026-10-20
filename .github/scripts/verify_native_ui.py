@@ -7,6 +7,8 @@ import re
 
 # Any future embedded engine requires an explicit TGWS-16-016 implementation/review.
 WEB = re.compile(r'\b(?:WebView|JavascriptInterface|addJavascriptInterface|evaluateJavascript)\b|androidx[.:/]webkit|android[./]webkit')
+PROVIDER_FILE = 'app/src/main/java/io/github/kust3r3nk0/tgwsandroid/WebViewProviderReader.kt'
+PROVIDER_READ = 'val info=android.webkit.WebView.getCurrentWebViewPackage()'
 
 
 def verify(root):
@@ -25,6 +27,13 @@ def verify(root):
             continue
         count += 1
         for number, line in enumerate(path.read_text().splitlines(), 1):
+            if path.suffix == '.xml' and relative.parent.name.startswith('values'):
+                # Display labels are not declarations of an embedded engine.
+                line = re.sub(r'(<string\b[^>]*>).*?(</string>)', r'\1\2', line)
+            # Reviewed metadata-only API: Android guarantees it does not initialize an engine.
+            # Exact statement and file only; construction/imports/other calls still fail this guard.
+            if relative.as_posix() == PROVIDER_FILE and line.strip() == PROVIDER_READ:
+                continue
             if WEB.search(line):
                 findings.append(f'{relative.as_posix()}:{number}')  # Never print source/config values.
     if count == 0:
