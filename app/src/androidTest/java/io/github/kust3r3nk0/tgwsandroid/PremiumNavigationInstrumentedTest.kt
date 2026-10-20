@@ -18,6 +18,7 @@ class PremiumNavigationInstrumentedTest {
     private val instrumentation get()=InstrumentationRegistry.getInstrumentation()
     private val context get()=instrumentation.targetContext
     @Before fun setup(){
+        instrumentation.uiAutomation.grantRuntimePermission(context.packageName,android.Manifest.permission.POST_NOTIFICATIONS)
         AppPreferences(context).apply{theme=ThemeMode.DARK;liquidGlass=false;transparency=false;diagnostics=true}
         SettingsStore(context).recover(8443,"00112233445566778899aabbccddeeff")
     }
@@ -54,6 +55,11 @@ class PremiumNavigationInstrumentedTest {
             ui.onNodeWithTag("settings.port").assertTextContains("2443")
             click("settings.save",true);ui.waitUntil(10000){SettingsStore(context).port==2443}
             assertEquals(draft,SettingsStore(context).load().secret)
+            scenario.onActivity{activity->
+                activity.currentFocus?.clearFocus()
+                activity.getSystemService(android.view.inputmethod.InputMethodManager::class.java).hideSoftInputFromWindow(activity.window.decorView.windowToken,0)
+            }
+            ui.waitForIdle()
             UiDevice.getInstance(instrumentation).pressBack();ui.waitForIdle()
             ui.onNodeWithTag("settings.connection").assertExists()
             UiDevice.getInstance(instrumentation).pressBack();ui.waitForIdle()
