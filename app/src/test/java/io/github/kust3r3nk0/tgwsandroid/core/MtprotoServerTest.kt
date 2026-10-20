@@ -131,6 +131,9 @@ class MtprotoServerTest {
                 client.shutdownOutput();assertClosed(client)
             }
             await("Session close not reported"){events.all.filterIsInstance<ServerEvent.Closed>().size==1}
+            // Closed records the first cause before cleanup. Counts are emitted
+            // after every resource has been released; EOF alone can precede it.
+            await("Session resources not released"){events.sessions(0,0)}
             assertEquals("close",order.first());assertTrue(order.indexOf("close")<order.indexOf("raw"))
             assertEquals(SessionEndReason.CLIENT_EOF,events.all.filterIsInstance<ServerEvent.Closed>().single().session.reason)
         }

@@ -25,7 +25,7 @@ The bounded journal/JSON schema 3 includes numeric Upgrade status, fixed categor
 retry delay, per-run session sequence, termination reason, elapsed time, byte
 counts and validated WS Close code/category. It excludes URLs, tokens, endpoints,
 payloads and exception text. BYTE_LIMIT/IDLE_TIMEOUT remain explicit session outcomes.
-The core-to-UI queue also retains at most 128 events and posts one bounded batch,
+The core-to-UI session-close queue also retains at most 128 events and posts one bounded batch,
 so a blocked main thread cannot accumulate an unlimited session-event backlog.
 
 ## Update your existing Worker
