@@ -11,7 +11,7 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 - [x] Bounded diagnostics, measured uptime/traffic/setup and safe events
 - [x] Existing Update Center preserved, Stable default, Worker, signature and SHA-256
 - [x] Release configuration without debug signing and a production candidate verifier
-- [ ] Complete API 36/37 UI checks and visual comparison
+- [x] API 36/37 checks (56 each), 252 JVM tests and visual comparison
 - [ ] Trusted Release signature and owner physical acceptance including HD media
 - [ ] Separate owner approval and Stable v0.4.0 publication
 

@@ -18,3 +18,7 @@ source `fb72b67775b6dff5a71d804ec596850963b409a6`. Both APIs passed 33 tests.
 English locale, software GPU; effects are off by default. No image edits.
 This does not establish physical Telegram E2E. Exact sources and SHA-256 hashes
 are recorded in the [Russian manifest](../images/ASSETS.md).
+
+## Premium Minimal 0.4.0 captures
+
+[Exact sources and SHA-256](../images/ASSETS.md). Source 83e8703, device CI 39374027242 / API 36 artifact 12243305738. 56 tests pass on each API. PNG bytes unchanged; real listener, no fabricated remote sessions. Update screenshots use explicit test-only release fixtures. Original app logo is unchanged.

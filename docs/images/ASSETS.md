@@ -45,3 +45,18 @@
 `ic_premium_*.xml` — Google Material Symbols Outlined, Apache-2.0, commit `49d4db35df873165d6bd6ba09b063c7dafbac2f4`. Точные исходные URL сохранены в XML; [лицензия](../licenses/MaterialSymbols-Apache-2.0.txt). Фирменный `tgws_symbol` не изменялся.
 
 В `ic_premium_*.xml` удалён AppCompat-атрибут `colorControlNormal`; геометрия Google сохранена, tint задаёт Compose. Зависимость AppCompat не добавляется.
+
+Снимки 0.4.0 из [CI 39374027242](https://github.com/Kust3r3nk0/TGWS-Android/actions/runs/39374027242), source `83e8703532991da78b519e1efcf1ac1e168faa0b`, API 36 artifact `12243305738` (ZIP SHA-256 `7ab81c34f4b6ec8ed2b3154b7c6bfb92c93e9200ded9618d7cfe3dd7417b08d1`). 56 тестов прошли на каждой API 36/37. PNG скопированы без редактирования. Главные три экрана — настоящий запущенный listener без удалённых сессий; Update Center использует явные test fixtures 0.4.1-alpha/Current, без demo mode в APK.
+
+| Файл | Исходный PNG | SHA-256 |
+|---|---|---|
+| [0.4.0/home-dark.png](0.4.0/home-dark.png) | `premium-home-dark.png` | `c94533c626a1195589e0068426c32a61aadcf76206e12e8cb7da3d544d0c21e0` |
+| [0.4.0/diagnostics-dark.png](0.4.0/diagnostics-dark.png) | `premium-diagnostics-dark.png` | `4890ecebfb2cf2d66cdfd92fc62e295c5cd4773a26368125b64db4a15acda088` |
+| [0.4.0/settings-dark.png](0.4.0/settings-dark.png) | `premium-settings-dark.png` | `7719ff1d3f527697f568d34c73ea642f223ff9db526827857e2b01ab9c139d26` |
+| [0.4.0/home-light.png](0.4.0/home-light.png) | `premium-home-light.png` | `19adfc75f7f51425f262401a9e053191798d74e0ad2a90f3c14fd06064a49019` |
+| [0.4.0/diagnostics-light.png](0.4.0/diagnostics-light.png) | `premium-diagnostics-light.png` | `0028dac577c696ce66b00168decdc6c69d91ba55510980b1fce817cfb3303d60` |
+| [0.4.0/settings-light.png](0.4.0/settings-light.png) | `premium-settings-light.png` | `88ddbd764229f0b77ea3b12f33eae302ce0974c5e377a304e518350b7b7ed19f` |
+| [0.4.0/updates-center-dark.png](0.4.0/updates-center-dark.png) | `updates-center-dark.png` | `9166ddcc4a495cfd14ef938fa161363193a3bc1189b7f7ab65d263366262bb24` |
+| [0.4.0/updates-settings-dark.png](0.4.0/updates-settings-dark.png) | `updates-settings-dark.png` | `5cb187bfb92ed2acb8ce22f465309922603646c6655bd63e70ecd33d4805813d` |
+| [0.4.0/updates-current-light.png](0.4.0/updates-current-light.png) | `updates-current-light.png` | `b61a7964747c7ba55c72991e47c35cd22617d02c367bc89cf0c4690fc3b9a360` |
+| [0.4.0/updates-settings-light.png](0.4.0/updates-settings-light.png) | `updates-settings-light.png` | `6130c125c2ee8ec5fe437e0b09ac1734ebfa2c4f82c98d63301e2ccb2445e0c1` |

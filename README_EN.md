@@ -6,12 +6,12 @@
 
 [![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.4.0_candidate-blue)
 
-**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.10-alpha-debug/TGWS-Android-0.3.10-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Contributing](docs/en/CONTRIBUTING.md)**
+**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.4.0-debug/TGWS-Android-0.4.0-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Contributing](docs/en/CONTRIBUTING.md)**
 
 **Unofficial, open-source Android 16+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
 > [!IMPORTANT]
-> **0.4.0 — Android 16+ Premium Minimal candidate.** Three tabs, dedicated settings pages, bounded safe diagnostics and a shared Update Center design. Stable publication requires a trusted Release signature and separate owner approval. The existing public Debug download above is 0.3.10-alpha.
+> **0.4.0 — Android 16+ Premium Minimal candidate.** Three tabs, dedicated settings pages, bounded safe diagnostics and a shared Update Center design. Stable publication requires a trusted Release signature and separate owner approval. The public download above is the checked 0.4.0 Debug candidate.
 
 [Release/signing/migration](docs/en/RELEASE_0.4.0.md) · [0.4.0 notes](docs/en/releases/0.4.0.md).
 
@@ -34,24 +34,15 @@ currently has no separate Java source files.
 **Platform:** Android 16+, Jetpack Compose / Material 3, Kotlin Coroutines, OkHttp,
 Android Keystore, Gradle and GitHub Actions. [Image sources & licenses](docs/en/IMAGE_ASSETS.md).
 
-## Inside the app
+## Premium Minimal in the app
 
 <table>
-  <tr>
-    <td align="center" width="33%"><strong>Light theme</strong></td>
-    <td align="center" width="33%"><strong>Dark theme</strong></td>
-    <td align="center" width="33%"><strong>Appearance</strong></td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/0.3.5/home-light.png" alt="TGWS-Android 0.3.5: light Home screen with transparency" width="260" /></td>
-    <td><img src="docs/images/0.3.5/home-dark.png" alt="TGWS-Android 0.3.5: dark Home screen with transparency" width="260" /></td>
-    <td><img src="docs/images/0.3.5/settings-glass.png" alt="TGWS-Android 0.3.5: settings with Liquid Glass and transparency enabled" width="260" /></td>
-  </tr>
+  <tr><td align="center" width="33%"><strong>Home</strong></td><td align="center" width="33%"><strong>Diagnostics</strong></td><td align="center" width="33%"><strong>Settings</strong></td></tr>
+  <tr><td><img src="docs/images/0.4.0/home-dark.png" width="260" alt="TGWS-Android 0.4.0 Home · dark" /></td><td><img src="docs/images/0.4.0/diagnostics-dark.png" width="260" alt="TGWS-Android 0.4.0 Diagnostics · dark" /></td><td><img src="docs/images/0.4.0/settings-dark.png" width="260" alt="TGWS-Android 0.4.0 Settings · dark" /></td></tr>
+  <tr><td><img src="docs/images/0.4.0/home-light.png" width="260" alt="TGWS-Android 0.4.0 Home · light" /></td><td><img src="docs/images/0.4.0/diagnostics-light.png" width="260" alt="TGWS-Android 0.4.0 Diagnostics · light" /></td><td><img src="docs/images/0.4.0/settings-light.png" width="260" alt="TGWS-Android 0.4.0 Settings · light" /></td></tr>
 </table>
 
-Verified **0.3.5-alpha** CI captures: Android API 36/37, English locale, software GPU.
-Beta effects are enabled for this demonstration; they are off by default. These captures
-do not establish Telegram connectivity. [Sources and verified SHA-256](docs/en/IMAGE_ASSETS.md).
+Real **0.4.0 candidate** captures on API 36, Russian UI. The local listener is running; remote connectivity and measurements are not fabricated. [Source, checks and limitations](docs/en/VERIFICATION_0.4.0.md).
 
 ## Interface and system DNS
 
@@ -59,7 +50,7 @@ Transparency effect: a separate, persistent, off-by-default switch under Setting
 
 Liquid Glass beta: Settings → Appearance. Off by default; persistent frosted panels and navigation in both themes. Native procedural backdrop, no screen capture or continuous animation.
 
-Material 3 now has **Home** and **App & MTProxy settings** bottom tabs. Light/dark/system
+Material 3 has **Home**, **Diagnostics** and **Settings** bottom tabs with dedicated subpages. Light/dark/system
 themes persist, with a quick theme toggle in the top menu. Proxy configuration is preserved
 and can be saved separately without starting the service.
 
@@ -86,7 +77,7 @@ flowchart LR
 
 Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 36+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
 
-[Download 0.3.10 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.10-alpha-debug/TGWS-Android-0.3.10-debug.apk)
+[Download 0.4.0 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.4.0-debug/TGWS-Android-0.4.0-debug.apk)
 
 ## 0.2.0 reliability
 

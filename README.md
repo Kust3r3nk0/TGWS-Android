@@ -8,10 +8,10 @@
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 16+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.10-alpha-debug/TGWS-Android-0.3.10-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
+**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.4.0-debug/TGWS-Android-0.4.0-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.4.0 — кандидат Premium Minimal для Android 16+.** Три вкладки, отдельные подразделы настроек, ограниченная безопасная диагностика и общий дизайн центра обновлений. Stable будет опубликован только после доверенной Release-подписи и отдельного подтверждения владельца. Последняя опубликованная Debug-сборка по ссылке выше — 0.3.10-alpha.
+> **0.4.0 — кандидат Premium Minimal для Android 16+.** Три вкладки, отдельные подразделы настроек, ограниченная безопасная диагностика и общий дизайн центра обновлений. Stable будет опубликован только после доверенной Release-подписи и отдельного подтверждения владельца. По ссылке выше доступен проверенный Debug-кандидат 0.4.0.
 
 [Подготовка Release, подпись и миграция](docs/RELEASE_0.4.0.md) · [Изменения 0.4.0](docs/releases/0.4.0.md).
 
@@ -34,24 +34,15 @@ Gradle-сборка; YAML/JSON — workflows и серверные настро�
 **Платформа:** Android 16+, Jetpack Compose / Material 3, Kotlin Coroutines, OkHttp,
 Android Keystore, Gradle и GitHub Actions. [Источники изображений и лицензии](docs/images/ASSETS.md).
 
-## Приложение в кадре
+## Premium Minimal в приложении
 
 <table>
-  <tr>
-    <td align="center" width="33%"><strong>Светлая тема</strong></td>
-    <td align="center" width="33%"><strong>Тёмная тема</strong></td>
-    <td align="center" width="33%"><strong>Оформление</strong></td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/0.3.5/home-light.png" alt="TGWS-Android 0.3.5: главная страница, светлая тема и прозрачность" width="260" /></td>
-    <td><img src="docs/images/0.3.5/home-dark.png" alt="TGWS-Android 0.3.5: главная страница, тёмная тема и прозрачность" width="260" /></td>
-    <td><img src="docs/images/0.3.5/settings-glass.png" alt="TGWS-Android 0.3.5: настройки с включёнными Liquid Glass и прозрачностью" width="260" /></td>
-  </tr>
+  <tr><td align="center" width="33%"><strong>Главная</strong></td><td align="center" width="33%"><strong>Диагностика</strong></td><td align="center" width="33%"><strong>Настройки</strong></td></tr>
+  <tr><td><img src="docs/images/0.4.0/home-dark.png" width="260" alt="TGWS-Android 0.4.0 Главная · dark" /></td><td><img src="docs/images/0.4.0/diagnostics-dark.png" width="260" alt="TGWS-Android 0.4.0 Диагностика · dark" /></td><td><img src="docs/images/0.4.0/settings-dark.png" width="260" alt="TGWS-Android 0.4.0 Настройки · dark" /></td></tr>
+  <tr><td><img src="docs/images/0.4.0/home-light.png" width="260" alt="TGWS-Android 0.4.0 Главная · light" /></td><td><img src="docs/images/0.4.0/diagnostics-light.png" width="260" alt="TGWS-Android 0.4.0 Диагностика · light" /></td><td><img src="docs/images/0.4.0/settings-light.png" width="260" alt="TGWS-Android 0.4.0 Настройки · light" /></td></tr>
 </table>
 
-Снимки **0.3.5-alpha** из проверенного CI на Android API 36/37, английская локализация,
-программный GPU. Для демонстрации включены бета-эффекты; по умолчанию они выключены.
-Снимки не подтверждают соединение Telegram. [Источник и проверенные SHA-256](docs/images/ASSETS.md).
+Реальные снимки кандидата **0.4.0**, API 36, русский интерфейс. Локальный listener запущен; удалённое подключение и измерения не имитируются. [Источник, проверки и ограничения](docs/VERIFICATION_0.4.0.md).
 
 ## Интерфейс и системный DNS
 
@@ -121,7 +112,7 @@ CI запускается при push в `main`, Pull Request и вручную.
 сохраняются отдельно. Actions и Wrapper закреплены по проверенным SHA.
 Отдельный workflow при PR и вручную проверяет Android API 36 и 37.0.
 
-[Скачать 0.3.10 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.3.10-alpha-debug/TGWS-Android-0.3.10-debug.apk)
+[Скачать 0.4.0 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.4.0-debug/TGWS-Android-0.4.0-debug.apk)
 
 ## Транспорты 0.3.0
 
