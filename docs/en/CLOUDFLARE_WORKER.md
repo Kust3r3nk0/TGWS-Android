@@ -42,7 +42,7 @@ Keep the local port and MTProto secret. Nonempty relay configuration selects
 relay-only without direct fallback; the URL is encrypted in Android Keystore.
 
 Limits: exact DC/IP pairs on TCP 443, token required, 64-byte first binary message,
-four connections **per isolate**, 4 MiB + 4 byte queue, 64 queued messages,
+six connections **per isolate**, 4 MiB + 4 byte queue, 64 queued messages,
 6s connect / 10s init and write / 5 minute idle deadlines. Closing sockets retain
 capacity until the platform close event. This is not an account-wide quota or
 DDoS/billing protection; configure account limits separately.
