@@ -70,7 +70,7 @@ class DiagnosticToolsInstrumentedTest {
             assertEquals(systemProvider?.packageName,provider.packageName)
             if(systemProvider!=null)assertEquals(systemProvider.longVersionCode,provider.versionCode)
             provider.packageName?.let{ui.onNodeWithTag("webview.package").assertTextEquals(it)}
-            provider.version?.let{ui.onNodeWithTag("webview.version").assertTextContains(it)}
+            provider.version?.let{ui.onNodeWithTag("webview.version").assertTextEquals(context.getString(R.string.tools_webview_version,it))}
             shot("diagnostics-webview-dark")
             scenario.recreate();settle();assertTrue(ProxyState.snapshot.localAvailable)
             ui.onNodeWithTag("webview.state").performScrollTo().assertTextEquals(context.getString(providerStateResource(provider.state)))
