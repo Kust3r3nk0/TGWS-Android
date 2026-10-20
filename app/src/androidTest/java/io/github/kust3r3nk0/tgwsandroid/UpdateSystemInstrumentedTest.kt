@@ -3,6 +3,7 @@ package io.github.kust3r3nk0.tgwsandroid
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationManager
+import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -21,6 +22,10 @@ class UpdateSystemInstrumentedTest {
     private val instrumentation get()=InstrumentationRegistry.getInstrumentation()
     private val context get()=instrumentation.targetContext
     private val device get()=UiDevice.getInstance(instrumentation)
+    private fun grantInstallerPermission() {
+        ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(
+            "appops set ${context.packageName} REQUEST_INSTALL_PACKAGES allow")).use{it.readBytes()}
+    }
     private fun await(condition:()->Boolean){val end=SystemClock.elapsedRealtime()+5000
         while(!condition()){check(SystemClock.elapsedRealtime()<end){"Android update handoff deadline"};SystemClock.sleep(20)}}
     @Test fun notificationHasCorrectTextAndOpensTheExistingUpdateCenter()=runBlocking {
@@ -49,8 +54,9 @@ class UpdateSystemInstrumentedTest {
         val release=GithubRelease(99,"v9.0.0-debug","9.0.0",99,36,UpdateChannel.PREVIEW,"",UpdateAsset("TGWS-Android-9.0.0-debug.apk","",file.length()),UpdateAsset("SHA256SUMS","",1))
         try{
             AndroidUpdateApkVerifier(context).verify(file,release)
-            // The emulator entry point grants and restores this outside instrumentation.
-            // Revoking this app-op kills the owning UID on Android 16/17.
+            // Grant after Gradle installs its final signed APK. The host restores
+            // this after instrumentation; revoking here kills the owning UID.
+            grantInstallerPermission()
             val installer=UpdateInstaller(context);assertTrue(installer.allowed())
             val intent=installer.installIntent(file)
             ActivityScenario.launch(MainActivity::class.java).use{activity->

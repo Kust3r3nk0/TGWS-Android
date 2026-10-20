@@ -14,16 +14,15 @@ if [[ "$actual_api" != "${requested_api%%.*}" ]]; then
 fi
 python3 .github/scripts/collect_android_environment.py --output app/build/reports/android-environment/before.json
 # The installer test must not revoke its own app-op: Android kills that UID.
-# Provision it from the emulator host, then restore it after instrumentation,
-# including failed tests. This never grants installation permission in the APK.
+# The test grants it after Gradle installs the target; restore it from the host
+# after instrumentation, including failed tests. No APK permission is auto-granted.
 test_package=io.github.kust3r3nk0.tgwsandroid
-# The preceding upgrade regression removes its signed fixtures. Install the
-# original build first so app-ops target a real package; Gradle uses the same APK.
-adb -s emulator-5554 install --no-incremental -r -t app/build/outputs/apk/debug/app-debug.apk
-previous_install_op=$(adb -s emulator-5554 shell appops get "$test_package" REQUEST_INSTALL_PACKAGES)
 previous_install_mode=default
-if [[ "$previous_install_op" =~ REQUEST_INSTALL_PACKAGES:\ (allow|deny|ignore|default|foreground) ]]; then
-  previous_install_mode=${BASH_REMATCH[1]}
+if [[ $(adb -s emulator-5554 shell pm path "$test_package") == package:* ]]; then
+  previous_install_op=$(adb -s emulator-5554 shell appops get "$test_package" REQUEST_INSTALL_PACKAGES)
+  if [[ "$previous_install_op" =~ REQUEST_INSTALL_PACKAGES:\ (allow|deny|ignore|default|foreground) ]]; then
+    previous_install_mode=${BASH_REMATCH[1]}
+  fi
 fi
 restore_install_op() {
   local test_exit=$?
@@ -38,7 +37,6 @@ restore_install_op() {
   exit "$test_exit"
 }
 trap restore_install_op EXIT
-adb -s emulator-5554 shell appops set "$test_package" REQUEST_INSTALL_PACKAGES allow
 test_status=0
 ./gradlew --no-daemon :app:connectedDebugAndroidTest || test_status=$?
 environment_status=0
