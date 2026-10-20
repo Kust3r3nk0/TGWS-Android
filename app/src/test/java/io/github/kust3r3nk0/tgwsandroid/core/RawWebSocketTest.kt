@@ -24,6 +24,54 @@ import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManagerFactory
 
 class RawWebSocketTest {
+    @Test(timeout=5000) fun rejectedUpgradeRetainsOnlyStatusBoundedRetryAndAllowlistedWorkerReason() {
+        for(reason in listOf("CAPACITY","https://private.invalid/secret-token")) {
+            peer(response={"HTTP/1.1 503 Secret diagnostic\r\nRetry-After: 999999\r\nX-TGWS-Error: $reason\r\n\r\n"},
+                server={assertEquals(-1,it.getInputStream().read())}) {socket->
+                val e=expect<WebSocketUpgradeException>{RawWebSocket.upgrade(socket,"localhost",limits=limits)}
+                assertEquals(503,e.diagnostic.status)
+                assertEquals(UpgradeFailure.STATUS,e.diagnostic.failure)
+                assertEquals(60_000,e.diagnostic.retryAfterMillis)
+                assertEquals(if(reason=="CAPACITY")RelayUpgradeReason.CAPACITY else null,e.diagnostic.relayReason)
+                assertFalse(e.toString().contains("Secret diagnostic"));assertFalse(e.toString().contains("secret-token"))
+                assertTrue(socket.isClosed)
+            }
+        }
+    }
+
+    @Test(timeout=5000) fun invalidAcceptIsDistinctFromHttpStatusFailure() {
+        peer(response={key->response(key).replace(accept(key),"bad")},server={}) {socket->
+            val e=expect<WebSocketUpgradeException>{RawWebSocket.upgrade(socket,"localhost",limits=limits)}
+            assertEquals(HttpUpgradeDiagnostic(101,UpgradeFailure.ACCEPT),e.diagnostic)
+        }
+    }
+
+    @Test(timeout=5000) fun closeMetadataSurvivesFailedEchoAndNormalUnknownReasonIsNotExported() {
+        for(code in listOf(1000,1008)) {
+            peer(server={socket->
+                socket.getOutputStream().write(frame(8,byteArrayOf((code ushr 8).toByte(),code.toByte())+"BYTE_LIMIT".toByteArray()))
+                assertEquals(-1,socket.getInputStream().read())
+            }) {socket->
+                var failWrites=false
+                val wrapper=object:Socket(){
+                    override fun getInputStream()=socket.getInputStream()
+                    override fun getOutputStream()=object:java.io.OutputStream(){
+                        override fun write(value:Int){if(failWrites)throw java.net.SocketException("private text");socket.getOutputStream().write(value)}
+                        override fun write(bytes:ByteArray,offset:Int,length:Int){if(failWrites)throw java.net.SocketException("private text");socket.getOutputStream().write(bytes,offset,length)}
+                        override fun flush()=socket.getOutputStream().flush()
+                    }
+                    override fun setSoTimeout(value:Int){socket.soTimeout=value}
+                    override fun close()=socket.close()
+                }
+                val ws=RawWebSocket.upgrade(wrapper,"localhost",limits=limits)
+                failWrites=true
+                val e=expect<WebSocketPeerCloseException>{ws.receive()}
+                assertEquals(code,e.statusCode);assertEquals(WebSocketCloseCategory.BYTE_LIMIT,e.category)
+                assertEquals(WebSocketClose(code,WebSocketCloseCategory.BYTE_LIMIT),ws.peerClose)
+                assertTrue(socket.isClosed)
+            }
+        }
+    }
     private val limits = RawWebSocket.Limits(readMillis = 750, handshakeMillis = 750, writeMillis = 750, closeMillis = 200)
 
     private fun slowOutputSocket(socket: Socket, throttled: () -> Boolean): Socket {

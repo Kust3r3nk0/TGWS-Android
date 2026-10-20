@@ -16,6 +16,47 @@ import java.net.ServerSocket
 
 @RunWith(AndroidJUnit4::class)
 class DiagnosticToolsInstrumentedTest {
+    @Test fun serviceStopRetainsPendingSessionCauseBeforeMainCallbacksAreRemoved(){
+        ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            settle();click("proxy.toggle");ui.waitUntil(10000){ProxyState.snapshot.localAvailable}
+            java.net.Socket("127.0.0.1",SettingsStore(context).load().port).use{client->
+                client.soTimeout=2000
+                ui.waitUntil(5000){ProxyState.snapshot.pending==1}
+                click("proxy.toggle");ui.waitUntil(10000){!ProxyState.snapshot.running}
+                ui.waitUntil(5000){ProxyState.diagnostics.events.any{
+                    it.session?.reason==io.github.kust3r3nk0.tgwsandroid.core.SessionEndReason.SERVICE_STOPPED
+                }}
+                assertEquals(-1,client.getInputStream().read())
+                scenario.recreate();settle()
+                assertTrue(ProxyState.diagnostics.events.any{it.session?.reason==io.github.kust3r3nk0.tgwsandroid.core.SessionEndReason.SERVICE_STOPPED})
+                assertFalse(ProxyState.snapshot.running)
+            }
+        }
+    }
+    @Test fun typedSessionAndUpgradeDetailsSurviveActivityRecreationWithoutSavingSecrets(){
+        val core=io.github.kust3r3nk0.tgwsandroid.core.SessionClosed(7,
+            io.github.kust3r3nk0.tgwsandroid.core.SessionEndReason.REMOTE_CLOSE,
+            io.github.kust3r3nk0.tgwsandroid.core.TransportKind.WORKER,true,1200,64,0,
+            io.github.kust3r3nk0.tgwsandroid.core.WebSocketClose(1011,io.github.kust3r3nk0.tgwsandroid.core.WebSocketCloseCategory.TCP_ERROR),
+            io.github.kust3r3nk0.tgwsandroid.core.HttpUpgradeDiagnostic(101))
+        val saved=context.getSharedPreferences("settings",0).all.toMap()
+        ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            settle()
+            instrumentation.runOnMainSync{ProxyState.record(sessionEvent(core,System.currentTimeMillis()))}
+            click("nav.diagnostics");click("diagnostics.all",true)
+            val message=context.getString(R.string.journal_session_ended,"7","REMOTE_CLOSE")
+            ui.onNodeWithText(message).assertExists()
+            ui.onNodeWithText(context.getString(R.string.journal_close,"1011","TCP_ERROR")).assertExists()
+            scenario.recreate();settle();ui.onNodeWithText(message).assertExists()
+            ui.onNodeWithText(context.getString(R.string.journal_preview)).performClick();ui.waitForIdle()
+            val report=ui.onNodeWithTag("journal.preview").fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString(""){it.text}
+            val events=JSONObject(report).getJSONArray("events")
+            val event=(0 until events.length()).map{events.getJSONObject(it)}.single{it.optJSONObject("session")?.optLong("id")==7L}.getJSONObject("session")
+            assertEquals(7L,event.getLong("id"));assertEquals("TCP_ERROR",event.getString("close_reason"))
+            assertEquals(101,event.getJSONObject("upgrade").getInt("status"))
+            assertEquals(saved,context.getSharedPreferences("settings",0).all)
+        }
+    }
     @get:Rule val ui=createEmptyComposeRule()
     private val instrumentation get()=InstrumentationRegistry.getInstrumentation()
     private val context get()=instrumentation.targetContext
@@ -104,7 +145,7 @@ class DiagnosticToolsInstrumentedTest {
         val uri=requireNotNull(intent.getParcelableExtra(Intent.EXTRA_STREAM,android.net.Uri::class.java))
         assertEquals(context.packageName+".diagnostics",uri.authority)
         val text=context.contentResolver.openInputStream(uri)!!.bufferedReader().use{it.readText()}
-        assertEquals(2,JSONObject(text).getInt("schema"));assertFalse(text.contains("private.invalid"));assertFalse(text.contains("192.0.2.1"))
+        assertEquals(3,JSONObject(text).getInt("schema"));assertFalse(text.contains("private.invalid"));assertFalse(text.contains("192.0.2.1"))
         repeat(8){DiagnosticExport.prepare(context,report)}
         assertTrue(File(context.cacheDir,"diagnostic_reports").listFiles()!!.size<=4)
         val forbidden=File(context.filesDir,"secret-fixture").apply{writeText("private")}

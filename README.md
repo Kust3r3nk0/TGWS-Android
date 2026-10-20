@@ -4,16 +4,20 @@
   <img src="docs/images/tgws-github-cover-ru.svg" width="100%" alt="TGWS-Android — нативный MTProto-прокси для Android, русский баннер" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.4.1_test_update-blue)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.4.2_test_update-blue)
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 16+.** Разработка: **Makarov Lab's 3.0™**.
 
-**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.4.1-debug/TGWS-Android-0.4.1-debug.apk) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
+**[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.4.1 — тестовое обновление Premium Minimal для Android 16+.** Подробный безопасный журнал, проверка локального порта, подсказки и диагностика системного WebView. APK доступен по ссылке выше; это Debug Pre-release, не Production. [Проверки и ограничения](docs/VERIFICATION_0.4.1.md).
+> **0.4.2 — Relay Stability Fix для Android 16+.** Исправления управления соединениями и backoff, подробности HTTP Upgrade/Close и отдельных сессий. Тестовые APK опубликованы в Releases; это Debug Pre-release, не Production. [Аудит и обновление Worker](docs/RELAY_STABILITY_0.4.2.md).
 
 [Подготовка Release, подпись и миграция](docs/RELEASE_0.4.0.md) · [Изменения 0.4.0](docs/releases/0.4.0.md).
+
+## 0.4.2 — Relay Stability Fix
+
+Исправлены воспроизводимые дефекты закрытия соединений, раннего backoff и отмены при смене сети. Журнал различает HTTP Upgrade, безопасные причины Worker и закрытия отдельных сессий. Лимиты Worker сохранены; для всех изменений нужно обновить APK **и** модуль Worker. [Аудит и инструкция обновления](docs/RELAY_STABILITY_0.4.2.md). Тестовая сборка не подтверждает устойчивость внешнего узла на устройстве.
 
 ## Новое тестовое обновление 0.4.1
 
@@ -120,7 +124,7 @@ CI запускается при push в `main`, Pull Request и вручную.
 сохраняются отдельно. Actions и Wrapper закреплены по проверенным SHA.
 Отдельный workflow при PR и вручную проверяет Android API 36 и 37.0.
 
-[Скачать 0.4.1 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.4.1-debug/TGWS-Android-0.4.1-debug.apk)
+[Скачать 0.4.1 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases)
 
 ## Транспорты 0.3.0
 

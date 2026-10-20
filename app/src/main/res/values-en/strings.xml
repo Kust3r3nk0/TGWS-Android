@@ -228,4 +228,7 @@
     <string name="advice_limit">The endpoint ended the transfer at its byte limit. The experimental Worker allows 16 MiB per session; large media needs a compatible endpoint with suitable limits.</string>
     <string name="advice_retry">After network recovery Telegram creates new sessions. Allow the bounded backoff to finish and retry the check without changing the secret.</string>
     <string name="advice_storage">The secret has not been replaced. If the Keystore key was lost, explicitly recover the configuration in connection settings.</string>
+    <string name="journal_session_ended">Session %1$s ended: %2$s</string>
+    <string name="journal_session_details">Duration %1$d ms · sent %2$d B · received %3$d B</string>
+    <string name="journal_upgrade">HTTP %1$s · Upgrade %2$s · relay %3$s · cooldown %4$s ms</string>
 </resources>

@@ -19,29 +19,66 @@ internal class NetworkTransportFactory(private val current:()->NetworkAccess?):T
     private var clientNetwork:NetworkAccess?=null
     private var client:OkHttpClient?=null
     @Volatile private var closed=false
+    private val resourcesLock=Any()
+    private var generation=0L
+    private val scopes=mutableSetOf<Scope>()
+    private inner class Scope(val epoch:Long,val access:NetworkAccess):Closeable {
+        private var ended=false
+        private val owned=mutableSetOf<Closeable>()
+        fun check(){synchronized(resourcesLock){if(ended || closed || epoch!=generation)throw NetworkUnavailable()};connector.checkCurrent(access)}
+        fun own(resource:Closeable){
+            val reject=synchronized(resourcesLock){if(ended || closed || epoch!=generation)true else{owned+=resource;false}}
+            if(reject){release(resource);throw NetworkUnavailable()}
+        }
+        override fun close(){
+            val snapshot=synchronized(resourcesLock){if(ended)return;ended=true;scopes-=this;owned.toList().also{owned.clear()}}
+            // Forced cancellation closes native TCP before a TLS close_notify
+            // can wait on a blocked writer. Graceful close precedes this path.
+            snapshot.forEach(::release)
+        }
+    }
+    private fun release(resource:Closeable){try{if(resource is RemoteTransport)resource.abort()else resource.close()}catch(_:Exception){}}
+    private fun managed(own:(Closeable)->Unit,open:(Scope)->RemoteTransport):RemoteTransport {
+        val scope=synchronized(resourcesLock){
+            if(closed)throw NetworkUnavailable()
+            Scope(generation,connector.capture()).also{scopes+=it}
+        }
+        try {
+            own(scope)
+            scope.check()
+            val base=open(scope)
+            scope.own(base);scope.check()
+            return object:RemoteTransport by base {
+                override fun close(){try{base.close()}finally{scope.close()}}
+                override fun abort()=scope.close()
+            }
+        }catch(error:Exception){scope.close();throw error}
+    }
     private fun wrap(ws:RawWebSocket,kind:TransportKind)=object:RemoteTransport {
         override val kind=kind
         override val setupTimings get()=ws.setupTimings
+        override val upgrade get()=HttpUpgradeDiagnostic(101)
+        override val peerClose get()=ws.peerClose
         override fun send(data:ByteArray)=ws.send(data)
         override fun send(data:ByteArray,progress:()->Unit)=ws.send(data,progress)
         override fun receive()=ws.receive()
         override fun verifyIdle()=ws.probeIdle()
-        override fun close()=ws.abort()
+        override fun close()=ws.close()
         override fun abort()=ws.abort()
     }
     override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport {
         if(closed)throw NetworkUnavailable()
-        return wrap(RawWebSocket.connect(address,domain,socketOwner={own(it)},connector=connector),TransportKind.WSS)
+        return managed(own){scope->wrap(RawWebSocket.connect(address,domain,socketOwner={scope.own(it)},connector=connector),TransportKind.WSS)}
     }
     override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
         if(closed)throw NetworkUnavailable()
-        return wrap(RawWebSocket.connect(endpoint.domain,endpoint.domain,endpoint.requestPath(dc),socketOwner={own(it)},connector=connector),TransportKind.RELAY)
+        return managed(own){scope->wrap(RawWebSocket.connect(endpoint.domain,endpoint.domain,endpoint.requestPath(dc),socketOwner={scope.own(it)},connector=connector),TransportKind.RELAY)}
     }
-    override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport {
-        val socket=connector.connect(address,443,8000){own(it)}
+    override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport = managed(own){scope->
+        val socket=connector.connect(address,443,8000){scope.own(it)}
         socket.soTimeout=0
         val timing=connector.takeTiming(socket)
-        return object:RemoteTransport {
+        object:RemoteTransport {
             override val kind=TransportKind.TCP
             override val setupTimings=timing
             override fun send(data:ByteArray){socket.getOutputStream().write(data);socket.getOutputStream().flush()}
@@ -78,6 +115,9 @@ internal class NetworkTransportFactory(private val current:()->NetworkAccess?):T
         client?.let{it.dispatcher.cancelAll();it.connectionPool.evictAll();it.dispatcher.executorService.shutdownNow()}
         client=null;clientNetwork=null
     }
-    fun invalidate(){connector.invalidate();disposeClient()}
-    override fun close(){closed=true;connector.close();disposeClient()}
+    fun invalidate(){
+        val active=synchronized(resourcesLock){generation++;scopes.toList()}
+        connector.invalidate();active.forEach{it.close()};disposeClient()
+    }
+    override fun close(){closed=true;invalidate();connector.close()}
 }

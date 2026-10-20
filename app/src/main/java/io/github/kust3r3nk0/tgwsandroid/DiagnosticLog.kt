@@ -15,6 +15,14 @@ internal fun diagnosticLogLine(e:DiagnosticEvent)=buildString {
         append(" setup_ms=").append(r.setupMillis).append(" dns_ms=").append(r.dnsMillis)
         append(" tcp_ms=").append(r.tcpMillis).append(" tls_ms=").append(r.tlsMillis).append(" http_ms=").append(r.httpMillis)
         append(" close=").append(r.closeCode).append('/').append(r.closeCategory?.name)
+        append(" upgrade=").append(r.upgrade?.status).append('/').append(r.upgrade?.failure?.name)
+        append(" relay_reason=").append(r.upgrade?.relayReason?.name).append(" retry_ms=").append(r.retryInMillis)
+    }
+    e.session?.let{s->
+        append(" session=").append(s.id).append(" end=").append(s.reason.name).append(" duration_ms=").append(s.durationMillis)
+        append(" sent=").append(s.sent).append(" received=").append(s.received)
+        append(" close=").append(s.peerClose?.code).append('/').append(s.peerClose?.category?.name)
+        append(" upgrade=").append(s.upgrade?.status).append('/').append(s.upgrade?.failure?.name)
     }
     e.provider?.let{append(" provider_state=").append(it.state.name)}
     e.localCheck?.let{append(" local_check=").append(it.outcome.name).append(" elapsed_ms=").append(it.millis)}

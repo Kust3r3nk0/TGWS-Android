@@ -44,6 +44,7 @@ class MtprotoSoakTest {
         val poolLeases = AtomicInteger()
         var peakHeap = 0L
         val clients = Executors.newFixedThreadPool(4)
+        val recent=java.util.concurrent.ConcurrentLinkedQueue<String>()
         LocalTelegramPeer().use { peer ->
             val factory = object : TransportFactory {
                 override val supportsWarmWebSockets = true
@@ -76,6 +77,12 @@ class MtprotoSoakTest {
                 }
             }
             MtprotoServer(port, secret.joinToString("") { "%02x".format(it) }, onEvent = { event ->
+                val detail=when(event){
+                    is ServerEvent.Closed->"session=${event.session.id} end=${event.session.reason} sent=${event.session.sent} received=${event.session.received} epoch=${epoch.get()}"
+                    is ServerEvent.Diagnostic->"issue=${event.issue} epoch=${epoch.get()}"
+                    else->null
+                }
+                if(detail!=null){recent.add(detail);while(recent.size>32)recent.poll()}
                 if (event is ServerEvent.State) listening.set(event.phase)
                 if (event is ServerEvent.Sessions) {
                     snapshot.set(event)
@@ -162,7 +169,7 @@ class MtprotoSoakTest {
                     }
                     tasks.forEach { it.get(8, TimeUnit.SECONDS) }
                 } finally { server.stop(); clients.shutdownNow() }
-                errors.get()?.let { throw AssertionError("Soak failed", it) }
+                errors.get()?.let { throw AssertionError("Soak failed; recent typed events: ${recent.toList()}", it) }
                 peer.failure.get()?.let { throw AssertionError("Peer failed", it) }
                 assertTrue(completed.get() > 0)
                 assertTrue(peakSessions.get() <= 8)

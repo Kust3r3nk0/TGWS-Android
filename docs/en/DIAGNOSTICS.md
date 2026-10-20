@@ -1,4 +1,7 @@
-# Diagnostics 0.4.1
+# Diagnostics
+
+0.4.2 adds typed HTTP Upgrade, endpoint cooldown and individual session endings
+(JSON schema 3). [Audit and Worker upgrade](RELAY_STABILITY_0.4.2.md).
 
 Open **Diagnostics**. Service and transport counters describe actual observations; a listening local port does not confirm Telegram connectivity.
 

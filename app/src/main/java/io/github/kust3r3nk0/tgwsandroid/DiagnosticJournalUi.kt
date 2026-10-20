@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.dp
     val c=MaterialTheme.colorScheme
     val time=remember(e.timeMillis){java.text.DateFormat.getTimeInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(e.timeMillis))}
     val message=when{
+        e.session!=null->stringResource(R.string.journal_session_ended,e.session.id.toString(),e.session.reason.name)
         e.phase!=null->stringResource(statusResource(e.phase))
         e.rejection!=null->stringResource(rejectionResource(e.rejection))
         e.rejected!=null->stringResource(R.string.premium_rejected_event,e.rejected)
@@ -100,6 +101,12 @@ import androidx.compose.ui.unit.dp
                 Text(stringResource(R.string.journal_route,r.id,if(r.media)-r.dc else r.dc,e.transport?.name.orEmpty(),r.stage.name,r.attempts),style=MaterialTheme.typography.bodySmall)
                 Text(stringResource(R.string.phase_timings,r.dnsMillis?.toString()?:"—",r.tcpMillis?.toString()?:"—",r.tlsMillis?.toString()?:"—",r.httpMillis?.toString()?:"—"),style=MaterialTheme.typography.bodySmall)
                 if(r.closeCode!=null || r.closeCategory!=null)Text(stringResource(R.string.journal_close,r.closeCode?.toString()?:"—",r.closeCategory?.name?:"—"),style=MaterialTheme.typography.bodySmall)
+                r.upgrade?.let{d->Text(stringResource(R.string.journal_upgrade,d.status?.toString()?:"—",d.failure?.name?:"—",d.relayReason?.name?:"—",(r.retryInMillis?:d.retryAfterMillis)?.toString()?:"—"),style=MaterialTheme.typography.bodySmall)}
+            }
+            e.session?.let{s->
+                Text(stringResource(R.string.journal_session_details,s.durationMillis,s.sent,s.received),style=MaterialTheme.typography.bodySmall)
+                s.peerClose?.let{Text(stringResource(R.string.journal_close,it.code?.toString()?:"—",it.category?.name?:"—"),style=MaterialTheme.typography.bodySmall)}
+                s.upgrade?.let{d->Text(stringResource(R.string.journal_upgrade,d.status?.toString()?:"—",d.failure?.name?:"—",d.relayReason?.name?:"—",d.retryAfterMillis?.toString()?:"—"),style=MaterialTheme.typography.bodySmall)}
             }
             e.provider?.let{Text(listOfNotNull(it.packageName,it.version,it.channel.name).joinToString(" · "),style=MaterialTheme.typography.bodySmall)}
             e.network?.let{Text("${it.name} · IPv4 ${e.ipv4} · IPv6 ${e.ipv6}",style=MaterialTheme.typography.bodySmall)}

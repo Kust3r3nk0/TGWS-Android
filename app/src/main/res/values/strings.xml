@@ -228,4 +228,7 @@
     <string name="advice_limit">Узел завершил передачу по лимиту байтов. Экспериментальный Worker ограничен 16 МиБ на сессию; для больших медиа нужен совместимый узел с подходящими лимитами.</string>
     <string name="advice_retry">После восстановления сети Telegram создаёт новые сессии. Подождите завершения ограниченного backoff и повторите проверку, не меняя секрет.</string>
     <string name="advice_storage">Секрет не заменён. Если ключ Keystore утрачен, восстановите конфигурацию явно в настройках подключения.</string>
+    <string name="journal_session_ended">Сессия %1$s завершена: %2$s</string>
+    <string name="journal_session_details">Длительность %1$d мс · отправлено %2$d Б · получено %3$d Б</string>
+    <string name="journal_upgrade">HTTP %1$s · Upgrade %2$s · реле %3$s · пауза %4$s мс</string>
 </resources>

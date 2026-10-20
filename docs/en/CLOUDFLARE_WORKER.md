@@ -2,8 +2,8 @@
 
 [Russian setup guide](../../cloudflare-worker/README.md).
 
-Standalone server for the existing **WSS relay** field in Android 0.1.3/0.2.0;
-no APK update is required. It connects a real Cloudflare edge to fixed Telegram
+Standalone server for the existing **WSS relay** field.
+[0.4.2 upgrade instructions](RELAY_STABILITY_0.4.2.md): update both APK and Worker. It connects a real Cloudflare edge to fixed Telegram
 DC IPs from Flowseal v1.11.2. TLS SNI and HTTP Host are your actual
 `your-worker.account.workers.dev` name, with normal certificate checks.
 Substituting `cloudflare.com` cannot create a relay or change a blocked IP.
@@ -14,9 +14,9 @@ Deployment requires your Cloudflare account and a reachable endpoint.
 Create your [Cloudflare account](https://dash.cloudflare.com/), verify email,
 and review current terms, quotas and pricing. With Node 22+:
 
-You can skip the local build by downloading `worker.js` from the
-[component Pre-release](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/worker-v0.1.0-alpha).
-This publishes a module, not an endpoint; deployment still needs your account.
+For 0.4.2 download `worker.js` from the successful Android CI Worker artifact.
+The historical [component Pre-release](https://github.com/Kust3r3nk0/TGWS-Android/releases/tag/worker-v0.1.0-alpha).
+does not contain the 0.4.2 fixes. Deployment still needs your account.
 
 ```bash
 cd cloudflare-worker
@@ -62,6 +62,6 @@ Telegram E2E. Wrangler dry-run bundles without deployment; CI uploads the module
 and actual JUnit report.
 
 After deployment test Wi-Fi, then **disable Wi-Fi** and repeat official Telegram
-text send/receive, reconnect and a small download. Record APK commit, Android,
-operator, time and result without secrets/URLs. Displayed ping alone does not
-establish the route. External deployment and Megafon E2E remain pending.
+text send/receive, reconnect and a small download. Share only build/category metadata in chat, without devices, operators, private URLs
+or secrets. Displayed ping alone does not establish the route. External deployment
+and device acceptance are separate from automated checks.

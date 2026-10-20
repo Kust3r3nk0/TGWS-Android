@@ -3,6 +3,16 @@
 Текущая минимальная ОС: **Android 16 / API 36** (указание владельца 17 октября 2026). Поддерживаются только API 36 и новее. Основа разработки — [ТЗ и уточнения](docs/DEVELOPMENT_BASELINE.md).
 
 
+## 0.4.2 — Relay Stability Fix · тестовое обновление
+
+- [x] Аудит MtprotoServer, RouteBackoff, RawWebSocket, NetworkTransportFactory и Worker
+- [x] HTTP Upgrade, Close и причина завершения каждой сессии в безопасном журнале
+- [x] Общий endpoint cooldown, runtime backoff и освобождение WS/TCP ресурсов без увеличения лимитов
+- [x] Регрессии Worker, протокола, отмены и сохранения диагностики; CI-модуль Worker с checksum
+- [ ] Полный CI и матрица API 36/37
+
+[Аудит и обновление Worker](docs/RELAY_STABILITY_0.4.2.md).
+
 ## 0.4.1 — расширенная диагностика · тестовое обновление
 
 - [x] Категории/уровни/фильтры, причины закрытия маршрутов и объединение повторов

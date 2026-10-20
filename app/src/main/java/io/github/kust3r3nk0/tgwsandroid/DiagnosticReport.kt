@@ -4,7 +4,7 @@ package io.github.kust3r3nk0.tgwsandroid
 internal object DiagnosticReport {
     fun render(value:ProxySnapshot,history:DiagnosticHistoryState=DiagnosticHistoryState(),
         provider:WebViewStatus=WebViewStatus(),version:String?=null,versionCode:Long?=null,api:Int?=null):String=buildString {
-        append("{\n  \"schema\": 2,\n  \"phase\": \"").append(value.phase.name).append("\",\n")
+        append("{\n  \"schema\": 3,\n  \"phase\": \"").append(value.phase.name).append("\",\n")
         val safeVersion=version?.takeIf{it.length<=80 && it.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?"))}
         append("  \"app_version\": ").append(json(safeVersion)).append(",\n  \"version_code\": ").append(versionCode?:"null")
         append(",\n  \"android_api\": ").append(api?:"null").append(",\n")
@@ -33,7 +33,9 @@ internal object DiagnosticReport {
                 .append(", \"http_ms\": ").append(route.timings?.httpMillis?:"null")
                 .append(", \"route_sent\": ").append(route.sent).append(", \"route_received\": ").append(route.received)
                 .append(", \"close_code\": ").append(route.closeCode?:"null")
-                .append(", \"close_reason\": ").append(route.closeCategory?.name?.let{ "\"$it\"" }?:"null").append('}')
+                .append(", \"close_reason\": ").append(json(route.closeCategory?.name))
+                .append(", \"upgrade\": ").append(upgradeJson(route.upgrade))
+                .append(", \"retry_ms\": ").append(route.retryInMillis?:"null").append('}')
         }
         append("\n  ],\n  \"webview\": ").append(providerJson(provider))
         append(",\n  \"events\": [")
@@ -53,7 +55,15 @@ internal object DiagnosticReport {
                 append(", \"setup_ms\": ").append(r.setupMillis?:"null").append(", \"dns_ms\": ").append(r.dnsMillis?:"null")
                 append(", \"tcp_ms\": ").append(r.tcpMillis?:"null").append(", \"tls_ms\": ").append(r.tlsMillis?:"null")
                 append(", \"http_ms\": ").append(r.httpMillis?:"null").append(", \"sent\": ").append(r.sent).append(", \"received\": ").append(r.received)
-                append(", \"close_code\": ").append(r.closeCode?:"null").append(", \"close_reason\": ").append(json(r.closeCategory?.name)).append('}')
+                append(", \"close_code\": ").append(r.closeCode?:"null").append(", \"close_reason\": ").append(json(r.closeCategory?.name))
+                append(", \"upgrade\": ").append(upgradeJson(r.upgrade)).append(", \"retry_ms\": ").append(r.retryInMillis?:"null").append('}')
+            }
+            e.session?.let{s->
+                append(", \"session\": {\"id\": ").append(s.id).append(", \"reason\": ").append(json(s.reason.name))
+                append(", \"established\": ").append(s.established).append(", \"duration_ms\": ").append(s.durationMillis)
+                append(", \"sent\": ").append(s.sent).append(", \"received\": ").append(s.received)
+                append(", \"close_code\": ").append(s.peerClose?.code?:"null").append(", \"close_reason\": ").append(json(s.peerClose?.category?.name))
+                append(", \"upgrade\": ").append(upgradeJson(s.upgrade)).append('}')
             }
             e.provider?.let{append(", \"webview\": ").append(providerJson(it))}
             e.localCheck?.let{append(", \"local_check\": ").append(json(it.outcome.name)).append(", \"local_check_ms\": ").append(it.millis?:"null")}
@@ -61,6 +71,9 @@ internal object DiagnosticReport {
         }
         append("\n  ]\n}\n")
     }
+
+    private fun upgradeJson(d:io.github.kust3r3nk0.tgwsandroid.core.HttpUpgradeDiagnostic?):String =
+        if(d==null)"null" else "{\"status\": ${d.status?:"null"}, \"failure\": ${json(d.failure?.name)}, \"relay_reason\": ${json(d.relayReason?.name)}, \"retry_after_ms\": ${d.retryAfterMillis?:"null"}}"
 
     private fun providerJson(p:WebViewStatus):String {
         // Re-sanitize even externally constructed/test snapshots before serializing.

@@ -5,6 +5,38 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class DiagnosticJournalTest {
+    @Test fun interleavedRejectionsAndSessionIdsCannotBypassLogcatRateLimit(){
+        val emitted=mutableListOf<DiagnosticEvent>();val h=DiagnosticHistory{emitted+=it}
+        repeat(1000){id->
+            h.record(DiagnosticEvent(1,EventCategory.CLIENT,false,kind=EventKind.CLIENT_REJECTED,rejected=id),1)
+            h.record(sessionEvent(SessionClosed(id.toLong(),SessionEndReason.HANDSHAKE_REJECTED,null,false,1,0,0),1),1)
+        }
+        assertEquals(32,emitted.size);assertEquals(128,h.state.events.size)
+    }
+    @Test fun distinctSessionIdsRemainBoundedInMemoryAndRateLimitedInLogcat(){
+        val emitted=mutableListOf<DiagnosticEvent>();val h=DiagnosticHistory{emitted+=it}
+        repeat(4096){id->h.record(sessionEvent(SessionClosed(id.toLong(),SessionEndReason.HANDSHAKE_REJECTED,null,false,1,0,0),100),100)}
+        assertEquals(128,h.state.events.size);assertEquals(8,emitted.size)
+        assertEquals(4095L,h.state.events.last().session?.id)
+        h.record(sessionEvent(SessionClosed(4096,SessionEndReason.CLIENT_EOF,null,false,1,0,0),1100),1100)
+        assertEquals(9,emitted.size)
+    }
+    @Test fun sessionClosuresPreserveTypedCauseAndUpgradeWithoutDuplicatingOrLeakingEndpoints(){
+        val h=DiagnosticHistory()
+        val capacity=HttpUpgradeDiagnostic(503,UpgradeFailure.STATUS,RelayUpgradeReason.CAPACITY,2000)
+        val closed=SessionClosed(7,SessionEndReason.SETUP_FAILED,null,false,42,0,0,upgrade=capacity)
+        h.record(sessionEvent(closed,100),100)
+        val e=h.state.events.single()
+        assertEquals(EventLevel.WARNING,e.level);assertEquals(EventKind.SESSION_CLOSED,e.kind)
+        val report=DiagnosticReport.render(ProxySnapshot(),h.state)
+        for(expected in listOf("\"schema\": 3","SETUP_FAILED","\"id\": 7","\"status\": 503","CAPACITY","\"retry_after_ms\": 2000"))assertTrue(expected,report.contains(expected))
+        val log=diagnosticLogLine(e)
+        assertTrue(log.contains("session=7"));assertTrue(log.contains("end=SETUP_FAILED"));assertTrue(log.contains("upgrade=503/STATUS"))
+        assertEquals(EventLevel.INFO,sessionEvent(closed.copy(reason=SessionEndReason.NETWORK_CHANGED),100).level)
+        assertEquals(EventLevel.INFO,sessionEvent(closed.copy(reason=SessionEndReason.REMOTE_CLOSE,peerClose=WebSocketClose(1000)),100).level)
+        assertEquals(EventLevel.WARNING,sessionEvent(closed.copy(reason=SessionEndReason.REMOTE_CLOSE,peerClose=WebSocketClose(1008,WebSocketCloseCategory.BYTE_LIMIT)),100).level)
+        h.enabled=false;h.record(sessionEvent(closed,101),101);assertTrue(h.state.events.isEmpty())
+    }
     @Test fun logcatStormIsBoundedAndFormatterNeverCopiesProviderOrExceptionStrings(){
         val emitted=mutableListOf<DiagnosticEvent>();val h=DiagnosticHistory{emitted+=it}
         repeat(4096){h.record(issueEvent(ProxyIssue.TLS,it.toLong()),it.toLong())}
@@ -82,7 +114,7 @@ class DiagnosticJournalTest {
         val h=DiagnosticHistory();h.record(issueEvent(ProxyIssue.TLS,123),1)
         val p=WebViewStatus.available("com.google.android.webview.beta","155.0.9999.123",123)
         val report=DiagnosticReport.render(ProxySnapshot(lastHandshakeRejection=HandshakeRejection.FAKE_TLS,rejectedHandshakes=4),h.state,p,"0.4.1",18,37)
-        for(expected in listOf("\"schema\": 2","\"events\": [","\"level\": \"WARNING\"","\"app_version\": \"0.4.1\"","155.0.9999.123","\"latest_verified\": false","FAKE_TLS"))assertTrue(expected,report.contains(expected))
+        for(expected in listOf("\"schema\": 3","\"events\": [","\"level\": \"WARNING\"","\"app_version\": \"0.4.1\"","155.0.9999.123","\"latest_verified\": false","FAKE_TLS"))assertTrue(expected,report.contains(expected))
         val unsafe=WebViewStatus(ProviderState.AVAILABLE,"https://private.example/key","secret",1)
         val sanitized=DiagnosticReport.render(ProxySnapshot(),provider=unsafe,version="secret\"\n")
         assertFalse(sanitized.contains("private.example"));assertFalse(sanitized.contains("secret"))

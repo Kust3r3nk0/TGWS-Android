@@ -28,6 +28,7 @@ class ProxyService : Service() {
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val closedSessions=java.util.concurrent.ConcurrentLinkedQueue<io.github.kust3r3nk0.tgwsandroid.core.SessionClosed>()
     private val settingsExecutor = Executors.newSingleThreadExecutor { task -> Thread(task, "TGWS-settings") }
     private var server: MtprotoServer? = null
     private var loading = false
@@ -95,7 +96,12 @@ class ProxyService : Service() {
                         val factory=io.github.kust3r3nk0.tgwsandroid.core.NetworkTransportFactory{monitor.access}
                         transportFactory=factory
                         server = MtprotoServer(settings.port, settings.secret,
-                            onEvent = { event -> mainHandler.post { receive(event) } },
+                            onEvent = { event ->
+                                if(event is ServerEvent.Closed) {
+                                    closedSessions.add(event.session)
+                                    mainHandler.post{drainClosedSessions()}
+                                } else mainHandler.post { receive(event) }
+                            },
                             onFatalError = { mainHandler.post { if (!destroyed && !stopping) fail(ProxyState.snapshot.issue ?: ProxyIssue.SESSION) } },
                             relayEndpoint = if(settings.transport.mode==io.github.kust3r3nk0.tgwsandroid.core.TransportMode.RELAY_ONLY)RelayEndpoint.parse(settings.relayUrl)else null,
                             transports=factory,
@@ -125,6 +131,7 @@ class ProxyService : Service() {
         // replace the cause of a fatal listener failure with another session's issue.
         if (destroyed || stopping || fatalError) return
         when (event) {
+            is ServerEvent.Closed -> { ProxyState.record(sessionEvent(event.session,System.currentTimeMillis()));return }
             is ServerEvent.Routes -> { ProxyState.snapshot=ProxyState.snapshot.copy(routes=event.routes);return }
             is ServerEvent.Traffic -> { ProxyState.snapshot=ProxyState.snapshot.copy(sent=event.sent,received=event.received);return }
             is ServerEvent.BackgroundIssue -> {
@@ -175,6 +182,12 @@ class ProxyService : Service() {
         if (ProxyState.snapshot.running) notifications.notify(NOTIFICATION_ID, notification())
     }
 
+    private fun drainClosedSessions(){
+        while(true){val session=closedSessions.poll()?:return
+            ProxyState.record(sessionEvent(session,System.currentTimeMillis()))
+        }
+    }
+
     private fun fail(issue: ProxyIssue) {
         fatalError = true
         stopping = true
@@ -209,6 +222,7 @@ class ProxyService : Service() {
         destroyed = true
         networkMonitor?.close();networkMonitor=null
         server?.stop()
+        drainClosedSessions()
         server = null
         transportFactory?.close();transportFactory=null
         settingsExecutor.shutdownNow()

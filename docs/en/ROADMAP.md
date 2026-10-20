@@ -3,6 +3,16 @@
 Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Only API 36 and newer are supported. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
 
+## 0.4.2 — Relay Stability Fix · test update
+
+- [x] Audit of server, backoff, WebSocket, network factory and Worker
+- [x] Safe Upgrade/Close and individual session termination diagnostics
+- [x] Endpoint cooldown, runtime backoff and WS/TCP ownership without raising limits
+- [x] Worker/protocol/cancellation regressions and a checksummed CI Worker module
+- [ ] Full CI and API 36/37 matrix
+
+[Audit and Worker upgrade](RELAY_STABILITY_0.4.2.md).
+
 ## 0.4.1 — extended diagnostics · test update
 
 - [x] Categories, levels, filters, route closure details and repeat aggregation

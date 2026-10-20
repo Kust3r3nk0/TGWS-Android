@@ -6,16 +6,20 @@ import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
 import io.github.kust3r3nk0.tgwsandroid.core.RouteObservation
 import io.github.kust3r3nk0.tgwsandroid.core.RouteStage
 import io.github.kust3r3nk0.tgwsandroid.core.WebSocketCloseCategory
+import io.github.kust3r3nk0.tgwsandroid.core.HttpUpgradeDiagnostic
+import io.github.kust3r3nk0.tgwsandroid.core.SessionClosed
+import io.github.kust3r3nk0.tgwsandroid.core.SessionEndReason
 
 internal enum class EventCategory { SERVICE, CONFIGURATION, NETWORK, DNS, TLS, TCP, WSS, RELAY, HTTP2, ROUTE, CLIENT, WEBVIEW, CHECK }
 internal enum class EventLevel { INFO, WARNING, ERROR }
-internal enum class EventKind { STATE, NETWORK, ISSUE, CLIENT_REJECTED, CLIENT_CLOSED, ROUTE_READY, ROUTE_FAILED, ROUTE_CLOSED, WARMUP_FAILED, PROVIDER, LOCAL_CHECK }
+internal enum class EventKind { STATE, NETWORK, ISSUE, CLIENT_REJECTED, CLIENT_CLOSED, ROUTE_READY, ROUTE_FAILED, ROUTE_CLOSED, WARMUP_FAILED, PROVIDER, LOCAL_CHECK, SESSION_CLOSED }
 /** Deliberately excludes SetupTimings.resolvedAddresses and all configuration strings. */
 internal data class EventRoute(val id:Int,val dc:Int,val media:Boolean,val stage:RouteStage,val attempts:Int,
     val setupMillis:Long?,val dnsMillis:Long?,val tcpMillis:Long?,val tlsMillis:Long?,val httpMillis:Long?,
-    val sent:Long,val received:Long,val closeCode:Int?,val closeCategory:WebSocketCloseCategory?) {
+    val sent:Long,val received:Long,val closeCode:Int?,val closeCategory:WebSocketCloseCategory?,
+    val upgrade:HttpUpgradeDiagnostic?=null,val retryInMillis:Long?=null) {
     companion object { fun from(r:RouteObservation)=EventRoute(r.id,r.dc,r.media,r.stage,r.attempts,r.setupMillis,
-        r.timings?.dnsMillis,r.timings?.tcpMillis,r.timings?.tlsMillis,r.timings?.httpMillis,r.sent,r.received,r.closeCode,r.closeCategory) }
+        r.timings?.dnsMillis,r.timings?.tcpMillis,r.timings?.tlsMillis,r.timings?.httpMillis,r.sent,r.received,r.closeCode,r.closeCategory,r.upgrade,r.retryInMillis) }
 }
 internal data class DiagnosticEvent(val timeMillis: Long, val category: EventCategory,
     val success: Boolean, val phase: ProxyPhase? = null, val issue: ProxyIssue? = null,
@@ -24,7 +28,7 @@ internal data class DiagnosticEvent(val timeMillis: Long, val category: EventCat
     val rejection:HandshakeRejection?=null,val route:EventRoute?=null,val network:AccessKind?=null,
     val validated:Boolean?=null,val ipv4:Boolean?=null,val ipv6:Boolean?=null,
     val provider:WebViewStatus?=null,val localCheck:LocalCheckResult?=null,
-    val occurrences:Int=1,val lastTimeMillis:Long=timeMillis)
+    val occurrences:Int=1,val lastTimeMillis:Long=timeMillis,val session:SessionClosed?=null)
 internal data class SetupSample(val timeMillis: Long, val millis: Long, val transport: TransportKind)
 internal data class DiagnosticHistoryState(val events: List<DiagnosticEvent> = emptyList(),
     val samples: List<SetupSample> = emptyList(), val startedElapsed: Long? = null,
@@ -36,7 +40,11 @@ internal class DiagnosticHistory(private val onEvent:(DiagnosticEvent)->Unit={})
     var enabled = true
         set(value) { field=value; if(!value)state=state.copy(events=emptyList(),samples=emptyList()) }
     private var lastEventElapsed:Long?=null
-    fun clear(){state=state.copy(events=emptyList(),samples=emptyList());lastEventElapsed=null}
+    private var sessionLogWindow:Long?=null
+    private var sessionLogCount=0
+    private var logWindow:Long?=null
+    private var logCount=0
+    fun clear(){state=state.copy(events=emptyList(),samples=emptyList());lastEventElapsed=null;sessionLogWindow=null;sessionLogCount=0;logWindow=null;logCount=0}
     fun record(event:DiagnosticEvent,elapsed:Long) {
         if(!enabled)return
         val previous=state.events.lastOrNull()
@@ -49,8 +57,19 @@ internal class DiagnosticHistory(private val onEvent:(DiagnosticEvent)->Unit={})
         }else (state.events+event).takeLast(MAX_EVENTS))
         lastEventElapsed=elapsed
         val recorded=state.events.last()
+        // Individual IDs must remain in the journal, but malformed local-client
+        // churn must not turn those distinct IDs into an unbounded logcat rate.
+        if(recorded.kind==EventKind.SESSION_CLOSED) {
+            if(sessionLogWindow?.let{elapsed-it in 0..999}!=true){sessionLogWindow=elapsed;sessionLogCount=0}
+            if(sessionLogCount>=8)return
+            sessionLogCount++
+        }
         // Keep logcat useful under reconnect storms as well: 1, 2, 4, 8... repeats.
-        if(!same || !recent || recorded.occurrences and (recorded.occurrences-1)==0)onEvent(recorded)
+        if(!same || !recent || recorded.occurrences and (recorded.occurrences-1)==0) {
+            if(logWindow?.let{elapsed-it in 0..999}!=true){logWindow=elapsed;logCount=0}
+            if(logCount>=32)return
+            logCount++;onEvent(recorded)
+        }
     }
     fun accept(old: ProxySnapshot, next: ProxySnapshot, wall: Long, elapsed: Long) {
         var result=state
@@ -71,8 +90,6 @@ internal class DiagnosticHistory(private val onEvent:(DiagnosticEvent)->Unit={})
             if(next.rejectedHandshakes>old.rejectedHandshakes)
                 events+=DiagnosticEvent(wall,EventCategory.CLIENT,false,rejected=next.rejectedHandshakes,
                     kind=EventKind.CLIENT_REJECTED,rejection=next.lastHandshakeRejection)
-            if(next.sessions+next.pending<old.sessions+old.pending && next.localAvailable)
-                events+=DiagnosticEvent(wall,EventCategory.CLIENT,true,kind=EventKind.CLIENT_CLOSED)
             val samples=mutableListOf<SetupSample>()
             for(route in next.routes) {
                 val before=old.routes.find{it.id==route.id}
@@ -98,6 +115,21 @@ internal class DiagnosticHistory(private val onEvent:(DiagnosticEvent)->Unit={})
         state=result
     }
     companion object { const val MAX_EVENTS=128; const val MAX_SAMPLES=32 }
+}
+
+internal fun sessionEvent(session:SessionClosed,wall:Long):DiagnosticEvent {
+    val normal=session.reason in setOf(SessionEndReason.CLIENT_EOF,SessionEndReason.REMOTE_EOF,
+        SessionEndReason.SERVICE_STOPPED,SessionEndReason.NETWORK_CHANGED,SessionEndReason.CANCELLED) ||
+        session.reason==SessionEndReason.REMOTE_CLOSE && session.peerClose?.code in setOf(null,1000,1001)
+    val category=when(session.reason){
+        SessionEndReason.NETWORK_CHANGED->EventCategory.NETWORK
+        SessionEndReason.SERVICE_STOPPED->EventCategory.SERVICE
+        SessionEndReason.CLIENT_EOF,SessionEndReason.CLIENT_IO,SessionEndReason.CLIENT_PROTOCOL,
+        SessionEndReason.HANDSHAKE_REJECTED,SessionEndReason.HANDSHAKE_TIMEOUT->EventCategory.CLIENT
+        else->when(session.transport){TransportKind.RELAY,TransportKind.WORKER->EventCategory.RELAY
+            TransportKind.TCP->EventCategory.TCP;TransportKind.HTTP2->EventCategory.HTTP2;else->EventCategory.ROUTE}
+    }
+    return DiagnosticEvent(wall,category,normal,kind=EventKind.SESSION_CLOSED,transport=session.transport,session=session)
 }
 
 internal fun eventCategory(issue:ProxyIssue)=when(issue){
