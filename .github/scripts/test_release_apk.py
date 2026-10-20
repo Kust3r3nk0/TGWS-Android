@@ -1,7 +1,21 @@
 import unittest
-from verify_release_apk import verify_metadata, verify_certificate, PACKAGE, PUBLISHED_DEBUG
+import tempfile
+import zipfile
+from pathlib import Path
+from verify_release_apk import verify_metadata, verify_certificate, PACKAGE, PUBLISHED_DEBUG, verify_payload
 
 class ProductionGateTest(unittest.TestCase):
+    def test_candidate_must_have_complete_executable_payload(self):
+        with tempfile.TemporaryDirectory() as temp:
+            apk=Path(temp)/'candidate.apk'
+            for dex in [None,b'invalid',b'dex\n039\x00']:
+                with zipfile.ZipFile(apk,'w') as archive:
+                    archive.writestr('AndroidManifest.xml',b'fixture')
+                    archive.writestr('resources.arsc',b'fixture')
+                    if dex is not None:archive.writestr('classes.dex',dex)
+                if dex==b'dex\n039\x00':verify_payload(apk)
+                else:
+                    with self.assertRaises(ValueError):verify_payload(apk)
     def test_stable_identity_and_api36(self):
         valid=f"package: name='{PACKAGE}' versionCode='17' versionName='0.4.0'\nsdkVersion:'36'\n"
         verify_metadata(valid,'', '0.4.0',17)

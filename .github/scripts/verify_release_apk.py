@@ -6,10 +6,23 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import zipfile
 
 PACKAGE='io.github.kust3r3nk0.tgwsandroid'
 PUBLISHED_DEBUG='26877620e16c5b2680023fc1fc6a285214b2e06dc998366731d9bcacd11c9fbe'
 MAX_APK=80*1024*1024
+
+
+def verify_payload(apk):
+    with zipfile.ZipFile(apk) as archive:
+        entries=archive.infolist()
+        if len({e.filename for e in entries})!=len(entries) or sum(e.file_size for e in entries)>320*1024*1024:
+            raise ValueError('Invalid or oversized APK payload')
+        for name in ['AndroidManifest.xml','resources.arsc','classes.dex']:
+            if name not in archive.namelist():raise ValueError('Incomplete application payload')
+        if not re.fullmatch(rb'dex\n0[0-9]{2}\x00',archive.open('classes.dex').read(8)):
+            raise ValueError('Invalid executable DEX header')
+        if archive.testzip() is not None:raise ValueError('APK payload checksum failure')
 
 
 def verify_metadata(badging, tree, version, code):
@@ -50,6 +63,7 @@ def main():
     version=re.search(r'versionName\s*=\s*"([^"]+)"',text).group(1)
     code=int(re.search(r'versionCode\s*=\s*(\d+)',text).group(1))
     if not 0<args.apk.stat().st_size<=MAX_APK:raise ValueError('APK size outside release budget')
+    verify_payload(args.apk)
     tools=args.sdk/'build-tools/36.0.0'
     def run(*cmd):return subprocess.check_output([str(x) for x in cmd],text=True,stderr=subprocess.STDOUT)
     badging=run(tools/'aapt','dump','badging',args.apk)
