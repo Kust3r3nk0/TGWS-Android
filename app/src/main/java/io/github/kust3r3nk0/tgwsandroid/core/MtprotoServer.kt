@@ -475,8 +475,7 @@ class MtprotoServer(
         session.handshakeAccepted=true
         val relay = MtprotoCrypto.createRelayInit(handshake)
         val context = MtprotoCrypto.buildContext(handshake, secret, relay)
-        val budget=if(transportSettings.mode==TransportMode.AUTO_CLOUDFLARE)maxOf(limits.connectTimeoutMillis.toLong(),limits.wssAttemptTimeoutMillis.toLong()*5)else limits.connectTimeoutMillis.toLong()
-        session.deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(budget)
+        session.deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(limits.connectTimeoutMillis.toLong())
         val remote = establish(session, handshake, relay) ?: run {
             session.end(SessionEndReason.SETUP_FAILED)
             return
@@ -514,6 +513,13 @@ class MtprotoServer(
         fun connect(key: String, issue: ServerIssue, endpointKey:String?=null, open: ((Closeable) -> Unit) -> RemoteTransport): RemoteTransport? {
             session.checkOpen()
             if(transportSettings.mode==TransportMode.AUTO_CLOUDFLARE && attempts>=4 && issue!=ServerIssue.TCP)return null
+            // Sequential WSS failures must not consume TCP's entire setup budget.
+            // This is a deadline reservation, not parallel dialing or payload replay.
+            val remaining=TimeUnit.NANOSECONDS.toMillis(session.deadline-System.nanoTime())
+            val reserve=if(transportSettings.mode==TransportMode.AUTO_CLOUDFLARE && issue!=ServerIssue.TCP)
+                minOf(limits.wssAttemptTimeoutMillis.toLong(),(limits.connectTimeoutMillis.toLong()/2).coerceAtLeast(1))else 0L
+            val attemptMillis=minOf(limits.wssAttemptTimeoutMillis.toLong(),remaining-reserve)
+            if(attemptMillis<=0)return null
             val endpointPermit=endpointKey?.let { endpoint -> session.run.endpointRetries.acquire(endpoint) ?: run {
                 mark(key,issue,RouteStatus.BACKOFF,retryInMillis=session.run.endpointRetries.remainingMillis(endpoint))
                 return null
@@ -528,7 +534,7 @@ class MtprotoServer(
             val attempt = Attempt()
             session.own(attempt)
             val timeout = session.run.watchdog.schedule(
-                { attempt.expire() }, limits.wssAttemptTimeoutMillis.toLong(), TimeUnit.MILLISECONDS,
+                { attempt.expire() }, attemptMillis, TimeUnit.MILLISECONDS,
             )
             try {
                 val candidate = open(attempt::own)

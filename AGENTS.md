@@ -104,7 +104,8 @@ Windows: `gradlew.bat`. Для CI также требуется Android SDK с �
 
 ## 0.4.2 — Relay Stability Fix
 
-- Версия 0.4.2/code 19; API 36+, UI и защищённые настройки сохранены.
+- Версия 0.4.2/code 20 (Debug revision 2); API 36+, UI и защищённые настройки сохранены.
+- Smart Connection Update: сначала приёмка 0.4.2; 0.5.0 Smart Routing и 0.6.0 VPS/Media выполняются отдельно. [Контракт этапов](docs/SMART_CONNECTION_UPDATE.md).
 - Не увеличивать Worker sessions/bytes/queue; причины Upgrade/Close только числа и enums.
 - Обновлять APK и Worker отдельно; deploy аккаунта владельца не выполняется автоматически.
 - [Аудит и инструкция Worker](docs/RELAY_STABILITY_0.4.2.md); физическую устойчивость не считать подтверждённой по CI.

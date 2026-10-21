@@ -38,8 +38,8 @@ class UpdateUiInstrumentedTest {
         instrumentation.waitForIdleSync()
         AppPreferences(context).theme=ThemeMode.DARK
         storage=MemoryUpdatePersistence().apply{preferences=UpdateOptions(channel=UpdateChannel.PREVIEW)}
-        http.release("0.4.3-alpha",20,true).put("body","## Новые функции\n- Центр обновлений и фоновая проверка новых версий.\n## Исправления\n- Проверка подписи APK перед установкой.\n## Оптимизация\n- Ограничение буферов и отмена загрузки.")
-        repository=UpdateRepository(storage,GithubUpdateSource(http),"0.4.2",19,android.os.Build.VERSION.SDK_INT,{System.currentTimeMillis()-120000})
+        http.release("0.4.3-alpha",21,true).put("body","## Новые функции\n- Центр обновлений и фоновая проверка новых версий.\n## Исправления\n- Проверка подписи APK перед установкой.\n## Оптимизация\n- Ограничение буферов и отмена загрузки.")
+        repository=UpdateRepository(storage,GithubUpdateSource(http),"0.4.2",20,android.os.Build.VERSION.SDK_INT,{System.currentTimeMillis()-120000})
         runBlocking{repository.initialize()};UpdateGraph.useForTests(repository)
     }
     @After fun cleanup(){
@@ -110,7 +110,7 @@ class UpdateUiInstrumentedTest {
     }
     @Test fun largeFontGlassAndTransparencyKeepActionsAccessible(){
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
-            val release=runBlocking{GithubUpdateSource(http).check("0.4.2",19,36,UpdateChannel.PREVIEW)}!!
+            val release=runBlocking{GithubUpdateSource(http).check("0.4.2",20,36,UpdateChannel.PREVIEW)}!!
             var page by mutableIntStateOf(2);var checks=0
             scenario.onActivity{it.setContent{TgwsTheme(ThemeMode.DARK,true,true){
                 val density=LocalDensity.current

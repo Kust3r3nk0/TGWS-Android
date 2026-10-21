@@ -38,6 +38,8 @@ internal fun localOutcomeResource(outcome:LocalCheckOutcome)=when(outcome){Local
 internal fun adviceResource(advice:DiagnosticAdvice)=when(advice){
     DiagnosticAdvice.CAPTIVE_PORTAL->R.string.advice_portal;DiagnosticAdvice.NO_NETWORK->R.string.advice_network
     DiagnosticAdvice.SECRET->R.string.advice_secret;DiagnosticAdvice.PORT->R.string.advice_port
+    DiagnosticAdvice.INCOMPLETE_HANDSHAKE->R.string.advice_incomplete_handshake
+    DiagnosticAdvice.HANDSHAKE_FORMAT->R.string.advice_handshake_format
     DiagnosticAdvice.DNS->R.string.advice_dns;DiagnosticAdvice.TLS->R.string.advice_tls
     DiagnosticAdvice.ROUTE->R.string.advice_route;DiagnosticAdvice.LIMIT->R.string.advice_limit
     DiagnosticAdvice.RETRY->R.string.advice_retry;DiagnosticAdvice.STORAGE->R.string.advice_storage

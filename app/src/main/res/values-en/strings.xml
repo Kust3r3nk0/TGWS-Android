@@ -221,6 +221,8 @@
     <string name="advice_portal">Complete the Android Wi-Fi sign-in, then run the route check again.</string>
     <string name="advice_network">No active Android network. Check Wi-Fi or mobile data; the service keeps the local listener available.</string>
     <string name="advice_secret">Check that Telegram uses the port and secret saved in TGWS. Reopen the link from the app; do not generate a new secret to fix a network error.</string>
+    <string name="advice_incomplete_handshake">The client closed before a complete MTProto header arrived. The secret was not checked; this does not prove a wrong key. Check reconnection and the session end reason in the journal.</string>
+    <string name="advice_handshake_format">The MTProto header format or DC is unsupported. Check the rejection category in the journal; it does not automatically imply a wrong secret.</string>
     <string name="advice_port">Choose another free local port and reopen the Telegram proxy link.</string>
     <string name="advice_dns">The system network could not resolve the route hostname. Check Android Private DNS, Wi-Fi sign-in and the configured endpoint.</string>
     <string name="advice_tls">Check the device date, server hostname and certificate. TLS validation remains required.</string>

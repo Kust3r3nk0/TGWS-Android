@@ -19,6 +19,74 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 class MtprotoServerTest {
+    @Test fun slowAutomaticWssRoutesLeaveSetupBudgetForTcpInsteadOfExtendingDeadline() {
+        val port=freePort();val events=Events();val workerCalls=AtomicInteger();val cfCalls=AtomicInteger()
+        val tcp=Channel(TransportKind.TCP)
+        val factory=object:TransportFactory {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                workerCalls.incrementAndGet()
+                val expired=CountDownLatch(1);own(Closeable{expired.countDown()})
+                assertTrue(expired.await(2,TimeUnit.SECONDS))
+                throw IOException("Controlled stalled Worker")
+            }
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport {
+                cfCalls.incrementAndGet();throw IOException("No budget for further WSS probes")
+            }
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport=tcp.also(own)
+        }
+        val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,
+            workerUrls=listOf("wss://first.example/apiws","wss://second.example/apiws"),
+            cloudflareDomains=listOf("first-cf.example","second-cf.example"))
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,
+            limits=limits.copy(connectTimeoutMillis=1200,wssAttemptTimeoutMillis=500),transportSettings=settings).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->
+                client.getOutputStream().write(init().bytes)
+                await("Slow automatic routes starved TCP fallback"){events.sessions(1,0)}
+                assertEquals(2,workerCalls.get());assertEquals(0,cfCalls.get())
+                assertEquals(1,tcp.sent.size)
+                assertTrue(events.issue(ServerIssue.TIMEOUT))
+                assertFalse(events.all.filterIsInstance<ServerEvent.Closed>().any{it.session.reason==SessionEndReason.CONNECT_TIMEOUT})
+                server.stop();assertClosed(client)
+            }
+        }
+    }
+
+    @Test fun overloadedWorkersAndTheirCooldownCannotBlockIndependentTcpFallback() {
+        val port=freePort();val events=Events();val workerCalls=AtomicInteger()
+        val tcp=CopyOnWriteArrayList<Channel>()
+        val factory=object:TransportFactory {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                workerCalls.incrementAndGet()
+                throw WebSocketUpgradeException(HttpUpgradeDiagnostic(503,UpgradeFailure.STATUS,RelayUpgradeReason.CAPACITY,60_000))
+            }
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport=error("Unexpected direct WSS")
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport=Channel(TransportKind.TCP).also{tcp+=it;own(it)}
+        }
+        val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,
+            workerUrls=listOf("wss://first.example/apiws","wss://second.example/apiws"))
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,transportSettings=settings).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{first->
+                first.getOutputStream().write(init(2).bytes)
+                await("Both Worker failures prevented TCP fallback"){events.sessions(1,0)}
+                connect(port).use{second->
+                    second.getOutputStream().write(init(4).bytes)
+                    // A 60-second endpoint cooldown is skipped, never slept through.
+                    await("Worker BACKOFF blocked an independent DC/TCP route"){events.sessions(2,0)}
+                    assertEquals(2,workerCalls.get());assertEquals(2,tcp.size)
+                    assertTrue(tcp.all{it.sent.size==1})
+                    val routes=events.all.filterIsInstance<ServerEvent.Routes>().last().routes
+                    assertEquals(2,routes.count{it.kind==TransportKind.TCP && it.status==RouteStatus.AVAILABLE})
+                    assertEquals(2,routes.count{it.kind==TransportKind.WORKER && it.status==RouteStatus.BACKOFF})
+                    assertFalse(events.issue(ServerIssue.RETRY_LATER))
+                    server.stop();assertClosed(first);assertClosed(second)
+                }
+            }
+            assertTrue(tcp.all{it.closed.count==0L})
+        }
+    }
+
     @Test fun busyNewSessionCannotMarkExistingRelaySessionUnavailable() {
         val port=freePort();val events=Events();val calls=AtomicInteger();val healthy=Channel(TransportKind.RELAY)
         val factory=object:TransportFactory {

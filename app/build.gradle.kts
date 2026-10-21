@@ -14,7 +14,7 @@ android {
         applicationId = "io.github.kust3r3nk0.tgwsandroid"
         minSdk = 36
         targetSdk = 37
-        versionCode = 19
+        versionCode = 20
         versionName = "0.4.2"
         testInstrumentationRunner = "io.github.kust3r3nk0.tgwsandroid.UpgradeInstrumentation"
     }

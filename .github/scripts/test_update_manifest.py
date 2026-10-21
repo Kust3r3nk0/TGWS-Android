@@ -9,7 +9,7 @@ manifest=importlib.util.module_from_spec(spec);spec.loader.exec_module(manifest)
 class UpdateManifestTest(unittest.TestCase):
     def test_real_build_uses_actual_version_code_and_package(self):
         result=manifest.create('app/build.gradle.kts','TGWS-Android-0.4.2-debug.apk','PREVIEW')
-        self.assertEqual(19,result['version_code'])
+        self.assertEqual(20,result['version_code'])
         self.assertEqual('0.4.2',result['version_name'])
         self.assertEqual(36,result['min_sdk'])
         self.assertEqual(manifest.PACKAGE,result['package_name'])

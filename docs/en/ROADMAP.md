@@ -5,13 +5,22 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 
 ## 0.4.2 — Relay Stability Fix · test update
 
-- [x] Audit of server, backoff, WebSocket, network factory and Worker
+- [x] Audit of server, backoff, WebSocket, network factory/connector, warm pool, route diagnostics, Android service and Worker
 - [x] Safe Upgrade/Close and individual session termination diagnostics
 - [x] Endpoint cooldown, runtime backoff and WS/TCP ownership without raising limits
 - [x] Worker/protocol/cancellation regressions and a checksummed CI Worker module
+- [x] Shared setup deadline reserving TCP time; incomplete headers without false wrong-secret advice
 - CI and API 36/37 matrix: [PR #26 checks](https://github.com/Kust3r3nk0/TGWS-Android/pull/26/checks).
 
 [Audit and Worker upgrade](RELAY_STABILITY_0.4.2.md).
+
+## Next Smart Connection stages
+
+- **0.5.0**, after testing 0.4.2: Smart Routing, network profiles, Health/Live Traffic Monitor and optional notifications.
+- **0.6.0**, after Smart Routing: multiple VPS relays, Media Optimizer and Android power/lifecycle work.
+- Separate branches/PRs and device acceptance; these features are not claimed in 0.4.2.
+
+[Staged contract and acceptance scenarios](SMART_CONNECTION_UPDATE.md).
 
 ## 0.4.1 — extended diagnostics · test update
 

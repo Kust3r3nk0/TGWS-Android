@@ -17,6 +17,8 @@
 
 ## 0.4.2 — Relay Stability Fix
 
+[Staged 0.4.2 → 0.5.0 → 0.6.0 contract and acceptance](docs/en/SMART_CONNECTION_UPDATE.md).
+
 Reproducible connection cleanup, early backoff and network cancellation defects are fixed. The journal distinguishes HTTP Upgrade, safe Worker reasons and individual session closure. Worker limits remain in force; update **both** APK and Worker. [Audit and upgrade instructions](docs/en/RELAY_STABILITY_0.4.2.md). A test build does not certify external endpoint stability on a device.
 
 ## New 0.4.1 test update

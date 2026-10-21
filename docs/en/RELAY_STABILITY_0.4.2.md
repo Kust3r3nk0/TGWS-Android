@@ -1,6 +1,6 @@
 # 0.4.2 — Relay Stability Fix
 
-Android 16+ / API 36+, versionCode 19. Built from `feature/0.4.1-diagnostics`.
+Android 16+ / API 36+, versionCode 20. Built from `feature/0.4.1-diagnostics`.
 The existing UI, encrypted settings, protocol routes and TLS checks remain intact.
 
 PR #24 was merged into the source branch during this work. Its six-session pilot
@@ -21,6 +21,23 @@ resets it. There is no MTProto replay or unlimited retry. Stop/network/deadline
 still abort immediately; normal client EOF performs a bounded WS close first.
 One failed session does not mark another live session's route unreachable.
 
+The automatic mode previously extended the configured 25-second setup budget to
+40 seconds: four 8-second WSS attempts could delay TCP for 32 seconds. All attempts
+now share the configured deadline, reserving one attempt (at most half the total)
+for permitted TCP fallback. A regression stalls both Workers and verifies that
+additional CF probes cannot consume this reservation. Separate overload/cooldown
+regressions verify that independent DC/TCP routes still work without waiting.
+Relay-only mode still forbids direct fallback; no payload is replayed.
+
+Incomplete client headers (`INVALID_LENGTH`) now receive an incomplete-header
+suggestion rather than a wrong-secret suggestion. Unknown format/DC and actual
+authentication failures are distinguished. Existing truncated plain/Fake TLS,
+DNS/network generation, one-use warm lease, timeout, reset and lifecycle tests
+remain enabled. Smart ranking/profiles are deferred to 0.5.0.
+
+Revision 2 uses versionCode **20** so it can update published 0.4.2/code 19.
+The old tag/APK is preserved; this candidate is `v0.4.2+rev.2-debug`.
+
 The bounded journal/JSON schema 3 includes numeric Upgrade status, fixed categories,
 retry delay, per-run session sequence, termination reason, elapsed time, byte
 counts and validated WS Close code/category. It excludes URLs, tokens, endpoints,
@@ -30,7 +47,8 @@ so a blocked main thread cannot accumulate an unlimited session-event backlog.
 
 ## Update your existing Worker
 
-1. Download `TGWS-Cloudflare-Worker-<checked SHA>` from the successful PR Android CI.
+1. Download `TGWS-Cloudflare-Worker-0.4.2.zip` from the Debug prerelease, or
+   `TGWS-Cloudflare-Worker-<checked SHA>` from the successful PR Android CI.
    Check `build-info.json` source commit and `SHA256SUMS` against `worker.js`.
 2. In the Cloudflare dashboard open your **existing** Worker → Edit code. Replace
    the entire module with `worker.js`, without Markdown fences, and Deploy.
@@ -53,6 +71,10 @@ WS and TCP closure are confirmed. Missing close confirmation is not bypassed by 
 timer. Worker WebSocket.send lacks drain/backpressure; large media may still reach
 BYTE_LIMIT and require a suitable origin relay or a future flow-control protocol.
 
+The existing [Node.js WSS relay](MOBILE_NETWORKS.md) provides stream backpressure
+for large transfers. It remains user-configured; automatic migration of an active
+MTProto session is not supported.
+
 Local/CI success is not external Cloudflare or Telegram E2E acceptance. The owner
 tests message transfer, start/stop, background operation, network changes and media
 on a device after updating **both** components. Report only build/category/HTTP/Close
@@ -60,3 +82,7 @@ metadata; keep device/operator/private configuration details out of public repor
 
 Official references: [WebSockets](https://developers.cloudflare.com/workers/runtime-apis/websockets/),
 [TCP sockets](https://developers.cloudflare.com/workers/runtime-apis/tcp-sockets/).
+
+For an installed 0.4.2/code 19, download revision 2 manually: the existing Update
+Center only offers newer semantic versions. Android accepts code 20 over code 19
+with a matching signer. This remains a Preview release.
