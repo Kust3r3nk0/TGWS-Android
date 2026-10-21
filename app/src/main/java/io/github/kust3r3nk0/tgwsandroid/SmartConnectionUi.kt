@@ -18,13 +18,13 @@ internal fun kindResource(kind:TransportKind)=when(kind){TransportKind.WSS->R.st
 internal fun routingModeResource(mode:RoutingMode)=when(mode){RoutingMode.AUTOMATIC->R.string.smart_mode_auto;RoutingMode.MANUAL->R.string.smart_mode_manual;RoutingMode.FAILOVER->R.string.smart_mode_failover}
 internal fun availableKinds(draft:TransportDraft,relay:String):Set<TransportKind> = when(draft.mode){
     TransportMode.DIRECT->setOf(TransportKind.WSS,TransportKind.TCP)
-    TransportMode.RELAY_ONLY->if(relay.isNotBlank())setOf(TransportKind.RELAY)else emptySet()
+    TransportMode.RELAY_ONLY->if(relay.isNotBlank() || draft.relays.enabled)setOf(TransportKind.RELAY)else emptySet()
     TransportMode.AUTO_CLOUDFLARE->buildSet{
         add(TransportKind.TCP)
         add(TransportKind.WSS)
         if(draft.workers.isNotBlank())add(TransportKind.WORKER)
         if(draft.domains.isNotBlank()){add(TransportKind.CLOUDFLARE);if(draft.h2)add(TransportKind.HTTP2)}
-        if(relay.isNotBlank())add(TransportKind.RELAY)
+        if(relay.isNotBlank() || draft.relays.enabled)add(TransportKind.RELAY)
     }
 }
 

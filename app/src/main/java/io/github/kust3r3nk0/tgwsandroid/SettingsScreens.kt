@@ -46,6 +46,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.TransportMode
         SettingsRow(R.string.mtproxy_settings,stringResource(R.string.premium_connection_summary),"settings.connection",R.drawable.ic_premium_link){onPage(5)}
     }
     SettingsGroup(stringResource(R.string.transport_settings)){
+        SettingsRow(R.string.relay_manager,stringResource(R.string.relays_summary),"settings.relays",R.drawable.ic_premium_route){onPage(11)}
         SettingsRow(R.string.premium_transport,stringResource(modeResource(mode)),"settings.transport",R.drawable.ic_premium_hub){onPage(6)}
         SettingsRow(R.string.smart_title,stringResource(if(smart)R.string.smart_enabled_summary else R.string.smart_disabled_summary),"settings.smart",R.drawable.ic_premium_route){onPage(10)}
     }
@@ -78,6 +79,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.TransportMode
         OutlinedTextField(relay,{relay=it.take(RelayEndpoint.MAX_URL_LENGTH)},Modifier.fillMaxWidth().testTag("settings.relay"),label={Text(stringResource(R.string.relay_label))},
             visualTransformation=if(reveal)VisualTransformation.None else PasswordVisualTransformation(),keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Uri),
             enabled=editable,singleLine=true,isError=runCatching{RelayEndpoint.parse(relay)}.isFailure)
+        if(form.transportDraft.value.relays.enabled)Text(stringResource(R.string.relays_legacy_notice),style=MaterialTheme.typography.bodySmall)
         Text(stringResource(R.string.premium_transport_location),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(imported,{imported=it.take(2048)},Modifier.fillMaxWidth(),label={Text(stringResource(R.string.import_label))},enabled=editable,
             visualTransformation=if(reveal)VisualTransformation.None else PasswordVisualTransformation(),keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Password),singleLine=true)

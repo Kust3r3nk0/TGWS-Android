@@ -42,7 +42,7 @@ profiles, connection health (including insufficient data), bounded real traffic
 charts that stop rendering when hidden, and optional de-duplicated outage/recovery
 notifications. No aggressive probing or treating TCP setup as Telegram delivery.
 
-## 0.6.0 — Relay & Performance Update · planned
+## 0.6.0 — Relay & Performance Update · test update
 
 Separate branch/PR after Smart Routing. Add multiple securely stored origin
 relays, primary/backup selection and documented deployment from `relay/`, without
@@ -60,3 +60,5 @@ or Zapret. Never auto-merge. Stable requires trusted Release signing and explici
 owner device acceptance and publication approval.
 
 [0.5.0 implementation, setup and acceptance](SMART_CONNECTION_0.5.0.md).
+
+[0.6.0: implementation and acceptance](RELAY_PERFORMANCE_0.6.0.md).

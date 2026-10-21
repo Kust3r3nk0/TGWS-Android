@@ -16,6 +16,10 @@ internal class ProxyFormModel(application: Application) : AndroidViewModel(appli
     val relayUrl = mutableStateOf("")
     val transportDraft = mutableStateOf(TransportDraft())
     val imported = mutableStateOf("")
+    val relayEditingId=mutableStateOf<String?>(null)
+    val relayName=mutableStateOf("")
+    val relayEndpoint=mutableStateOf("")
+    val relayMedia=mutableStateOf(true)
     val secretUnavailable = mutableStateOf(false)
     val busy = mutableStateOf(true)
     val errorResource = mutableStateOf<Int?>(null)
@@ -24,7 +28,7 @@ internal class ProxyFormModel(application: Application) : AndroidViewModel(appli
     val configuration get()=runCatching{transportDraft.value.settings()}.getOrNull()
     val valid get()=configuration!=null && portText.value.toIntOrNull()?.let(SettingsValidation::validPort)==true &&
         SettingsValidation.validSecret(secretText.value) && !secretUnavailable.value &&
-        (configuration!!.mode!=io.github.kust3r3nk0.tgwsandroid.core.TransportMode.RELAY_ONLY || relayUrl.value.isNotEmpty()) &&
+        (configuration!!.mode!=io.github.kust3r3nk0.tgwsandroid.core.TransportMode.RELAY_ONLY || relayUrl.value.isNotEmpty() || configuration!!.relays.enabled) &&
         runCatching{io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint.parse(relayUrl.value)}.isSuccess
 
     fun withSaved(running:Boolean=false,action:(StoredSettings)->Unit={feedbackResource.value=R.string.settings_saved}) {

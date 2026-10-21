@@ -41,6 +41,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val form:ProxyFormModel=viewModel()
             val tools:DiagnosticToolsModel=viewModel()
+            val relayChecks:RelayChecksModel=viewModel()
             val shareScope=rememberCoroutineScope()
             val preferences=remember{AppPreferences(this@MainActivity)}
             var theme by remember{mutableStateOf(preferences.theme)}
@@ -68,7 +69,7 @@ class MainActivity : ComponentActivity() {
                 }
                 val observer=LifecycleEventObserver{_,event->when(event){
                     Lifecycle.Event.ON_START->{ProxyState.recordDiagnostics=preferences.diagnostics;tools.refreshProvider();start()}
-                    Lifecycle.Event.ON_STOP->{monitor?.close();monitor=null;providers.close();tools.cancelCheck()}
+                    Lifecycle.Event.ON_STOP->{monitor?.close();monitor=null;providers.close();tools.cancelCheck();relayChecks.cancel()}
                     Lifecycle.Event.ON_PAUSE->reveal=false
                     Lifecycle.Event.ON_RESUME->tools.refreshProvider()
                     else->Unit
@@ -92,7 +93,7 @@ class MainActivity : ComponentActivity() {
                     enableEdgeToEdge(statusBarStyle=bars,navigationBarStyle=bars)
                 }
                 val snapshot=ProxyState.snapshot
-                fun navigate(next:Int){reveal=false;page=next}
+                fun navigate(next:Int){if(next!=11)relayChecks.cancel();reveal=false;page=next}
                 fun copySecret(){form.withSaved(snapshot.running){copySensitive(getString(R.string.clipboard_secret),it.secret);form.feedbackResource.value=R.string.secret_copied}}
                 fun copyLink(){form.withSaved(snapshot.running){copySensitive(getString(R.string.clipboard_link),SettingsValidation.telegramLink(it.port,it.secret,it.transport.fakeTlsDomain));form.feedbackResource.value=R.string.link_copied}}
                 fun shareLink(){form.withSaved(snapshot.running){
@@ -139,7 +140,7 @@ class MainActivity : ComponentActivity() {
                         form.feedbackResource.value?.let{Text(stringResource(it),style=MaterialTheme.typography.bodySmall)}
                         when(page){
                             0->PremiumHome(snapshot,network,form.portText.value,form.relayUrl.value,form.transportDraft.value,
-                                !form.busy.value,form.valid,::toggle,::shareLink,::copySecret,::openTelegram,{navigate(5)},{navigate(4)})
+                                !form.busy.value,form.valid,::toggle,::shareLink,::copySecret,::openTelegram,{navigate(if(form.transportDraft.value.relays.enabled)11 else 5)},{navigate(4)})
                             4->PremiumDiagnostics(snapshot.copy(network=network),ProxyState.diagnostics,::probe,{copySensitive(getString(R.string.diagnostics),it)},
                                 recording=recording,report={DiagnosticReport.render(snapshot.copy(network=network),ProxyState.diagnostics,tools.provider,version,packageInfo.longVersionCode,Build.VERSION.SDK_INT)},
                                 onShare={report->shareScope.launch{
@@ -173,6 +174,7 @@ class MainActivity : ComponentActivity() {
                                     Text(stringResource(R.string.smart_alert_notice),style=MaterialTheme.typography.bodySmall)
                                 }
                             }
+                            11->RelayManagerScreen(form,relayChecks,snapshot,!snapshot.running && !form.busy.value,reveal,{reveal=!reveal})
                             10->SmartConnectionSettings(form,!snapshot.running && !form.busy.value,network.kind)
                             else->PremiumSettings({next->
                                 if(next==2 || next==3)updateParent=1

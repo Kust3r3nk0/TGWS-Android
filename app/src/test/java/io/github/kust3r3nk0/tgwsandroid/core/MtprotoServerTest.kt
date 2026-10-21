@@ -19,6 +19,61 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 class MtprotoServerTest {
+    @Test fun managedRelayOnlyUsesAllowedBackupWithoutLegacyUrlOrDirectFallback(){
+        val port=freePort();val events=Events();val calls=CopyOnWriteArrayList<String>();val base=FakeFactory(failWss=false)
+        val a=RelayNode("a","Primary","wss://primary.example/private/apiws")
+        val b=RelayNode("b","Backup","wss://backup.example/secret/apiws")
+        val manager=RelayConfiguration(true,listOf(a,b),"a",listOf("b"))
+        val factory=object:TransportFactory by base {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                calls+=endpoint.domain
+                if(endpoint.domain=="primary.example")throw IOException("Controlled failure")
+                return Channel(TransportKind.RELAY).also(own)
+            }
+        }
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,
+            transportSettings=TransportSettings(mode=TransportMode.RELAY_ONLY,relays=manager)).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->client.getOutputStream().write(init().bytes);await("Backup missing"){events.sessions(1,0)}
+                await("Slot evidence missing"){events.all.filterIsInstance<ServerEvent.Health>().lastOrNull()?.health?.selection?.relaySlot==2}
+                assertEquals(listOf("primary.example","backup.example"),calls.toList());assertTrue(base.tcp.isEmpty());assertTrue(base.wss.isEmpty())
+                assertFalse(events.all.toString().contains("secret"));server.stop();assertClosed(client)}
+        }
+    }
+    @Test fun managedManualRelayCannotUseAnUnselectedNodeOrDirectTransport(){
+        val port=freePort();val events=Events();val calls=AtomicInteger();val base=FakeFactory(failWss=false)
+        val a=RelayNode("a","Primary","wss://primary.example/apiws");val b=RelayNode("b","Backup","wss://backup.example/apiws")
+        val manager=RelayConfiguration(true,listOf(a,b),"a",listOf("b"),RelayStrategy.MANUAL)
+        val factory=object:TransportFactory by base {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                assertEquals("primary.example",endpoint.domain);calls.incrementAndGet();throw IOException("Controlled refusal")
+            }
+        }
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,transportSettings=TransportSettings(mode=TransportMode.RELAY_ONLY,relays=manager)).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->client.getOutputStream().write(init().bytes);assertClosed(client)}
+            assertEquals(1,calls.get());assertTrue(base.tcp.isEmpty());assertTrue(base.wss.isEmpty())
+        }
+    }
+    @Test fun mediaPreferenceHonorsNodeCapabilityAndSmartManualPermissions(){
+        for(manual in listOf(false,true)){
+            val port=freePort();val events=Events();val base=FakeFactory(failWss=false);val used=CopyOnWriteArrayList<String>()
+            val a=RelayNode("a","No media","wss://no-media.example/apiws",false);val b=RelayNode("b","Media","wss://media.example/apiws")
+            val manager=RelayConfiguration(true,listOf(a,b),"a",listOf("b"),preferMedia=true)
+            val profile=ConnectionProfile(mode=if(manual)RoutingMode.MANUAL else RoutingMode.AUTOMATIC,primary=TransportKind.TCP,backups=emptySet())
+            val profiles=ConnectionProfiles(enabled=true,automaticNetwork=false,automatic=profile)
+            val factory=object:TransportFactory by base {
+                override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {used+=endpoint.domain;return Channel(TransportKind.RELAY).also(own)}
+            }
+            MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,
+                transportSettings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,profiles=profiles,relays=manager)).use{server->
+                server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+                connect(port).use{client->client.getOutputStream().write(init(-4).bytes);await("Media session missing"){events.sessions(1,0)}
+                    assertEquals(if(manual)emptyList<String>()else listOf("media.example"),used.toList())
+                    assertEquals(if(manual)1 else 0,base.tcp.size);assertTrue(base.wss.isEmpty());server.stop();assertClosed(client)}
+            }
+        }
+    }
     @Test fun smartAutomaticCanUseDirectWssWithoutDummyCloudflareConfiguration(){
         val port=freePort();val events=Events();val factory=FakeFactory(failWss=false)
         val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,profiles=ConnectionProfiles(enabled=true))

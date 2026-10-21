@@ -30,6 +30,7 @@ internal fun selectionResource(reason:SelectionReason)=when(reason){SelectionRea
             Text(stringResource(R.string.smart_breaks,health.abnormalClosures,health.dropsPerMinute?.let{String.format(java.util.Locale.getDefault(),"%.1f",it)}?:stringResource(R.string.premium_no_data)),style=MaterialTheme.typography.bodySmall)
             Text(if(health.averageSetupMillis==null)stringResource(R.string.smart_setup_average_unknown)else stringResource(R.string.smart_setup_average,health.averageSetupMillis.toString()),style=MaterialTheme.typography.bodySmall)
             if(health.enabled)Text(stringResource(R.string.smart_active_profile,stringResource(profileResource(health.profile))))
+            health.selection?.relaySlot?.let{Text(stringResource(R.string.relays_node,it),style=MaterialTheme.typography.bodySmall)}
             health.selection?.let{s->Text(stringResource(R.string.smart_selection,stringResource(kindResource(s.transport)),stringResource(selectionResource(s.reason)),s.dc),Modifier.testTag("health.selection"))}
             for(session in health.active.take(8)){
                 val age=session.durationMillis+(nowMillis-health.measuredAtMillis).coerceAtLeast(0)

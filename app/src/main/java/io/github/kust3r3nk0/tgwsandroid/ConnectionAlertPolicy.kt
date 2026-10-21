@@ -14,7 +14,7 @@ internal class ConnectionAlertPolicy {
     private var announced=false
     private var hadProgress=false
     private var previousFailures=0
-    private var previousSelection:TransportKind?=null
+    private var previousSelection:Pair<TransportKind,Int?>?=null
     private var configuration=false
     private val last=mutableMapOf<ConnectionAlert,Long>()
     val deadline:Long? get()=if(evaluated)null else lossSince?.plus(30_000)
@@ -43,8 +43,8 @@ internal class ConnectionAlertPolicy {
         }
         previousFailures=s.health.failures
         s.health.selection?.let{selection->
-            if(selection.backup && previousSelection!=selection.transport && allow(ConnectionAlert.FALLBACK))add(ConnectionAlert.FALLBACK)
-            previousSelection=selection.transport
+            if(selection.backup && previousSelection!=(selection.transport to selection.relaySlot) && allow(ConnectionAlert.FALLBACK))add(ConnectionAlert.FALLBACK)
+            previousSelection=selection.transport to selection.relaySlot
         }
     }
     fun reset(){lossSince=null;evaluated=false;announced=false;hadProgress=false;previousFailures=0;previousSelection=null;configuration=false;last.clear()}

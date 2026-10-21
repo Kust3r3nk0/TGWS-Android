@@ -8,7 +8,7 @@ English guide: [docs/en/CODEX_WORKFLOW.md](docs/en/CODEX_WORKFLOW.md).
 - Это **Android-приложение локального MTProto WebSocket-прокси**, а не системный VPN. Не меняйте назначение проекта без явного требования.
 - Исполняемый код: Kotlin, Jetpack Compose, Android foreground service и сетевое ядро.
 - Поддерживаемая версия Android: **16+ (minSdk 36)**. Фактические версии AGP, Kotlin, Gradle, compileSdk и targetSdk берите из файлов Gradle, а не из устаревшего текста документации.
-- Текущая разработка — **тестовое обновление 0.5.0 на базе объединённого 0.4.2**, с отдельным Stable release gate. Не представляйте наличие исходников, компиляцию или JVM-тесты как доказательство работы прокси на реальном устройстве.
+- Текущая разработка — **тестовое обновление 0.6.0 на базе объединённого 0.5.0**, с отдельным Stable release gate. Не представляйте наличие исходников, компиляцию или JVM-тесты как доказательство работы прокси на реальном устройстве.
 
 ## Один запрос с ТЗ — один проход реализации
 
@@ -117,3 +117,12 @@ Windows: `gradlew.bat`. Для CI также требуется Android SDK с �
 - MANUAL/relay-only не обходят разрешения; socket setup не доказывает Telegram.
 - Worker/очереди/лимиты не повышать; multi-VPS и Media Optimizer — 0.6.0.
 - [Реализация, ограничения и приёмка](docs/SMART_CONNECTION_0.5.0.md).
+
+## 0.6.0 — Relay & Performance
+
+- Менеджер собственных реле — opt-in, URL/имена только в encrypted transport record.
+- Прежний одиночный URL и Keystore сохраняются, 5/6-line record совместим.
+- Media preference только для разрешённых новых сессий; никакого replay/сжатия.
+- Слоты узлов в диагностике только числовые, без URL/имён/токенов.
+- Node backpressure/close gates не отключать, Worker limits не повышать.
+- [Сценарии и ограничения](docs/RELAY_PERFORMANCE_0.6.0.md).

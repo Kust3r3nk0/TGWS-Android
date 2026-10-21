@@ -179,3 +179,51 @@ test('ongoing backpressured transfer can last longer than the per-write deadline
   ws.close();
   await once(ws, 'close');
 });
+
+test('large WS message renews write deadline at bounded TCP progress', async t => {
+  let total = 0, largest = 0;
+  class SlowTcp extends Duplex {
+    _read() {}
+    _write(chunk, _encoding, callback) { total += chunk.length; largest = Math.max(largest, chunk.length); setTimeout(callback, 12); }
+    setNoDelay() {} setTimeout() {}
+  }
+  const slow = new SlowTcp();
+  const { connect, relay } = await fixture(t, { writeMillis: 80, dial: () => { queueMicrotask(() => slow.emit('connect')); return slow; } });
+  const ws = await connect(); ws.send(Buffer.alloc(64)); ws.send(Buffer.alloc(512 * 1024));
+  await waitFor(() => total === 64 + 512 * 1024);
+  assert.ok(largest <= 16384); assert.equal(relay.activeSessions(), 1);
+  ws.close(); await once(ws, 'close');
+});
+
+test('closing capacity stays reserved until native TCP closure completes', async t => {
+  let destroying, finishDestroy;
+  const began = new Promise(resolve => { destroying = resolve; });
+  class ClosingTcp extends Duplex {
+    _read() {} _write(_chunk, _encoding, callback) { callback(); }
+    _destroy(_error, callback) { finishDestroy = callback; destroying(); }
+    setNoDelay() {} setTimeout() {}
+  }
+  const tcp = new ClosingTcp();
+  const { connect, relay } = await fixture(t, { maxSessions: 1, dial: () => { queueMicrotask(() => tcp.emit('connect')); return tcp; } });
+  const ws = await connect(); ws.terminate(); await began;
+  assert.equal(relay.activeSessions(), 1); await assert.rejects(connect(), /503/);
+  finishDestroy(); await waitFor(() => relay.activeSessions() === 0);
+});
+
+test('origin relay streams over 16 MiB in both directions with bounded producer writes', async t => {
+  const { connect, relay } = await fixture(t); const ws = await connect(); let bytes = 0;
+  ws.on('message', data => { assert.ok(data.every(byte => byte === 7)); bytes += data.length; });
+  ws.send(Buffer.alloc(64, 7)); await waitFor(() => bytes === 64); const chunk = Buffer.alloc(65536, 7);
+  for (let i = 0; i < 320; i++) {
+    await new Promise((resolve, reject) => ws.send(chunk, error => error ? reject(error) : resolve()));
+    await waitFor(() => bytes === 64 + (i + 1) * chunk.length); assert.ok(ws.bufferedAmount <= 65536);
+  }
+  assert.equal(bytes, 64 + 20 * 1024 * 1024);
+  ws.close(); await once(ws, 'close'); await waitFor(() => relay.activeSessions() === 0);
+});
+
+test('shutdown releases incomplete TLS sockets and rejects invalid deadlines', async t => {
+  const { relay } = await fixture(t); const raw = net.connect(relay.server.address().port, '127.0.0.1');
+  await once(raw, 'connect'); const closed = once(raw, 'close'); await relay.close(); await closed;
+  assert.equal(relay.activeSessions(), 0); assert.throws(() => createRelay({ tls, token, writeMillis: NaN }));
+});

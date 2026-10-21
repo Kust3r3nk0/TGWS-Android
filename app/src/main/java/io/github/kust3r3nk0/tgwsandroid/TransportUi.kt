@@ -17,15 +17,15 @@ import androidx.compose.ui.unit.dp
 import io.github.kust3r3nk0.tgwsandroid.core.*
 
 internal data class TransportDraft(val mode:TransportMode=TransportMode.DIRECT,val fakeDomain:String="",
-    val domains:String="",val workers:String="",val h2:Boolean=false,val profiles:ConnectionProfiles=ConnectionProfiles()){
+    val domains:String="",val workers:String="",val h2:Boolean=false,val profiles:ConnectionProfiles=ConnectionProfiles(),val relays:RelayConfiguration=RelayConfiguration()){
     fun settings():TransportSettings {
         fun lines(text:String)=text.lineSequence().map{it.trim()}.filter{it.isNotEmpty()}.toList()
         return TransportSettings(mode,fakeDomain.trim().lowercase(java.util.Locale.ROOT),
-            lines(domains).map{it.lowercase(java.util.Locale.ROOT)},lines(workers),h2 && mode==TransportMode.AUTO_CLOUDFLARE,profiles)
+            lines(domains).map{it.lowercase(java.util.Locale.ROOT)},lines(workers),h2 && mode==TransportMode.AUTO_CLOUDFLARE,profiles,relays)
     }
     override fun toString()="TransportDraft(redacted)"
     companion object {fun from(value:TransportSettings)=TransportDraft(value.mode,value.fakeTlsDomain,
-        value.cloudflareDomains.joinToString("\n"),value.workerUrls.joinToString("\n"),value.http2Media,value.profiles)}
+        value.cloudflareDomains.joinToString("\n"),value.workerUrls.joinToString("\n"),value.http2Media,value.profiles,value.relays)}
 }
 
 @Composable internal fun TransportEditor(value:TransportDraft,onChange:(TransportDraft)->Unit,editable:Boolean,reveal:Boolean,relayUrl:String){

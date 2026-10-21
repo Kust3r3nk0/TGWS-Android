@@ -69,7 +69,7 @@ import kotlinx.coroutines.delay
     SectionCard(stringResource(R.string.premium_relay)){
         Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
             Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
-                Text(stringResource(if(relay.isBlank() && transport.workers.isBlank() && transport.domains.isBlank())R.string.premium_not_configured else R.string.premium_endpoint_hidden),color=c.onSurfaceVariant,style=MaterialTheme.typography.bodySmall)
+                Text(stringResource(if(relay.isBlank() && !transport.relays.enabled && transport.workers.isBlank() && transport.domains.isBlank())R.string.premium_not_configured else R.string.premium_endpoint_hidden),color=c.onSurfaceVariant,style=MaterialTheme.typography.bodySmall)
                 Text(stringResource(if(s.relaySessions+s.cfSessions+s.h2Sessions>0)R.string.route_available else R.string.premium_no_confirmation),style=MaterialTheme.typography.bodySmall)
             }
             IconButton(onClick=onRelay,modifier=Modifier.testTag("home.relay.settings")){
@@ -79,7 +79,7 @@ import kotlinx.coroutines.delay
         s.routes.filter{it.status==RouteStatus.AVAILABLE && it.kind in setOf(TransportKind.RELAY,TransportKind.WORKER,TransportKind.CLOUDFLARE,TransportKind.HTTP2)}
             .maxByOrNull{it.checkedAtMillis}?.setupMillis?.let{Text(stringResource(R.string.premium_setup_value,it),style=MaterialTheme.typography.bodySmall)}
     }
-    if(transport.profiles.enabled)ConnectionHealthCard(s.health,compact=true)
+    if(transport.profiles.enabled || transport.relays.enabled)ConnectionHealthCard(s.health,compact=true)
     Text(stringResource(R.string.premium_quick_actions),style=MaterialTheme.typography.titleSmall)
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
         Action(R.string.premium_share,R.drawable.ic_premium_share,"telegram.share",ready&&valid,onShare,Modifier.weight(1f))

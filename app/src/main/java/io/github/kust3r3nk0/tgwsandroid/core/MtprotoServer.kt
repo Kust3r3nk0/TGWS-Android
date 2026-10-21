@@ -150,7 +150,7 @@ class MtprotoServer(
 
     init {
         require(fakeTlsDomain.isEmpty() || TelegramSecret.validDomain(fakeTlsDomain))
-        require(transportSettings.mode!=TransportMode.RELAY_ONLY || relayEndpoint!=null)
+        require(transportSettings.mode!=TransportMode.RELAY_ONLY || relayEndpoint!=null || transportSettings.relays.enabled)
         require(port in 1..65535) { "Invalid local port" }
         require(secretHex.matches(Regex("[0-9a-fA-F]{32}"))) { "Invalid MTProto secret format" }
         secret = secretHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
@@ -222,6 +222,7 @@ class MtprotoServer(
         @Volatile var dc=0
         @Volatile var media=false
         @Volatile var inboundProgress=false
+        @Volatile var relaySlot:Int?=null
         var input: InputStream = client.getInputStream()
         var output: java.io.OutputStream = client.getOutputStream()
         private val resourcesLock = Any()
@@ -614,21 +615,28 @@ class MtprotoServer(
                 return null
             } finally { timeout.cancel(false) }
         }
-        class Candidate(val route:RoutingCandidate,val issue:ServerIssue,val endpoint:String?=null,
+        class Candidate(val route:RoutingCandidate,val issue:ServerIssue,val endpoint:String?=null,val relaySlot:Int?=null,
             val rotate:(Boolean)->Unit={},val open:((Closeable)->Unit)->RemoteTransport)
         val candidates=mutableListOf<Candidate>()
         fun add(key:String,kind:TransportKind,issue:ServerIssue,endpoint:String?=null,
-            rotate:(Boolean)->Unit={},open:((Closeable)->Unit)->RemoteTransport){
-            candidates+=Candidate(RoutingCandidate(key,kind,handshake.dc,handshake.media),issue,endpoint,rotate,open)
+            rotate:(Boolean)->Unit={},relaySlot:Int?=null,open:((Closeable)->Unit)->RemoteTransport){
+            candidates+=Candidate(RoutingCandidate(key,kind,handshake.dc,handshake.media),issue,endpoint,relaySlot,rotate,open)
         }
-        val endpoint=relayEndpoint
-        if(endpoint!=null){
+        val manager=transportSettings.relays
+        fun addManaged(){for(node in manager.candidates(handshake.media)){
+            val target=RelayEndpoint.parse(node.url)!!
+            add("relay:${node.id}:${handshake.dc}",TransportKind.RELAY,ServerIssue.RELAY,"endpoint:relay:${node.id}",relaySlot=manager.nodes.indexOf(node)+1){own->transports.openRelay(target,handshake.dc,own)}
+        }}
+        val endpoint=relayEndpoint.takeUnless{manager.enabled}
+        if(manager.enabled && transportSettings.mode==TransportMode.RELAY_ONLY){addManaged()}
+        else if(endpoint!=null){
             add("relay:${handshake.dc}",TransportKind.RELAY,ServerIssue.RELAY,"endpoint:relay"){own->transports.openRelay(endpoint,handshake.dc,own)}
         }else if(transportSettings.mode==TransportMode.RELAY_ONLY){
             emit(session.run,ServerEvent.Diagnostic(ServerIssue.CONFIGURATION));return null
         }else{
             if(transportSettings.mode==TransportMode.AUTO_CLOUDFLARE){
-                if(transportSettings.profiles.enabled && ownRelayEndpoint!=null){
+                if(manager.enabled)addManaged()
+                else if(transportSettings.profiles.enabled && ownRelayEndpoint!=null){
                     add("relay:${handshake.dc}",TransportKind.RELAY,ServerIssue.RELAY,"endpoint:relay"){own->transports.openRelay(ownRelayEndpoint,handshake.dc,own)}
                 }
                 val workers=transportSettings.workerUrls;val workerGroup="workers:${handshake.dc}"
@@ -637,7 +645,9 @@ class MtprotoServer(
                 for(offset in 0 until if(transportSettings.profiles.enabled)workers.size else minOf(2,workers.size)){
                     val index=(start+offset)%workers.size
                     val worker=parsedWorkers[index]
-                    val endpointKey=if(transportSettings.profiles.enabled && ownRelayEndpoint?.sameEndpoint(worker)==true)"endpoint:relay"
+                    val match=manager.nodes.find{RelayEndpoint.parse(it.url)!!.sameEndpoint(worker)}
+                    val endpointKey=if(manager.enabled && match!=null)"endpoint:relay:${match.id}"
+                        else if(!manager.enabled && transportSettings.profiles.enabled && ownRelayEndpoint?.sameEndpoint(worker)==true)"endpoint:relay"
                         else "endpoint:worker:${parsedWorkers.indexOfFirst{it.sameEndpoint(worker)}}"
                     add("worker:$index:${handshake.dc}",TransportKind.WORKER,ServerIssue.RELAY,endpointKey,
                         {ok->session.run.rotation[workerGroup]=if(ok)index else (index+1)%workers.size}){own->
@@ -676,8 +686,18 @@ class MtprotoServer(
         }
         val profiles=transportSettings.profiles
         val profile=activeProfile()
-        val ordered=session.run.smart.order(candidates.map{it.route},profile,profiles.enabled)
-        val plans=if(profiles.enabled)ordered.distinctBy{plan->candidates.first{it.route===plan.candidate}.let{it.endpoint?:it.route.key}}else ordered
+        var ordered=session.run.smart.order(candidates.map{it.route},profile,profiles.enabled)
+        if(manager.enabled){
+            val relays=ordered.filter{it.candidate.kind==TransportKind.RELAY}
+            val relayOrder=if(manager.strategy==RelayStrategy.AUTOMATIC)
+                session.run.smart.order(relays.map{it.candidate},ConnectionProfile(primary=TransportKind.RELAY,backups=emptySet()),true)
+                else candidates.filter{c->relays.any{it.candidate===c.route}}.map{PlannedRoute(it.route,SelectionReason.USER_PRIMARY)}
+            val iterator=relayOrder.iterator()
+            ordered=ordered.map{if(it.candidate.kind==TransportKind.RELAY)iterator.next()else it}
+            if(handshake.media && manager.preferMedia && (!profiles.enabled || profile.mode==RoutingMode.AUTOMATIC))
+                ordered=ordered.sortedBy{if(it.candidate.kind==TransportKind.RELAY)0 else 1}
+        }
+        val plans=if(profiles.enabled || manager.enabled)ordered.distinctBy{plan->candidates.first{it.route===plan.candidate}.let{it.endpoint?:it.route.key}}else ordered
         if(plans.isEmpty()){
             emit(session.run,ServerEvent.Diagnostic(ServerIssue.CONFIGURATION));return null
         }
@@ -687,7 +707,8 @@ class MtprotoServer(
             candidate.rotate(result!=null)
             if(result!=null){
                 session.run.smart.selected(RouteSelection(profiles.id(connectionNetwork),result.kind,handshake.dc,handshake.media,
-                    if(position>0)SelectionReason.FALLBACK else plan.reason,position>0 || profiles.enabled && result.kind!=profile.primary))
+                    if(position>0)SelectionReason.FALLBACK else plan.reason,position>0 || profiles.enabled && result.kind!=profile.primary,candidate.relaySlot))
+                session.relaySlot=candidate.relaySlot
                 session.run.healthDirty.set(true)
                 if(result.kind==TransportKind.WSS && transportSettings.mode==TransportMode.DIRECT &&
                     (!profiles.enabled || profile.power==PowerPolicy.BALANCED)){
@@ -830,9 +851,9 @@ class MtprotoServer(
     private fun publishHealth(run:Run){
         synchronized(lifecycle){
             if(current!==run || run.stopping.get())return
-            val health=run.smart.health(transportSettings.profiles.enabled,transportSettings.profiles.id(connectionNetwork))
+            val health=run.smart.health(transportSettings.profiles.enabled || transportSettings.relays.enabled,transportSettings.profiles.id(connectionNetwork))
             emit(run,ServerEvent.Health(health.copy(active=run.sessions.filter{it.established && !it.closed.get()}.mapNotNull{s->
-                s.transportKind?.let{ActiveConnection(s.id,s.dc,s.media,it,TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-s.started).coerceAtLeast(0),s.inboundProgress)}
+                s.transportKind?.let{ActiveConnection(s.id,s.dc,s.media,it,TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-s.started).coerceAtLeast(0),s.inboundProgress,s.relaySlot)}
             })))
         }
     }
@@ -856,6 +877,9 @@ class MtprotoServer(
                 data class Probe(val key:String,val kind:TransportKind,val open:((Closeable)->Unit)->RemoteTransport)
                 val candidates=mutableListOf<Probe>()
                 when{
+                    transportSettings.relays.enabled && transportSettings.mode!=TransportMode.DIRECT->{
+                        transportSettings.relays.candidates(false).take(3).forEach{node->candidates+=Probe("relay:${node.id}:2",TransportKind.RELAY){own->transports.openRelay(RelayEndpoint.parse(node.url)!!,2,own)}}
+                    }
                     relayEndpoint!=null->candidates+=Probe("relay:2",TransportKind.RELAY){own->transports.openRelay(relayEndpoint,2,own)}
                     transportSettings.mode==TransportMode.AUTO_CLOUDFLARE->{
                         transportSettings.workerUrls.take(2).forEachIndexed{index,url->candidates+=Probe("worker:$index:2",TransportKind.WORKER){own->transports.openRelay(requireNotNull(RelayEndpoint.parse(url)),2,own)}}
@@ -867,9 +891,9 @@ class MtprotoServer(
                     else->candidates+=Probe("wss:149.154.167.220:kws2.web.telegram.org",TransportKind.WSS){own->transports.openWebSocket("149.154.167.220","kws2.web.telegram.org",own)}
                 }
                 if(transportSettings.profiles.enabled){
-                    if(transportSettings.mode==TransportMode.AUTO_CLOUDFLARE && ownRelayEndpoint!=null)
+                    if(!transportSettings.relays.enabled && transportSettings.mode==TransportMode.AUTO_CLOUDFLARE && ownRelayEndpoint!=null)
                         candidates.add(0,Probe("relay:2",TransportKind.RELAY){own->transports.openRelay(ownRelayEndpoint,2,own)})
-                    if(relayEndpoint==null)candidates+=Probe("tcp:2",TransportKind.TCP){own->transports.openTcp(requireNotNull(TelegramRoutes.ip(2)),own)}
+                    if(relayEndpoint==null && transportSettings.mode!=TransportMode.RELAY_ONLY)candidates+=Probe("tcp:2",TransportKind.TCP){own->transports.openTcp(requireNotNull(TelegramRoutes.ip(2)),own)}
                     if(transportSettings.mode==TransportMode.AUTO_CLOUDFLARE)candidates+=Probe("wss:149.154.167.220:kws2.web.telegram.org",TransportKind.WSS){own->transports.openWebSocket("149.154.167.220","kws2.web.telegram.org",own)}
                 }
                 val permitted=if(transportSettings.profiles.enabled)candidates.filter{activeProfile().permits(it.kind)}else candidates

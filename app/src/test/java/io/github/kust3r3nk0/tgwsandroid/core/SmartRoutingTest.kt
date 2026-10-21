@@ -4,6 +4,11 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SmartRoutingTest {
+    @Test fun automaticSelectionDistinguishesOwnNodesOfTheSameTransport(){
+        val routing=SmartRouting{60_000};val a=RoutingCandidate("relay:a:2",TransportKind.RELAY,2,true);val b=RoutingCandidate("relay:b:2",TransportKind.RELAY,2,true)
+        routing.failed(routing.begin(a));val good=routing.begin(b);routing.connected(good,12);routing.progress(good)
+        assertSame(b,routing.order(listOf(a,b),ConnectionProfile(primary=TransportKind.RELAY,backups=emptySet()),true).first().candidate)
+    }
     @Test fun saverDelaysDemandDrivenExplorationWithoutOpeningSocketsOrBlacklistingRoutes(){
         var now=0L;val routing=SmartRouting{now};val profile=ConnectionProfile(power=PowerPolicy.SAVER)
         routing.failed(routing.begin(wss));val good=routing.begin(tcp);routing.connected(good,10);routing.progress(good)
