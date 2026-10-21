@@ -510,6 +510,7 @@ class MtprotoServer(
             if (session.closed.get()) return
             session.transportKind = remote.kind
             session.established = true
+            session.run.healthDirty.set(true)
             session.touch()
             counts(session.run)
         }
@@ -707,7 +708,7 @@ class MtprotoServer(
             candidate.rotate(result!=null)
             if(result!=null){
                 session.run.smart.selected(RouteSelection(profiles.id(connectionNetwork),result.kind,handshake.dc,handshake.media,
-                    if(position>0)SelectionReason.FALLBACK else plan.reason,position>0 || profiles.enabled && result.kind!=profile.primary,candidate.relaySlot))
+                    if(position>0)SelectionReason.FALLBACK else plan.reason,position>0 || profiles.enabled && result.kind!=profile.primary || candidate.relaySlot?.let{manager.nodes[it-1].id!=manager.primary}==true,candidate.relaySlot))
                 session.relaySlot=candidate.relaySlot
                 session.run.healthDirty.set(true)
                 if(result.kind==TransportKind.WSS && transportSettings.mode==TransportMode.DIRECT &&
@@ -851,7 +852,7 @@ class MtprotoServer(
     private fun publishHealth(run:Run){
         synchronized(lifecycle){
             if(current!==run || run.stopping.get())return
-            val health=run.smart.health(transportSettings.profiles.enabled || transportSettings.relays.enabled,transportSettings.profiles.id(connectionNetwork))
+            val health=run.smart.health(transportSettings.profiles.enabled,transportSettings.profiles.id(connectionNetwork))
             emit(run,ServerEvent.Health(health.copy(active=run.sessions.filter{it.established && !it.closed.get()}.mapNotNull{s->
                 s.transportKind?.let{ActiveConnection(s.id,s.dc,s.media,it,TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-s.started).coerceAtLeast(0),s.inboundProgress,s.relaySlot)}
             })))
@@ -877,7 +878,7 @@ class MtprotoServer(
                 data class Probe(val key:String,val kind:TransportKind,val open:((Closeable)->Unit)->RemoteTransport)
                 val candidates=mutableListOf<Probe>()
                 when{
-                    transportSettings.relays.enabled && transportSettings.mode!=TransportMode.DIRECT->{
+                    transportSettings.relays.enabled && transportSettings.mode==TransportMode.RELAY_ONLY->{
                         transportSettings.relays.candidates(false).take(3).forEach{node->candidates+=Probe("relay:${node.id}:2",TransportKind.RELAY){own->transports.openRelay(RelayEndpoint.parse(node.url)!!,2,own)}}
                     }
                     relayEndpoint!=null->candidates+=Probe("relay:2",TransportKind.RELAY){own->transports.openRelay(relayEndpoint,2,own)}
@@ -889,6 +890,10 @@ class MtprotoServer(
                         }
                     }
                     else->candidates+=Probe("wss:149.154.167.220:kws2.web.telegram.org",TransportKind.WSS){own->transports.openWebSocket("149.154.167.220","kws2.web.telegram.org",own)}
+                }
+                if(transportSettings.relays.enabled && transportSettings.mode==TransportMode.AUTO_CLOUDFLARE){
+                    val managed=transportSettings.relays.candidates(false).take(3).map{node->Probe("relay:${node.id}:2",TransportKind.RELAY){own->transports.openRelay(RelayEndpoint.parse(node.url)!!,2,own)}}
+                    candidates.addAll(0,managed)
                 }
                 if(transportSettings.profiles.enabled){
                     if(!transportSettings.relays.enabled && transportSettings.mode==TransportMode.AUTO_CLOUDFLARE && ownRelayEndpoint!=null)

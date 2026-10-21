@@ -11,7 +11,7 @@
 **Unofficial, open-source Android 16+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
 > [!IMPORTANT]
-> **0.6.0 — Relay & Performance Update for Android 16+.** Opt-in profiles, permitted routes, health and real traffic. Test APKs are listed in Releases as Debug Pre-releases, not Production. [Audit and Worker upgrade](docs/en/RELAY_STABILITY_0.4.2.md).
+> **0.6.0 — Relay & Performance Update for Android 16+.** VPS Relay Manager, media-aware selection, server fixes and stable dependency updates. Test APKs are listed in Releases as Debug Pre-releases, not Production. [Audit and Worker upgrade](docs/en/RELAY_STABILITY_0.4.2.md).
 
 [Release/signing/migration](docs/en/RELEASE_0.4.0.md) · [0.4.0 notes](docs/en/releases/0.4.0.md).
 

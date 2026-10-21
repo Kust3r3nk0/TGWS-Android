@@ -28,6 +28,7 @@ class ManagedRelayNetworkTest {
         LocalTelegramPeer().use{peer->
             val factory=object:TransportFactory {
                 override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                    if(endpoint.domain=="broken.example")throw java.io.IOException("Controlled primary refusal")
                     wss.incrementAndGet()
                     val ws=RawWebSocket.connectTls("127.0.0.1","localhost","/apiws",peer.wsPort,peer.clientTls,
                         RawWebSocket.Limits(connectMillis=1000,handshakeMillis=2000,readMillis=5000,closeMillis=200),socketOwner={own(it)})
@@ -51,7 +52,8 @@ class ManagedRelayNetworkTest {
                 }
             }
             val node=RelayNode("origin","Private test label","wss://relay.example/private/apiws")
-            val manager=RelayConfiguration(true,listOf(node),node.id,preferMedia=true)
+            val primary=RelayNode("primary","Primary","wss://broken.example/apiws")
+            val manager=RelayConfiguration(true,listOf(primary,node),primary.id,listOf(node.id),RelayStrategy.AUTOMATIC,true)
             MtprotoServer(port,secret.joinToString(""){ "%02x".format(it)},events::add,transports=factory,
                 transportSettings=TransportSettings(mode=TransportMode.RELAY_ONLY,relays=manager)).use{server->
                 server.start();await("Listener not ready"){events.contains(ServerEvent.State(ServerPhase.LISTENING))}
@@ -76,12 +78,20 @@ class ManagedRelayNetworkTest {
                     }
                 }
                 exchange(0){
-                    await("No real relay progress"){events.filterIsInstance<ServerEvent.Health>().lastOrNull()?.health?.active?.any{it.inboundProgress && it.relaySlot==1}==true}
+                    await("No real relay progress"){events.filterIsInstance<ServerEvent.Health>().lastOrNull()?.health?.active?.any{it.inboundProgress && it.relaySlot==2}==true}
                     assertEquals(0,tcp.get());assertEquals(1,wss.get())
                 }
+                exchange(1){
+                    await("Real backup identity lost after automatic ranking"){
+                        events.filterIsInstance<ServerEvent.Health>().lastOrNull()?.health?.selection?.let{
+                            it.relaySlot==2 && it.reason==SelectionReason.RECENT_PROGRESS && it.backup
+                        }==true
+                    }
+                    assertEquals(2,wss.get());assertEquals(0,tcp.get())
+                }
                 server.stop()
-                assertTrue(server.trafficTotals().first>=24L*1024*1024)
-                assertTrue(server.trafficTotals().second>=24L*1024*1024)
+                assertTrue(server.trafficTotals().first>=48L*1024*1024)
+                assertTrue(server.trafficTotals().second>=48L*1024*1024)
                 assertNull(peer.failure.get())
             }
         }

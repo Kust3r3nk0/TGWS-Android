@@ -11,7 +11,7 @@
 **[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.6.0 — Relay & Performance Update для Android 16+.** Профили, разрешённые маршруты, Health Monitor и реальный трафик. Тестовые APK опубликованы в Releases; это Debug Pre-release, не Production. [Аудит и обновление Worker](docs/RELAY_STABILITY_0.4.2.md).
+> **0.6.0 — Relay & Performance Update для Android 16+.** Менеджер VPS-реле, media-aware выбор, исправления VPS-сервера и стабильные обновления зависимостей. Тестовые APK опубликованы в Releases; это Debug Pre-release, не Production. [Аудит и обновление Worker](docs/RELAY_STABILITY_0.4.2.md).
 
 [Подготовка Release, подпись и миграция](docs/RELEASE_0.4.0.md) · [Изменения 0.4.0](docs/releases/0.4.0.md).
 

@@ -28,6 +28,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.*
         }
         SmartSwitch(R.string.relays_media_prefer,config.preferMedia,editable,"relays.prefer.media"){change(config.copy(preferMedia=it))}
         Text(stringResource(R.string.relays_media_notice),style=MaterialTheme.typography.bodySmall)
+        if(!form.valid && !form.busy.value)Text(stringResource(R.string.relays_save_requirement),color=MaterialTheme.colorScheme.error)
         SaveSettingsButton(form,editable){}
     }
     if(config.nodes.isEmpty())Text(stringResource(R.string.relays_empty),Modifier.testTag("relays.empty"))

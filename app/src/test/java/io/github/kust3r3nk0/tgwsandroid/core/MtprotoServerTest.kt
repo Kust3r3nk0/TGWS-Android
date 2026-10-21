@@ -35,9 +35,28 @@ class MtprotoServerTest {
             transportSettings=TransportSettings(mode=TransportMode.RELAY_ONLY,relays=manager)).use{server->
             server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
             connect(port).use{client->client.getOutputStream().write(init().bytes);await("Backup missing"){events.sessions(1,0)}
-                await("Slot evidence missing"){events.all.filterIsInstance<ServerEvent.Health>().lastOrNull()?.health?.selection?.relaySlot==2}
+                await("Slot evidence missing"){events.all.filterIsInstance<ServerEvent.Health>().lastOrNull()?.health?.let{it.selection?.relaySlot==2 && it.active.any{a->a.relaySlot==2}}==true}
+                assertFalse(events.all.filterIsInstance<ServerEvent.Health>().last().health.enabled)
                 assertEquals(listOf("primary.example","backup.example"),calls.toList());assertTrue(base.tcp.isEmpty());assertTrue(base.wss.isEmpty())
                 assertFalse(events.all.toString().contains("secret"));server.stop();assertClosed(client)}
+        }
+    }
+    @Test fun enablingManagerDoesNotHidePermittedWorkerFromExplicitTransportDiagnostics(){
+        val port=freePort();val events=Events();val base=FakeFactory(failWss=false);val channel=Channel(TransportKind.RELAY)
+        val profile=ConnectionProfile(mode=RoutingMode.MANUAL,primary=TransportKind.WORKER,backups=emptySet())
+        val node=RelayNode("own","Own","wss://origin.example/apiws")
+        val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,workerUrls=listOf("wss://worker.example/apiws"),
+            profiles=ConnectionProfiles(enabled=true,automaticNetwork=false,automatic=profile),relays=RelayConfiguration(true,listOf(node),node.id))
+        val factory=object:TransportFactory by base {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                assertEquals("worker.example",endpoint.domain);return channel.also(own)
+            }
+        }
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,transportSettings=settings).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            assertTrue(server.probeRoutes());await("Worker diagnostic suppressed"){channel.closed.count==0L}
+            assertTrue(channel.sent.isEmpty());assertTrue(base.tcp.isEmpty());assertTrue(base.wss.isEmpty())
+            assertTrue(events.all.filterIsInstance<ServerEvent.Routes>().last().routes.any{it.kind==TransportKind.WORKER && it.status==RouteStatus.AVAILABLE})
         }
     }
     @Test fun managedManualRelayCannotUseAnUnselectedNodeOrDirectTransport(){

@@ -326,4 +326,5 @@
     <string name="relays_probe_notice">Checks run only on demand without MTProto packets. Successful Upgrade does not prove Telegram availability. Checks cancel on network changes, leaving this page or stopping the Activity.</string>
     <string name="relays_legacy_notice">VPS Relay Manager is enabled. The single URL is retained for compatibility; the manager selects current nodes.</string>
     <string name="relays_invalid">Enter a name and unique WSS address. Maximum eight nodes.</string>
+    <string name="relays_save_requirement">Saving requires a valid transport configuration: relay-only needs a single URL or an enabled manager with a primary node. Automatic mode needs configured sources or Smart Routing.</string>
 </resources>

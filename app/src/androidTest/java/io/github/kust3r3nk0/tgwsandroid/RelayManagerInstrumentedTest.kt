@@ -24,7 +24,7 @@ class RelayManagerInstrumentedTest {
     @Before fun setup(){
         locales=context.getSystemService(LocaleManager::class.java).applicationLocales
         instrumentation.runOnMainSync{context.getSystemService(LocaleManager::class.java).applicationLocales=LocaleList.forLanguageTags("ru");ProxyState.snapshot=ProxySnapshot()}
-        AppPreferences(context).theme=ThemeMode.DARK
+        AppPreferences(context).apply{theme=ThemeMode.DARK;liquidGlass=false;transparency=false}
         SettingsStore(context).recover(8443,secret,legacy)
     }
     @After fun cleanup(){
@@ -76,14 +76,25 @@ class RelayManagerInstrumentedTest {
             assertFalse(ProxyState.snapshot.running)
         }
     }
+    @Test fun deletingLastStrictRelayCannotSilentlySaveAnUnusableConfiguration(){
+        val node=RelayNode("primary","Only node","wss://only.example/private/apiws")
+        SettingsStore(context).recover(8443,secret,"",TransportSettings(mode=TransportMode.RELAY_ONLY,relays=RelayConfiguration(true,listOf(node),node.id)))
+        ActivityScenario.launch(MainActivity::class.java).use{
+            settle();click("nav.settings",false);click("settings.relays");click("relays.delete.primary");click("relays.delete.confirm",false)
+            ui.onNodeWithTag("settings.save").performScrollTo().assertIsNotEnabled()
+            ui.onNodeWithText(context.getString(R.string.relays_save_requirement)).assertExists()
+            assertEquals(listOf(node),SettingsStore(context).load().transport.relays.nodes)
+            assertEquals(secret,SettingsStore(context).load().secret);assertFalse(ProxyState.snapshot.running)
+        }
+    }
     @Test fun unsavedEndpointDraftSurvivesRotationWithoutPlaintextPersistenceOrStartingProxy(){
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             settle();click("nav.settings",false);click("settings.relays");text("relays.name","Draft");text("relays.url","wss://draft.example/hidden/apiws")
-            scenario.recreate();settle();ui.onNodeWithTag("relays.name").assertTextEquals("Draft")
-            ui.onNodeWithTag("relays.url").assertTextEquals("wss://draft.example/hidden/apiws")
+            scenario.recreate();settle();ui.onNodeWithTag("relays.name").assert(SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.InputText,androidx.compose.ui.text.AnnotatedString("Draft")))
+            ui.onNodeWithTag("relays.url").assert(SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.InputText,androidx.compose.ui.text.AnnotatedString("wss://draft.example/hidden/apiws")))
             assertTrue(SettingsStore(context).load().transport.relays.nodes.isEmpty());assertEquals(secret,SettingsStore(context).load().secret)
             assertFalse(ProxyState.snapshot.running)
-            ui.onNodeWithTag("relays.reveal").performScrollTo().performClick()
+            ui.onNodeWithTag("relays.reveal").performScrollTo().performClick();ui.waitForIdle()
             scenario.onActivity{assertTrue(it.window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE!=0)}
             click("nav.home",false)
             scenario.onActivity{assertEquals(0,it.window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE)}

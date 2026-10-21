@@ -33,8 +33,8 @@ Android 16+ / API 36+, code 22. Тестовая подпись сохранен
 Worker остаётся прежним: 6 сессий/isolate и 16 МиБ/сессию. Исправленный Worker 0.4.2
 не требует redeploy. Работа реального Telegram/HD/mobile проверяется владельцем.
 
-[Настройка и сценарий проверки](https://github.com/Kust3r3nk0/TGWS-Android/blob/feature/0.6.0-relay-performance/docs/RELAY_PERFORMANCE_0.6.0.md).
-[VPS: развёртывание и обновление](https://github.com/Kust3r3nk0/TGWS-Android/blob/feature/0.6.0-relay-performance/docs/VPS_RELAY.md).
+[Настройка и сценарий проверки](https://github.com/Kust3r3nk0/TGWS-Android/blob/v0.6.0-debug/docs/RELAY_PERFORMANCE_0.6.0.md).
+[VPS: развёртывание и обновление](https://github.com/Kust3r3nk0/TGWS-Android/blob/v0.6.0-debug/docs/VPS_RELAY.md).
 
 
 # TGWS-Android 0.5.0 — Smart Connection Update · Debug
