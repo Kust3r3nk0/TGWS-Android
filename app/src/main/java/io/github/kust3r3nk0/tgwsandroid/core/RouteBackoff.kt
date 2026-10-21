@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit
 internal class RouteBackoff<K>(
     initialMillis: Int = 1_000,
     maximumMillis: Int = 30_000,
+    private val adaptive:()->Boolean={true},
     private val now: () -> Long = System::nanoTime,
 ) {
     private val initial = TimeUnit.MILLISECONDS.toNanos(initialMillis.toLong())
@@ -46,7 +47,7 @@ internal class RouteBackoff<K>(
         if (permit.sequence < state.outcome) return
         state.outcome = permit.sequence
         if (!failed) { if(healthy){state.failures = 0; state.until = 0}else permit.canRecover.set(true); return }
-        state.failures = (state.failures + 1).coerceAtMost(30)
+        state.failures = if(adaptive())(state.failures + 1).coerceAtMost(30)else 1
         state.lastFailure=permit.sequence
         var delay = initial
         repeat(state.failures - 1) { delay = if (delay >= maximum / 2) maximum else delay * 2 }

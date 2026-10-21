@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
             var glass by remember{mutableStateOf(preferences.liquidGlass)}
             var transparent by remember{mutableStateOf(preferences.transparency)}
             var recording by remember{mutableStateOf(preferences.diagnostics)}
+            var connectionAlerts by remember{mutableStateOf(preferences.connectionAlerts)}
             var reveal by remember{mutableStateOf(false)}
             var page by rememberSaveable{mutableIntStateOf(if(intent.getBooleanExtra(OPEN_UPDATES,false))2 else 0)}
             val pageStates=rememberSaveableStateHolder()
@@ -159,13 +160,24 @@ class MainActivity : ComponentActivity() {
                             }
                             7->AppearanceSettings(theme,{theme=it;preferences.theme=it},glass,{glass=it;preferences.liquidGlass=it},transparent,{transparent=it;preferences.transparency=it})
                             8->AboutSettings(version,{url->startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))})
-                            9->DiagnosticOptions(recording,{
+                            9->{DiagnosticOptions(recording,{
                                 recording=it;preferences.diagnostics=it;ProxyState.recordDiagnostics=it
                             },snapshot.localAvailable,::probe)
+                                SectionCard(stringResource(R.string.smart_alert_title)){
+                                    SmartSwitch(R.string.smart_alert_enable,connectionAlerts,tag="smart.alerts"){
+                                        connectionAlerts=it;preferences.connectionAlerts=it
+                                        if(it && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
+                                            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS),13)
+                                        if(!it)ConnectionNotifications.clear(this@MainActivity)
+                                    }
+                                    Text(stringResource(R.string.smart_alert_notice),style=MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                            10->SmartConnectionSettings(form,!snapshot.running && !form.busy.value,network.kind)
                             else->PremiumSettings({next->
                                 if(next==2 || next==3)updateParent=1
                                 navigate(next)
-                            },theme,form.transportDraft.value.mode,recording)
+                            },theme,form.transportDraft.value.mode,recording,form.transportDraft.value.profiles.enabled)
                         }
                     }
                 }

@@ -17,15 +17,15 @@ import androidx.compose.ui.unit.dp
 import io.github.kust3r3nk0.tgwsandroid.core.*
 
 internal data class TransportDraft(val mode:TransportMode=TransportMode.DIRECT,val fakeDomain:String="",
-    val domains:String="",val workers:String="",val h2:Boolean=false){
+    val domains:String="",val workers:String="",val h2:Boolean=false,val profiles:ConnectionProfiles=ConnectionProfiles()){
     fun settings():TransportSettings {
         fun lines(text:String)=text.lineSequence().map{it.trim()}.filter{it.isNotEmpty()}.toList()
         return TransportSettings(mode,fakeDomain.trim().lowercase(java.util.Locale.ROOT),
-            lines(domains).map{it.lowercase(java.util.Locale.ROOT)},lines(workers),h2 && mode==TransportMode.AUTO_CLOUDFLARE)
+            lines(domains).map{it.lowercase(java.util.Locale.ROOT)},lines(workers),h2 && mode==TransportMode.AUTO_CLOUDFLARE,profiles)
     }
     override fun toString()="TransportDraft(redacted)"
     companion object {fun from(value:TransportSettings)=TransportDraft(value.mode,value.fakeTlsDomain,
-        value.cloudflareDomains.joinToString("\n"),value.workerUrls.joinToString("\n"),value.http2Media)}
+        value.cloudflareDomains.joinToString("\n"),value.workerUrls.joinToString("\n"),value.http2Media,value.profiles)}
 }
 
 @Composable internal fun TransportEditor(value:TransportDraft,onChange:(TransportDraft)->Unit,editable:Boolean,reveal:Boolean,relayUrl:String){
@@ -38,7 +38,7 @@ internal data class TransportDraft(val mode:TransportMode=TransportMode.DIRECT,v
     }
     if(value.mode!=TransportMode.AUTO_CLOUDFLARE)Text(stringResource(if(value.mode==TransportMode.RELAY_ONLY)R.string.relay_enabled_notice else R.string.relay_direct_notice),style=MaterialTheme.typography.bodySmall)
     if(value.mode==TransportMode.AUTO_CLOUDFLARE){
-        Text(stringResource(R.string.cf_order),style=MaterialTheme.typography.bodySmall)
+        Text(stringResource(if(value.profiles.enabled)R.string.smart_order_notice else R.string.cf_order),style=MaterialTheme.typography.bodySmall)
         OutlinedTextField(value=value.domains,onValueChange={onChange(value.copy(domains=it.take(2048),h2=value.h2 && it.isNotBlank()))},
             modifier=Modifier.fillMaxWidth(),label={Text(stringResource(R.string.cf_domains))},enabled=editable,minLines=2,
             keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Uri))

@@ -5,6 +5,7 @@ import java.util.Locale
 
 /** User-controlled Worker-compatible WSS relay. Never include its credential-bearing URL in diagnostics. */
 class RelayEndpoint private constructor(val domain: String, private val path: String) {
+    internal fun sameEndpoint(other:RelayEndpoint)=domain==other.domain && path==other.path
     fun requestPath(dc: Int): String {
         val destination = requireNotNull(TelegramRoutes.ip(dc)) { "Unsupported relay DC" }
         return "$path?dst=$destination&dc=$dc"

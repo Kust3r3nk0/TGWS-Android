@@ -1,5 +1,12 @@
 package io.github.kust3r3nk0.tgwsandroid
 
+internal fun connectionNetwork(kind:AccessKind)=when(kind){
+    AccessKind.WIFI->io.github.kust3r3nk0.tgwsandroid.core.ConnectionNetwork.WIFI
+    AccessKind.CELLULAR->io.github.kust3r3nk0.tgwsandroid.core.ConnectionNetwork.MOBILE
+    AccessKind.OTHER->io.github.kust3r3nk0.tgwsandroid.core.ConnectionNetwork.OTHER
+    AccessKind.NONE->io.github.kust3r3nk0.tgwsandroid.core.ConnectionNetwork.UNKNOWN
+}
+
 enum class AccessKind { NONE, WIFI, CELLULAR, OTHER }
 enum class RadioKind { UNKNOWN, G2, G3, LTE, LTE_PLUS, NR }
 enum class IpSupport { UNKNOWN, IPV4, IPV6, DUAL }

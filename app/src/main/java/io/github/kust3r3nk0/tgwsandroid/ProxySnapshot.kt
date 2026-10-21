@@ -24,6 +24,7 @@ data class ProxySnapshot(
     val network:NetworkView=NetworkView(),
     val cfSessions:Int=0,
     val h2Sessions:Int=0,
+    val health:io.github.kust3r3nk0.tgwsandroid.core.ConnectionHealth=io.github.kust3r3nk0.tgwsandroid.core.ConnectionHealth(),
 ) {
     val running: Boolean get() = phase in setOf(
         ProxyPhase.STARTING, ProxyPhase.LISTENING, ProxyPhase.ACTIVE, ProxyPhase.STOPPING
@@ -43,7 +44,7 @@ data class ProxySnapshot(
         phase = if (failed) ProxyPhase.ERROR else ProxyPhase.STOPPED,
         issue = if (failed) issue else null,
         sessions = 0, pending = 0, wssSessions = 0, tcpSessions = 0, relaySessions = 0,
-        cfSessions = 0, h2Sessions = 0, network = NetworkView(), routes = emptyList(),
+        cfSessions = 0, h2Sessions = 0, network = NetworkView(), routes = emptyList(),health=health.copy(active=emptyList()),
     )
 
     fun withSessions(established: Int, connecting: Int, wss: Int = 0, tcp: Int = 0, relay: Int = 0,cf:Int=0,h2:Int=0): ProxySnapshot {

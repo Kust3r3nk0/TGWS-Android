@@ -40,9 +40,11 @@ class ProxyService : Service() {
     private var networkMonitor:AndroidNetworkMonitor?=null
     private var transportFactory:io.github.kust3r3nk0.tgwsandroid.core.NetworkTransportFactory?=null
     private val notifications by lazy { getSystemService(NotificationManager::class.java) }
+    private var connectionNotifications:ConnectionNotifications?=null
 
     override fun onCreate() {
         super.onCreate()
+        connectionNotifications=ConnectionNotifications(this,mainHandler)
         notifications.createNotificationChannel(NotificationChannel(
             CHANNEL_ID, getString(R.string.notification_channel), NotificationManager.IMPORTANCE_LOW
         ))
@@ -52,6 +54,7 @@ class ProxyService : Service() {
         when (intent?.action) {
             ACTION_STOP -> {
                 stopping = true
+                connectionNotifications?.close();connectionNotifications=null
                 if (!fatalError) ProxyState.snapshot = ProxyState.snapshot.copy(phase = ProxyPhase.STOPPING, issue = null)
                 stopSelf()
             }
@@ -89,8 +92,10 @@ class ProxyService : Service() {
                     try {
                         val monitor=AndroidNetworkMonitor(this,mainHandler){changed,view->
                             if(!destroyed && !stopping){
-                                ProxyState.snapshot=ProxyState.snapshot.copy(network=view)
-                                if(changed){transportFactory?.invalidate();disconnectForNetworkChange()}
+                                ProxyState.snapshot=ProxyState.snapshot.copy(network=view,
+                                    health=if(changed)ProxyState.snapshot.health.copy(active=emptyList())else ProxyState.snapshot.health)
+                                if(changed){disconnectForNetworkChange();transportFactory?.invalidate()}
+                                connectionNotifications?.update(ProxyState.snapshot)
                             }
                         }
                         networkMonitor=monitor
@@ -106,7 +111,9 @@ class ProxyService : Service() {
                             onFatalError = { mainHandler.post { if (!destroyed && !stopping) fail(ProxyState.snapshot.issue ?: ProxyIssue.SESSION) } },
                             relayEndpoint = if(settings.transport.mode==io.github.kust3r3nk0.tgwsandroid.core.TransportMode.RELAY_ONLY)RelayEndpoint.parse(settings.relayUrl)else null,
                             transports=factory,
-                            transportSettings=settings.transport
+                            transportSettings=settings.transport,
+                            ownRelayEndpoint=RelayEndpoint.parse(settings.relayUrl),
+                            initialNetwork=connectionNetwork(ProxyState.snapshot.network.kind)
                         )
                         server?.start()
                     } catch (_: Exception) {
@@ -132,6 +139,7 @@ class ProxyService : Service() {
         // replace the cause of a fatal listener failure with another session's issue.
         if (destroyed || stopping || fatalError) return
         when (event) {
+            is ServerEvent.Health->{ProxyState.snapshot=ProxyState.snapshot.copy(health=event.health);connectionNotifications?.update(ProxyState.snapshot);return}
             is ServerEvent.Closed -> { ProxyState.record(sessionEvent(event.session,System.currentTimeMillis()));return }
             is ServerEvent.Routes -> { ProxyState.snapshot=ProxyState.snapshot.copy(routes=event.routes);return }
             is ServerEvent.Traffic -> { ProxyState.snapshot=ProxyState.snapshot.copy(sent=event.sent,received=event.received);return }
@@ -180,6 +188,7 @@ class ProxyService : Service() {
                 ProxyState.snapshot = ProxyState.snapshot.copy(issue = issue)
             }
         }
+        connectionNotifications?.update(ProxyState.snapshot)
         if (ProxyState.snapshot.running) notifications.notify(NOTIFICATION_ID, notification())
     }
 
@@ -192,15 +201,17 @@ class ProxyService : Service() {
         stopping = true
         loading = false
         ProxyState.snapshot = ProxyState.snapshot.copy(phase = ProxyPhase.ERROR, issue = issue)
+        connectionNotifications?.update(ProxyState.snapshot)
         stopSelf()
     }
 
     private fun disconnectForNetworkChange() {
         if (destroyed || stopping) return
+        if(server!=null)ProxyState.networkReset()
         if (ProxyState.snapshot.sessions > 0 || ProxyState.snapshot.pending > 0) {
             ProxyState.snapshot = ProxyState.snapshot.copy(issue = ProxyIssue.NETWORK_CHANGED)
         }
-        server?.disconnectSessions()
+        server?.disconnectSessions(connectionNetwork(ProxyState.snapshot.network.kind))
     }
 
     private fun notification(): Notification {
@@ -219,8 +230,10 @@ class ProxyService : Service() {
 
     override fun onDestroy() {
         destroyed = true
+        connectionNotifications?.close();connectionNotifications=null
         networkMonitor?.close();networkMonitor=null
         server?.stop()
+        server?.trafficTotals()?.let{totals->ProxyState.snapshot=ProxyState.snapshot.copy(sent=totals.first,received=totals.second)}
         drainClosedSessions()
         server = null
         transportFactory?.close();transportFactory=null

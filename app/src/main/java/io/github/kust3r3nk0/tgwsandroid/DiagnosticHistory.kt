@@ -12,7 +12,7 @@ import io.github.kust3r3nk0.tgwsandroid.core.SessionEndReason
 
 internal enum class EventCategory { SERVICE, CONFIGURATION, NETWORK, DNS, TLS, TCP, WSS, RELAY, HTTP2, ROUTE, CLIENT, WEBVIEW, CHECK }
 internal enum class EventLevel { INFO, WARNING, ERROR }
-internal enum class EventKind { STATE, NETWORK, ISSUE, CLIENT_REJECTED, CLIENT_CLOSED, ROUTE_READY, ROUTE_FAILED, ROUTE_CLOSED, WARMUP_FAILED, PROVIDER, LOCAL_CHECK, SESSION_CLOSED }
+internal enum class EventKind { STATE, NETWORK, ISSUE, CLIENT_REJECTED, CLIENT_CLOSED, ROUTE_READY, ROUTE_FAILED, ROUTE_CLOSED, WARMUP_FAILED, PROVIDER, LOCAL_CHECK, SESSION_CLOSED, ROUTE_SELECTED }
 /** Deliberately excludes SetupTimings.resolvedAddresses and all configuration strings. */
 internal data class EventRoute(val id:Int,val dc:Int,val media:Boolean,val stage:RouteStage,val attempts:Int,
     val setupMillis:Long?,val dnsMillis:Long?,val tcpMillis:Long?,val tlsMillis:Long?,val httpMillis:Long?,
@@ -28,7 +28,8 @@ internal data class DiagnosticEvent(val timeMillis: Long, val category: EventCat
     val rejection:HandshakeRejection?=null,val route:EventRoute?=null,val network:AccessKind?=null,
     val validated:Boolean?=null,val ipv4:Boolean?=null,val ipv6:Boolean?=null,
     val provider:WebViewStatus?=null,val localCheck:LocalCheckResult?=null,
-    val occurrences:Int=1,val lastTimeMillis:Long=timeMillis,val session:SessionClosed?=null)
+    val occurrences:Int=1,val lastTimeMillis:Long=timeMillis,val session:SessionClosed?=null,
+    val selection:io.github.kust3r3nk0.tgwsandroid.core.RouteSelection?=null)
 internal data class SetupSample(val timeMillis: Long, val millis: Long, val transport: TransportKind)
 internal data class DiagnosticHistoryState(val events: List<DiagnosticEvent> = emptyList(),
     val samples: List<SetupSample> = emptyList(), val startedElapsed: Long? = null,
@@ -78,6 +79,9 @@ internal class DiagnosticHistory(private val onEvent:(DiagnosticEvent)->Unit={})
         if(!next.running && old.running)result=result.copy(stoppedElapsed=elapsed)
         if(enabled) {
             val events=mutableListOf<DiagnosticEvent>()
+            if(next.health.selection!=null && next.health.selection!=old.health.selection)
+                events+=DiagnosticEvent(wall,EventCategory.ROUTE,true,kind=EventKind.ROUTE_SELECTED,
+                    transport=next.health.selection.transport,selection=next.health.selection)
             if(old.phase!=next.phase)events+=DiagnosticEvent(wall,EventCategory.SERVICE,
                 next.phase!=ProxyPhase.ERROR,phase=next.phase,issue=next.issue.takeIf{next.phase==ProxyPhase.ERROR},kind=EventKind.STATE,
                 level=if(next.phase==ProxyPhase.ERROR)EventLevel.ERROR else EventLevel.INFO)

@@ -79,6 +79,7 @@ import kotlinx.coroutines.delay
         s.routes.filter{it.status==RouteStatus.AVAILABLE && it.kind in setOf(TransportKind.RELAY,TransportKind.WORKER,TransportKind.CLOUDFLARE,TransportKind.HTTP2)}
             .maxByOrNull{it.checkedAtMillis}?.setupMillis?.let{Text(stringResource(R.string.premium_setup_value,it),style=MaterialTheme.typography.bodySmall)}
     }
+    if(transport.profiles.enabled)ConnectionHealthCard(s.health,compact=true)
     Text(stringResource(R.string.premium_quick_actions),style=MaterialTheme.typography.titleSmall)
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
         Action(R.string.premium_share,R.drawable.ic_premium_share,"telegram.share",ready&&valid,onShare,Modifier.weight(1f))
@@ -131,6 +132,8 @@ import kotlinx.coroutines.delay
             s.lastHandshakeRejection?.let{Text(stringResource(rejectionResource(it)),style=MaterialTheme.typography.bodySmall)}
         }
     }
+    ConnectionHealthCard(s.health,nowMillis=System.nanoTime()/1_000_000)
+    LiveTrafficCard(ProxyState.traffic,s,now)
     SectionCard(stringResource(R.string.premium_setup_chart),Modifier.testTag("diagnostics.latency")){
         Text(history.samples.lastOrNull()?.let{stringResource(R.string.premium_millis,it.millis)}?:stringResource(R.string.premium_no_measurements),style=MaterialTheme.typography.headlineSmall)
         val values=history.samples

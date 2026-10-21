@@ -32,9 +32,10 @@ failures; test sustained large transfers on a suitable origin relay.
 Share only version/code, mode, failing step/direction, outcome and a reviewed safe
 diagnostic report. CI/local peers do not certify real Telegram/Cloudflare stability.
 
-## 0.5.0 — Smart Connection Update · planned
+## 0.5.0 — Smart Connection Update · test update
 
-Separate branch/PR after 0.4.2 acceptance. Implement bounded, decaying route
+PR #26 is merged and the owner authorized stage 0.5.0 on a separate branch.
+See [implementation and acceptance](SMART_CONNECTION_0.5.0.md). Implement bounded, decaying route
 statistics and automatic/manual/fallback selection only among user-authorized
 transports compatible with DC/media. Add automatic/Wi-Fi/mobile/custom network
 profiles, connection health (including insufficient data), bounded real traffic
@@ -57,3 +58,5 @@ Each stage provides a PR, reproducible APK, source SHA, checksum and limitations
 No built-in Cloudflare DNS, weakened TLS/auth/DC allowlist, VPN, hidden WebView
 or Zapret. Never auto-merge. Stable requires trusted Release signing and explicit
 owner device acceptance and publication approval.
+
+[0.5.0 implementation, setup and acceptance](SMART_CONNECTION_0.5.0.md).

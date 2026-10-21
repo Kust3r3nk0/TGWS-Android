@@ -30,9 +30,9 @@ class UpdateSystemInstrumentedTest {
         while(!condition()){check(SystemClock.elapsedRealtime()<end){"Android update handoff deadline"};SystemClock.sleep(20)}}
     @Test fun notificationHasCorrectTextAndOpensTheExistingUpdateCenter()=runBlocking<Unit> {
         instrumentation.uiAutomation.grantRuntimePermission(context.packageName,Manifest.permission.POST_NOTIFICATIONS)
-        val http=FixtureUpdateHttp().apply{release("0.4.3-alpha",21,true)}
+        val http=FixtureUpdateHttp().apply{release("0.5.1-alpha",22,true)}
         val storage=MemoryUpdatePersistence().apply{preferences=UpdateOptions(channel=UpdateChannel.PREVIEW)}
-        val repo=UpdateRepository(storage,GithubUpdateSource(http),"0.4.2",20,android.os.Build.VERSION.SDK_INT)
+        val repo=UpdateRepository(storage,GithubUpdateSource(http),"0.5.0",21,android.os.Build.VERSION.SDK_INT)
         repo.initialize();val release=repo.check()!!;UpdateGraph.useForTests(repo)
         val manager=context.getSystemService(NotificationManager::class.java)
         val id=(release.id and 0x7fffffff).toInt()

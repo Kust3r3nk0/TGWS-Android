@@ -9,6 +9,7 @@ internal fun diagnosticLogLine(e:DiagnosticEvent)=buildString {
     e.transport?.let{append(" transport=").append(it.name)}
     e.rejection?.let{append(" rejection=").append(it.name)}
     e.rejected?.let{append(" rejected_total=").append(it)}
+    e.selection?.let{append(" profile=").append(it.profile.name).append(" selection=").append(it.reason.name).append(" backup=").append(it.backup)}
     e.route?.let{r->
         append(" route=").append(r.id).append(" dc=").append(r.dc).append(" media=").append(r.media)
         append(" stage=").append(r.stage.name).append(" attempts=").append(r.attempts)

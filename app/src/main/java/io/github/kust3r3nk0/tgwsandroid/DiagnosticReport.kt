@@ -37,7 +37,8 @@ internal object DiagnosticReport {
                 .append(", \"upgrade\": ").append(upgradeJson(route.upgrade))
                 .append(", \"retry_ms\": ").append(route.retryInMillis?:"null").append('}')
         }
-        append("\n  ],\n  \"webview\": ").append(providerJson(provider))
+        append("\n  ],\n  \"connection_health\": ").append(healthJson(value.health))
+        append(",\n  \"webview\": ").append(providerJson(provider))
         append(",\n  \"events\": [")
         history.events.takeLast(DiagnosticHistory.MAX_EVENTS).forEachIndexed{index,e->
             if(index>0)append(',')
@@ -66,6 +67,7 @@ internal object DiagnosticReport {
                 append(", \"upgrade\": ").append(upgradeJson(s.upgrade)).append('}')
             }
             e.provider?.let{append(", \"webview\": ").append(providerJson(it))}
+            e.selection?.let{append(", \"selection\": ").append(selectionJson(it))}
             e.localCheck?.let{append(", \"local_check\": ").append(json(it.outcome.name)).append(", \"local_check_ms\": ").append(it.millis?:"null")}
             append('}')
         }
@@ -74,6 +76,19 @@ internal object DiagnosticReport {
 
     private fun upgradeJson(d:io.github.kust3r3nk0.tgwsandroid.core.HttpUpgradeDiagnostic?):String =
         if(d==null)"null" else "{\"status\": ${d.status?:"null"}, \"failure\": ${json(d.failure?.name)}, \"relay_reason\": ${json(d.relayReason?.name)}, \"retry_after_ms\": ${d.retryAfterMillis?:"null"}}"
+
+    private fun selectionJson(s:io.github.kust3r3nk0.tgwsandroid.core.RouteSelection)=
+        "{\"profile\": ${json(s.profile.name)}, \"transport\": ${json(s.transport.name)}, \"dc\": ${s.dc}, \"media\": ${s.media}, \"reason\": ${json(s.reason.name)}, \"backup\": ${s.backup}}"
+    private fun healthJson(h:io.github.kust3r3nk0.tgwsandroid.core.ConnectionHealth):String=buildString {
+        append("{\"enabled\": ").append(h.enabled).append(", \"profile\": ").append(json(h.profile.name))
+        append(", \"quality\": ").append(json(h.quality.name)).append(", \"attempts\": ").append(h.attempts)
+        append(", \"setup_succeeded\": ").append(h.setupSucceeded).append(", \"with_inbound_data\": ").append(h.withInboundData)
+        append(", \"failures\": ").append(h.failures).append(", \"abnormal_closures\": ").append(h.abnormalClosures)
+        append(", \"success_percent\": ").append(h.successPercent?:"null").append(", \"setup_ms\": ").append(h.averageSetupMillis?:"null")
+        append(", \"selection\": ").append(h.selection?.let(::selectionJson)?:"null").append(", \"active\": [")
+        append(h.active.take(8).joinToString(","){s->"{\"id\": ${s.id}, \"dc\": ${s.dc}, \"media\": ${s.media}, \"transport\": ${json(s.transport.name)}, \"duration_ms\": ${s.durationMillis}, \"inbound_data\": ${s.inboundProgress}}"})
+        append("]}")
+    }
 
     private fun providerJson(p:WebViewStatus):String {
         // Re-sanitize even externally constructed/test snapshots before serializing.
