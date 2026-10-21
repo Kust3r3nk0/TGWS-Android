@@ -5,6 +5,16 @@ import org.junit.Test
 import io.github.kust3r3nk0.tgwsandroid.core.*
 
 class DiagnosticReportTest {
+    @Test fun healthAndSelectionExportOnlyTypedBoundedEvidence(){
+        val selection=RouteSelection(ProfileId.MOBILE,TransportKind.WORKER,4,true,SelectionReason.FALLBACK,true)
+        val health=ConnectionHealth(enabled=true,attempts=7,withInboundData=5,selection=selection,
+            active=List(100){ActiveConnection(it.toLong(),4,true,TransportKind.WORKER,1234,true)})
+        val snapshot=ProxySnapshot(health=health)
+        val report=DiagnosticReport.render(snapshot)
+        assertTrue(report.contains("\"connection_health\""));assertTrue(report.contains("\"reason\": \"FALLBACK\""))
+        assertEquals(8,Regex("\"duration_ms\": 1234").findAll(report).count())
+        assertTrue(report.contains("\"success_percent\": null"));assertFalse(report.contains("endpoint"))
+    }
     @Test fun mediaRouteIncludesTrafficAndSafeWorkerCloseCategory(){
         val snapshot=ProxySnapshot(routes=listOf(RouteObservation(1,1,true,TransportKind.RELAY,
             RouteStatus.UNAVAILABLE,RouteStage.CLOSED,ServerIssue.RELAY,sent=4096,received=512,

@@ -41,12 +41,13 @@ import io.github.kust3r3nk0.tgwsandroid.core.TransportMode
         }
     }
 }
-@Composable internal fun PremiumSettings(onPage:(Int)->Unit,theme:ThemeMode,mode:TransportMode,recording:Boolean){
+@Composable internal fun PremiumSettings(onPage:(Int)->Unit,theme:ThemeMode,mode:TransportMode,recording:Boolean,smart:Boolean=false){
     SettingsGroup(stringResource(R.string.premium_connection)){
         SettingsRow(R.string.mtproxy_settings,stringResource(R.string.premium_connection_summary),"settings.connection",R.drawable.ic_premium_link){onPage(5)}
     }
     SettingsGroup(stringResource(R.string.transport_settings)){
         SettingsRow(R.string.premium_transport,stringResource(modeResource(mode)),"settings.transport",R.drawable.ic_premium_hub){onPage(6)}
+        SettingsRow(R.string.smart_title,stringResource(if(smart)R.string.smart_enabled_summary else R.string.smart_disabled_summary),"settings.smart",R.drawable.ic_premium_route){onPage(10)}
     }
     SettingsGroup(stringResource(R.string.appearance_title)){
         SettingsRow(R.string.premium_appearance,stringResource(when(theme){ThemeMode.SYSTEM->R.string.theme_system;ThemeMode.DARK->R.string.theme_dark;ThemeMode.LIGHT->R.string.theme_light}),"settings.appearance",R.drawable.ic_sun){onPage(7)}

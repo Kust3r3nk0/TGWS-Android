@@ -3,6 +3,15 @@
 Текущая минимальная ОС: **Android 16 / API 36** (указание владельца 17 октября 2026). Поддерживаются только API 36 и новее. Основа разработки — [ТЗ и уточнения](docs/DEVELOPMENT_BASELINE.md).
 
 
+## 0.5.0 — Smart Connection Update · тестовое обновление
+
+- [x] Пассивный Smart Routing с разрешениями и независимыми DC/media
+- [x] Четыре сетевых профиля, AUTO/MANUAL/FAILOVER, recovery и энергосбережение
+- [x] Health Monitor, ограниченный Live Traffic и безопасные причины выбора
+- [x] Необязательные уведомления с задержкой и подавлением повторов
+- [x] Сохранение старых настроек; отдельная зашифрованная конфигурация профилей
+- Автоматическая проверка и физическая приёмка разделены; [настройка и ограничения](docs/SMART_CONNECTION_0.5.0.md).
+
 ## 0.4.2 — Relay Stability Fix · тестовое обновление
 
 - [x] Аудит MtprotoServer, RouteBackoff, RawWebSocket, NetworkTransportFactory, WarmConnectionPool, NetworkConnector, RouteDiagnostics, ProxyService и Worker
@@ -16,7 +25,7 @@
 
 ## Следующие этапы Smart Connection Update
 
-- **0.5.0**, после проверки 0.4.2: Smart Routing, сетевые профили, Health/Live Traffic Monitor и необязательные уведомления.
+- **0.5.0**: реализован в отдельной ветке как тестовое обновление; физическая приёмка отдельная.
 - **0.6.0**, после Smart Routing: несколько VPS-реле, Media Optimizer, энергопотребление и Android lifecycle.
 - Каждый этап — отдельная ветка/PR и Debug-приёмка; эти функции не заявляются реализованными в 0.4.2.
 

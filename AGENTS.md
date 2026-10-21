@@ -8,7 +8,7 @@ English guide: [docs/en/CODEX_WORKFLOW.md](docs/en/CODEX_WORKFLOW.md).
 - Это **Android-приложение локального MTProto WebSocket-прокси**, а не системный VPN. Не меняйте назначение проекта без явного требования.
 - Исполняемый код: Kotlin, Jetpack Compose, Android foreground service и сетевое ядро.
 - Поддерживаемая версия Android: **16+ (minSdk 36)**. Фактические версии AGP, Kotlin, Gradle, compileSdk и targetSdk берите из файлов Gradle, а не из устаревшего текста документации.
-- Текущая разработка — **тестовое обновление 0.4.2 на базе 0.4.1 и кандидата 0.4.0**, с отдельным Stable release gate. Не представляйте наличие исходников, компиляцию или JVM-тесты как доказательство работы прокси на реальном устройстве.
+- Текущая разработка — **тестовое обновление 0.5.0 на базе объединённого 0.4.2**, с отдельным Stable release gate. Не представляйте наличие исходников, компиляцию или JVM-тесты как доказательство работы прокси на реальном устройстве.
 
 ## Один запрос с ТЗ — один проход реализации
 
@@ -105,7 +105,15 @@ Windows: `gradlew.bat`. Для CI также требуется Android SDK с �
 ## 0.4.2 — Relay Stability Fix
 
 - Версия 0.4.2/code 20 (Debug revision 2); API 36+, UI и защищённые настройки сохранены.
-- Smart Connection Update: сначала приёмка 0.4.2; 0.5.0 Smart Routing и 0.6.0 VPS/Media выполняются отдельно. [Контракт этапов](docs/SMART_CONNECTION_UPDATE.md).
+- Smart Connection Update: PR #26 объединён; владелец разрешил этап 0.5.0. VPS/Media 0.6.0 выполняется отдельно. [Контракт этапов](docs/SMART_CONNECTION_UPDATE.md).
 - Не увеличивать Worker sessions/bytes/queue; причины Upgrade/Close только числа и enums.
 - Обновлять APK и Worker отдельно; deploy аккаунта владельца не выполняется автоматически.
 - [Аудит и инструкция Worker](docs/RELAY_STABILITY_0.4.2.md); физическую устойчивость не считать подтверждённой по CI.
+
+## 0.5.0 — Smart Connection Update
+
+- Opt-in профили в существующем encrypted transport record, без автоматической замены ключей/секретов.
+- SmartRouting — пассивные ограниченные наблюдения, generation-safe, только новые сессии, без replay.
+- MANUAL/relay-only не обходят разрешения; socket setup не доказывает Telegram.
+- Worker/очереди/лимиты не повышать; multi-VPS и Media Optimizer — 0.6.0.
+- [Реализация, ограничения и приёмка](docs/SMART_CONNECTION_0.5.0.md).

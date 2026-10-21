@@ -94,7 +94,7 @@ class SettingsStore(context: Context) {
         val previous=loadTransport(loadRelay())
         val config=transport?:if(relayUrl==null)previous else TransportSettings(
             if(relay.isEmpty())TransportMode.DIRECT else TransportMode.RELAY_ONLY,previous.fakeTlsDomain,
-            previous.cloudflareDomains,previous.workerUrls,false)
+            previous.cloudflareDomains,previous.workerUrls,false,previous.profiles)
         validate(port, secret, relay)
         // A UI edit cannot silently overwrite settings after loss of the Keystore key.
         record()?.let(::decrypt) ?: requireFirstUse()

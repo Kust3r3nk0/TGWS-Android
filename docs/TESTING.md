@@ -31,3 +31,16 @@ CI также выполняет реальные 60-секундные лока
 [Физическая приёмка и последующие этапы](SMART_CONNECTION_UPDATE.md).
 
 Личные отчёты, сведения о телефонах и операторах в приложении/репозитории не публикуются. Обратная связь обсуждается в чате разработки. [Обязанности](TGWS-16-017_PHYSICAL_TESTING.md).
+
+## 0.5.0 Smart Connection
+
+ConnectionProfilesTest/SmartRoutingTest проверяют legacy codec, разрешения,
+затухание/границы, generation reset, единичную пробу и saver. SmartConnectionNetworkTest
+передаёт реальные зашифрованные MTProto ef/ee/dd через локальные TCP и TLS/WSS,
+с media/DC и закрытием старой сети. Server tests покрывают manual/probe/strict
+fallback, одинаковые endpoints и отсутствие dummy CF. TrafficHistoryTest и
+ConnectionAlertPolicyTest используют управляемые часы без sleep/polling сети.
+SmartConnectionInstrumentedTest проверяет сохранение профиля/Keystore при Activity
+recreation, честное отсутствие измерений и opt-in Android notifications.
+
+[0.5.0](SMART_CONNECTION_0.5.0.md)

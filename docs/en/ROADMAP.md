@@ -3,6 +3,15 @@
 Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Only API 36 and newer are supported. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
 
+## 0.5.0 — Smart Connection Update · test update
+
+- [x] Passive permission-aware Smart Routing scoped to DC/media
+- [x] Four network profiles, AUTO/MANUAL/FAILOVER, recovery and power policy
+- [x] Health Monitor, bounded Live Traffic and typed route-selection reasons
+- [x] Optional delayed/deduplicated notifications
+- [x] Legacy settings compatibility and encrypted profile persistence
+- Automated evidence is separate from device acceptance; [setup/limits](SMART_CONNECTION_0.5.0.md).
+
 ## 0.4.2 — Relay Stability Fix · test update
 
 - [x] Audit of server, backoff, WebSocket, network factory/connector, warm pool, route diagnostics, Android service and Worker
@@ -16,7 +25,7 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 
 ## Next Smart Connection stages
 
-- **0.5.0**, after testing 0.4.2: Smart Routing, network profiles, Health/Live Traffic Monitor and optional notifications.
+- **0.5.0**: implemented on a separate branch as a test update; device acceptance remains separate.
 - **0.6.0**, after Smart Routing: multiple VPS relays, Media Optimizer and Android power/lifecycle work.
 - Separate branches/PRs and device acceptance; these features are not claimed in 0.4.2.
 

@@ -38,8 +38,8 @@ class UpdateUiInstrumentedTest {
         instrumentation.waitForIdleSync()
         AppPreferences(context).theme=ThemeMode.DARK
         storage=MemoryUpdatePersistence().apply{preferences=UpdateOptions(channel=UpdateChannel.PREVIEW)}
-        http.release("0.4.3-alpha",21,true).put("body","## Новые функции\n- Центр обновлений и фоновая проверка новых версий.\n## Исправления\n- Проверка подписи APK перед установкой.\n## Оптимизация\n- Ограничение буферов и отмена загрузки.")
-        repository=UpdateRepository(storage,GithubUpdateSource(http),"0.4.2",20,android.os.Build.VERSION.SDK_INT,{System.currentTimeMillis()-120000})
+        http.release("0.5.1-alpha",22,true).put("body","## Новые функции\n- Центр обновлений и фоновая проверка новых версий.\n## Исправления\n- Проверка подписи APK перед установкой.\n## Оптимизация\n- Ограничение буферов и отмена загрузки.")
+        repository=UpdateRepository(storage,GithubUpdateSource(http),"0.5.0",21,android.os.Build.VERSION.SDK_INT,{System.currentTimeMillis()-120000})
         runBlocking{repository.initialize()};UpdateGraph.useForTests(repository)
     }
     @After fun cleanup(){
@@ -70,7 +70,7 @@ class UpdateUiInstrumentedTest {
             val savedScroll=ui.onNodeWithTag("page.scroll").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
             click("settings.update.center")
             ui.waitUntil(10000){repository.state.value.release!=null}
-            ui.onNodeWithTag("updates.version").assertTextEquals("v0.4.3-alpha")
+            ui.onNodeWithTag("updates.version").assertTextEquals("v0.5.1-alpha")
             shot("updates-center-dark")
             click("updates.settings");ui.onNodeWithTag("updates.period.360").assertIsSelected()
             ui.onNodeWithTag("updates.back").assertIsDisplayed()
@@ -82,6 +82,9 @@ class UpdateUiInstrumentedTest {
             scroll("updates.period.720");ui.onNodeWithTag("updates.period.720").assertIsSelected().assertIsNotEnabled()
             var launchIntent:Intent?=null
             scenario.onActivity{launchIntent=Intent(it.intent);it.startActivity(Intent(it,MainActivity::class.java).putExtra(OPEN_UPDATES,true).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP))}
+            // A new foreground window can briefly have no Compose root while
+            // Android delivers the intent; await the real destination, not a delay.
+            ui.waitUntil(10000){ui.onAllNodesWithTag("updates.hero").fetchSemanticsNodes(atLeastOneRootRequired=false).size==1}
             ui.onNodeWithTag("updates.hero").assertExists()
             scenario.onActivity{assertTrue(it.intent.filterEquals(launchIntent))}
             assertEquals(720L,storage.options().minutes);assertFalse(storage.options().auto)
@@ -110,7 +113,7 @@ class UpdateUiInstrumentedTest {
     }
     @Test fun largeFontGlassAndTransparencyKeepActionsAccessible(){
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
-            val release=runBlocking{GithubUpdateSource(http).check("0.4.2",20,36,UpdateChannel.PREVIEW)}!!
+            val release=runBlocking{GithubUpdateSource(http).check("0.5.0",21,36,UpdateChannel.PREVIEW)}!!
             var page by mutableIntStateOf(2);var checks=0
             scenario.onActivity{it.setContent{TgwsTheme(ThemeMode.DARK,true,true){
                 val density=LocalDensity.current

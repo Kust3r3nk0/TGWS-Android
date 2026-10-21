@@ -19,6 +19,88 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 class MtprotoServerTest {
+    @Test fun smartAutomaticCanUseDirectWssWithoutDummyCloudflareConfiguration(){
+        val port=freePort();val events=Events();val factory=FakeFactory(failWss=false)
+        val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,profiles=ConnectionProfiles(enabled=true))
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,transportSettings=settings).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->client.getOutputStream().write(init().bytes);await("Direct WSS missing"){events.sessions(1,0)}
+                assertEquals(1,factory.wss.size);assertTrue(factory.tcp.isEmpty())
+                server.stop();assertClosed(client)}
+        }
+    }
+    @Test fun duplicatedOwnAndWorkerEndpointCannotConsumeTwoAttemptsOrBypassEndpointCooldown(){
+        val port=freePort();val events=Events();val calls=AtomicInteger();val direct=FakeFactory(failWss=false)
+        val factory=object:TransportFactory by direct {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                calls.incrementAndGet()
+                throw WebSocketUpgradeException(HttpUpgradeDiagnostic(503,UpgradeFailure.STATUS,RelayUpgradeReason.CAPACITY,60_000))
+            }
+        }
+        val url="wss://relay.example/private-token/apiws"
+        val profile=ConnectionProfile(primary=TransportKind.RELAY,backups=TransportKind.entries.toSet()-TransportKind.RELAY)
+        val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,workerUrls=listOf(url),
+            profiles=ConnectionProfiles(enabled=true,automaticNetwork=false,automatic=profile))
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,transportSettings=settings,
+            ownRelayEndpoint=RelayEndpoint.parse(url)).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            for(dc in listOf(2,4))connect(port).use{client->
+                client.getOutputStream().write(init(dc).bytes);await("Independent WSS fallback missing"){events.sessions(1,0)}
+                client.shutdownOutput();assertClosed(client);await("Session leaked"){events.sessions(0,0)}
+            }
+            assertEquals(1,calls.get());assertTrue(direct.tcp.isEmpty());assertEquals(2,direct.wss.size)
+            assertFalse(events.all.toString().contains("private-token"))
+        }
+    }
+    @Test fun smartProfilesSwitchOnlyNewSessionsAndManualProbeHonorsTransportPermission(){
+        val port=freePort();val events=Events();val factory=FakeFactory(failWss=false)
+        val tcp=ConnectionProfile(mode=RoutingMode.MANUAL,primary=TransportKind.TCP,backups=emptySet())
+        val wss=ConnectionProfile(mode=RoutingMode.MANUAL,primary=TransportKind.WSS,backups=emptySet())
+        val profiles=ConnectionProfiles(enabled=true,wifi=tcp,mobile=wss)
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,
+            transportSettings=TransportSettings(profiles=profiles),initialNetwork=ConnectionNetwork.WIFI).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            assertTrue(server.probeRoutes())
+            await("Manual TCP probe missing"){factory.channels.firstOrNull()?.closed?.count==0L}
+            assertTrue(factory.wss.isEmpty());assertTrue(factory.channels.first().sent.isEmpty())
+            connect(port).use{first->
+                first.getOutputStream().write(init().bytes);await("TCP profile not applied"){events.sessions(1,0)}
+                assertTrue(factory.wss.isEmpty());assertEquals(2,factory.tcp.size)
+                server.disconnectSessions(ConnectionNetwork.MOBILE);assertClosed(first)
+                connect(port).use{next->
+                    next.getOutputStream().write(init().bytes);await("Mobile WSS profile not applied"){events.sessions(1,0) && factory.wss.isNotEmpty()}
+                    assertEquals(2,factory.tcp.size)
+                    await("Profile health not published"){events.all.filterIsInstance<ServerEvent.Health>().lastOrNull()?.health?.profile==ProfileId.MOBILE}
+                    assertEquals(1,events.all.filterIsInstance<ServerEvent.Health>().last().health.attempts)
+                    server.stop();assertClosed(next)
+                }
+            }
+            assertTrue(events.all.filterIsInstance<ServerEvent.Closed>().any{it.session.reason==SessionEndReason.NETWORK_CHANGED})
+        }
+    }
+    @Test fun incompatibleManualProfileFailsWithoutOpeningAnyAlternative(){
+        val port=freePort();val events=Events();val factory=FakeFactory(failWss=false)
+        val manual=ConnectionProfile(mode=RoutingMode.MANUAL,primary=TransportKind.WORKER,backups=emptySet())
+        val profiles=ConnectionProfiles(enabled=true,automaticNetwork=false,custom=manual,selected=ProfileId.CUSTOM)
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,transportSettings=TransportSettings(profiles=profiles)).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->client.getOutputStream().write(init().bytes);assertClosed(client)}
+            await("Missing configuration failure"){events.issue(ServerIssue.CONFIGURATION)}
+            assertTrue(factory.tcp.isEmpty());assertTrue(factory.wss.isEmpty())
+        }
+    }
+    @Test fun powerSavingProfileNeverStartsAnUnusedWarmConnection(){
+        val port=freePort();val events=Events();val base=FakeFactory(failWss=false)
+        val factory=object:TransportFactory by base{override val supportsWarmWebSockets=true}
+        val profiles=ConnectionProfiles(enabled=true,automaticNetwork=false,automatic=ConnectionProfile(power=PowerPolicy.SAVER))
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,transportSettings=TransportSettings(profiles=profiles)).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->client.getOutputStream().write(init().bytes);await("WSS missing"){events.sessions(1,0)}
+                assertEquals(0 to 0,server.warmConnections());assertEquals(1,base.wss.size)
+                server.stop();assertClosed(client)}
+        }
+    }
+
     @Test fun slowAutomaticWssRoutesLeaveSetupBudgetForTcpInsteadOfExtendingDeadline() {
         val port=freePort();val events=Events();val workerCalls=AtomicInteger();val cfCalls=AtomicInteger()
         val tcp=Channel(TransportKind.TCP)

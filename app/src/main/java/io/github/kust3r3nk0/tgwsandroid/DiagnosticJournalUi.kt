@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.dp
     val c=MaterialTheme.colorScheme
     val time=remember(e.timeMillis){java.text.DateFormat.getTimeInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(e.timeMillis))}
     val message=when{
+        e.selection!=null->stringResource(R.string.smart_selection,stringResource(kindResource(e.selection.transport)),stringResource(selectionResource(e.selection.reason)),e.selection.dc)
         e.session!=null->stringResource(R.string.journal_session_ended,e.session.id.toString(),e.session.reason.name)
         e.phase!=null->stringResource(statusResource(e.phase))
         e.rejection!=null->stringResource(rejectionResource(e.rejection))

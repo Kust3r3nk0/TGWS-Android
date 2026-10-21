@@ -26,3 +26,15 @@ write/connect deadlines, stream locks and admission until both resources close.
 Its 16 MiB lifetime cap is retained. [Owner acceptance and next stages](SMART_CONNECTION_UPDATE.md).
 
 Personal reports, phone and carrier details are not published in the app/repository. Feedback stays in development chat. [Responsibilities](PHYSICAL_TESTING.md).
+
+## 0.5.0 Smart Connection
+
+ConnectionProfiles/SmartRouting tests cover legacy codec, permissions, bounded
+decay, generation reset, controlled probes and saver. SmartConnectionNetworkTest
+passes real encrypted MTProto ef/ee/dd over local TCP and TLS/WSS with DC/media
+and old-network closure. Server tests cover strict manual/probe/fallback, duplicate
+endpoints and no dummy CF. Traffic/alert tests use controlled clocks. Android
+tests check encrypted profiles/Keystore across recreation, honest empty health
+and opt-in actual notifications.
+
+[0.5.0](SMART_CONNECTION_0.5.0.md)
