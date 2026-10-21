@@ -19,6 +19,229 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 class MtprotoServerTest {
+    @Test fun slowAutomaticWssRoutesLeaveSetupBudgetForTcpInsteadOfExtendingDeadline() {
+        val port=freePort();val events=Events();val workerCalls=AtomicInteger();val cfCalls=AtomicInteger()
+        val tcp=Channel(TransportKind.TCP)
+        val factory=object:TransportFactory {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                workerCalls.incrementAndGet()
+                val expired=CountDownLatch(1);own(Closeable{expired.countDown()})
+                assertTrue(expired.await(2,TimeUnit.SECONDS))
+                throw IOException("Controlled stalled Worker")
+            }
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport {
+                cfCalls.incrementAndGet();throw IOException("No budget for further WSS probes")
+            }
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport=tcp.also(own)
+        }
+        val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,
+            workerUrls=listOf("wss://first.example/apiws","wss://second.example/apiws"),
+            cloudflareDomains=listOf("first-cf.example","second-cf.example"))
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,
+            limits=limits.copy(connectTimeoutMillis=1200,wssAttemptTimeoutMillis=500),transportSettings=settings).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->
+                client.getOutputStream().write(init().bytes)
+                await("Slow automatic routes starved TCP fallback"){events.sessions(1,0)}
+                assertEquals(2,workerCalls.get());assertEquals(0,cfCalls.get())
+                assertEquals(1,tcp.sent.size)
+                assertTrue(events.issue(ServerIssue.TIMEOUT))
+                assertFalse(events.all.filterIsInstance<ServerEvent.Closed>().any{it.session.reason==SessionEndReason.CONNECT_TIMEOUT})
+                server.stop();assertClosed(client)
+            }
+        }
+    }
+
+    @Test fun overloadedWorkersAndTheirCooldownCannotBlockIndependentTcpFallback() {
+        val port=freePort();val events=Events();val workerCalls=AtomicInteger()
+        val tcp=CopyOnWriteArrayList<Channel>()
+        val factory=object:TransportFactory {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                workerCalls.incrementAndGet()
+                throw WebSocketUpgradeException(HttpUpgradeDiagnostic(503,UpgradeFailure.STATUS,RelayUpgradeReason.CAPACITY,60_000))
+            }
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport=error("Unexpected direct WSS")
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport=Channel(TransportKind.TCP).also{tcp+=it;own(it)}
+        }
+        val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,
+            workerUrls=listOf("wss://first.example/apiws","wss://second.example/apiws"))
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,transportSettings=settings).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{first->
+                first.getOutputStream().write(init(2).bytes)
+                await("Both Worker failures prevented TCP fallback"){events.sessions(1,0)}
+                connect(port).use{second->
+                    second.getOutputStream().write(init(4).bytes)
+                    // A 60-second endpoint cooldown is skipped, never slept through.
+                    await("Worker BACKOFF blocked an independent DC/TCP route"){events.sessions(2,0)}
+                    assertEquals(2,workerCalls.get());assertEquals(2,tcp.size)
+                    assertTrue(tcp.all{it.sent.size==1})
+                    val routes=events.all.filterIsInstance<ServerEvent.Routes>().last().routes
+                    assertEquals(2,routes.count{it.kind==TransportKind.TCP && it.status==RouteStatus.AVAILABLE})
+                    assertEquals(2,routes.count{it.kind==TransportKind.WORKER && it.status==RouteStatus.BACKOFF})
+                    assertFalse(events.issue(ServerIssue.RETRY_LATER))
+                    server.stop();assertClosed(first);assertClosed(second)
+                }
+            }
+            assertTrue(tcp.all{it.closed.count==0L})
+        }
+    }
+
+    @Test fun busyNewSessionCannotMarkExistingRelaySessionUnavailable() {
+        val port=freePort();val events=Events();val calls=AtomicInteger();val healthy=Channel(TransportKind.RELAY)
+        val factory=object:TransportFactory {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                if(calls.incrementAndGet()==1)return healthy.also(own)
+                throw WebSocketUpgradeException(HttpUpgradeDiagnostic(503,UpgradeFailure.STATUS,RelayUpgradeReason.CAPACITY,2000))
+            }
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport=error("Unexpected WSS")
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport=error("Unexpected TCP")
+        }
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,
+            relayEndpoint=RelayEndpoint.parse("wss://relay.example/apiws")).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{first->
+                first.getOutputStream().write(init().bytes);await("First session not ready"){events.sessions(1,0)}
+                val available=events.all.filterIsInstance<ServerEvent.Routes>().last().routes.single()
+                connect(port).use{second->second.getOutputStream().write(init().bytes);assertClosed(second)}
+                await("Pending failure leaked"){events.sessions(1,0) && events.all.any{it is ServerEvent.Closed}}
+                val route=events.all.filterIsInstance<ServerEvent.Routes>().last().routes.single()
+                assertEquals(available,route)
+                assertEquals(RelayUpgradeReason.CAPACITY,events.all.filterIsInstance<ServerEvent.Closed>().single().session.upgrade?.relayReason)
+            }
+        }
+    }
+    @Test fun earlyWorkerTcpFailuresCannotRedialUntilRouteCooldown() {
+        val port=freePort();val events=Events();val calls=AtomicInteger()
+        val factory=object:TransportFactory {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                calls.incrementAndGet()
+                return object:RemoteTransport {
+                    override val kind=TransportKind.RELAY
+                    override fun send(data:ByteArray){}
+                    override fun receive():ByteArray?=throw WebSocketPeerCloseException(1011,WebSocketCloseCategory.TCP_ERROR)
+                    override fun close(){}
+                }.also(own)
+            }
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport=error("Unexpected WSS")
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport=error("Unexpected TCP")
+        }
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,
+            relayEndpoint=RelayEndpoint.parse("wss://relay.example/apiws")).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            repeat(3){i->
+                connect(port).use{client->client.getOutputStream().write(init().bytes);assertClosed(client)}
+                await("Close not reported"){events.all.filterIsInstance<ServerEvent.Closed>().size==i+1}
+            }
+            assertEquals(1,calls.get())
+            val endings=events.all.filterIsInstance<ServerEvent.Closed>().map{it.session}
+            assertEquals(SessionEndReason.REMOTE_CLOSE,endings.first().reason)
+            assertEquals(WebSocketCloseCategory.TCP_ERROR,endings.first().peerClose?.category)
+            assertTrue(endings.drop(1).all{it.reason==SessionEndReason.RETRY_BACKOFF})
+        }
+    }
+    @Test fun workerOverloadCooldownIsSharedByDcAndRetainsUpgradeCause() {
+        val port=freePort();val events=Events();val calls=AtomicInteger()
+        val factory=object:TransportFactory {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                calls.incrementAndGet()
+                throw WebSocketUpgradeException(HttpUpgradeDiagnostic(503,UpgradeFailure.STATUS,RelayUpgradeReason.CAPACITY,2000))
+            }
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport=error("Unexpected direct WSS")
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport=error("Unexpected direct TCP")
+        }
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,
+            relayEndpoint=RelayEndpoint.parse("wss://relay.example/private-token/apiws")).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            for(dc in listOf(2,4,5)){
+                connect(port).use{client->client.getOutputStream().write(init(dc).bytes);assertClosed(client)}
+                await("Pending session leaked"){events.sessions(0,0)}
+            }
+            assertEquals(1,calls.get())
+            val closed=events.all.filterIsInstance<ServerEvent.Closed>().map{it.session}
+            assertEquals(3,closed.size);assertEquals(3,closed.map{it.id}.distinct().size)
+            assertEquals(SessionEndReason.SETUP_FAILED,closed.first().reason)
+            assertEquals(503,closed.first().upgrade?.status)
+            assertEquals(RelayUpgradeReason.CAPACITY,closed.first().upgrade?.relayReason)
+            assertEquals(listOf(SessionEndReason.RETRY_BACKOFF,SessionEndReason.RETRY_BACKOFF),closed.drop(1).map{it.reason})
+            val routes=events.all.filterIsInstance<ServerEvent.Routes>().last().routes
+            assertEquals(listOf(RouteStatus.UNAVAILABLE,RouteStatus.BACKOFF,RouteStatus.BACKOFF),routes.map{it.status})
+            assertTrue(routes.all{it.retryInMillis?.let{delay->delay in 1L..2000L}==true})
+            assertFalse(events.all.toString().contains("private-token"))
+            server.disconnectSessions()
+            connect(port).use{client->client.getOutputStream().write(init().bytes);assertClosed(client)}
+            assertEquals(2,calls.get())
+        }
+    }
+
+    @Test fun ordinaryClientEofUsesGracefulTransportCloseBeforeRawSocketAbort() {
+        val port=freePort();val events=Events();val order=CopyOnWriteArrayList<String>()
+        val done=CountDownLatch(1)
+        val factory=object:TransportFactory {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                own(Closeable{order+="raw"})
+                return object:RemoteTransport {
+                    override val kind=TransportKind.RELAY
+                    override fun send(data:ByteArray){}
+                    override fun receive():ByteArray?{done.await();return null}
+                    override fun close(){order+="close";done.countDown()}
+                    override fun abort(){order+="abort";done.countDown()}
+                }.also(own)
+            }
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport=error("Unexpected WSS")
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport=error("Unexpected TCP")
+        }
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,
+            relayEndpoint=RelayEndpoint.parse("wss://relay.example/apiws")).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->
+                client.getOutputStream().write(init().bytes);await("Session not established"){events.sessions(1,0)}
+                client.shutdownOutput();assertClosed(client)
+            }
+            await("Session close not reported"){events.all.filterIsInstance<ServerEvent.Closed>().size==1}
+            // Closed records the first cause before cleanup. Counts are emitted
+            // after every resource has been released; EOF alone can precede it.
+            await("Session resources not released"){events.sessions(0,0)}
+            assertEquals("close",order.first());assertTrue(order.indexOf("close")<order.indexOf("raw"))
+            assertEquals(SessionEndReason.CLIENT_EOF,events.all.filterIsInstance<ServerEvent.Closed>().single().session.reason)
+        }
+    }
+
+    @Test fun closingOneRelaySessionDoesNotHideAnotherLiveSessionOrDuplicateCloseEvents() {
+        val port=freePort();val events=Events();val channels=CopyOnWriteArrayList<CountDownLatch>()
+        val factory=object:TransportFactory {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                val stop=CountDownLatch(1);channels+=stop
+                return object:RemoteTransport {
+                    override val kind=TransportKind.RELAY
+                    override fun send(data:ByteArray){}
+                    override fun receive():ByteArray?{stop.await();throw WebSocketPeerCloseException(1008,WebSocketCloseCategory.BYTE_LIMIT)}
+                    override fun close(){stop.countDown()}
+                }.also(own)
+            }
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport=error("Unexpected WSS")
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport=error("Unexpected TCP")
+        }
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,
+            relayEndpoint=RelayEndpoint.parse("wss://relay.example/apiws")).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{first->
+                first.getOutputStream().write(init().bytes);await("First session not ready"){events.sessions(1,0)}
+                connect(port).use{second->
+                second.getOutputStream().write(init().bytes);await("Second session not ready"){events.sessions(2,0)}
+                channels.first().countDown();assertClosed(first)
+                await("Session close not reported"){events.all.filterIsInstance<ServerEvent.Closed>().size==1}
+                val route=events.all.filterIsInstance<ServerEvent.Routes>().last().routes.single()
+                assertEquals(RouteStatus.AVAILABLE,route.status)
+                val closed=events.all.filterIsInstance<ServerEvent.Closed>().single().session
+                assertEquals(WebSocketClose(1008,WebSocketCloseCategory.BYTE_LIMIT),closed.peerClose)
+                assertEquals(SessionEndReason.REMOTE_CLOSE,closed.reason)
+                server.disconnectSessions();assertClosed(second)
+                await("Network close missing"){events.all.filterIsInstance<ServerEvent.Closed>().size==2}
+                assertEquals(SessionEndReason.NETWORK_CHANGED,events.all.filterIsInstance<ServerEvent.Closed>().last().session.reason)
+            }}
+        }
+    }
     private val secretHex = "00112233445566778899aabbccddeeff"
     private val secret = secretHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
     private val limits = ServerLimits(handshakeTimeoutMillis = 5_000, connectTimeoutMillis = 5_000, idleTimeoutMillis = 5_000)
@@ -345,7 +568,7 @@ class MtprotoServerTest {
     }
 
     @Test fun relayCloseRetainsSafeMetadataAndNormalCloseDoesNotBecomeSessionError() {
-        for (code in listOf(1000, 1008)) {
+        for (code in listOf(1000, 1008, 1011)) {
             val port = freePort()
             val events = Events()
             val closePeer = CountDownLatch(1)
@@ -358,8 +581,8 @@ class MtprotoServerTest {
                         override fun send(data: ByteArray) { assertEquals(64, data.size) }
                         override fun receive(): ByteArray? {
                             check(closePeer.await(3, TimeUnit.SECONDS))
-                            throw WebSocketPeerCloseException(code, if (code == 1000)
-                                WebSocketCloseCategory.TCP_EOF else WebSocketCloseCategory.BYTE_LIMIT)
+                            throw WebSocketPeerCloseException(code, when(code){1000->WebSocketCloseCategory.TCP_EOF
+                                1008->WebSocketCloseCategory.BYTE_LIMIT;else->WebSocketCloseCategory.TCP_ERROR})
                         }
                         override fun close() { closePeer.countDown() }
                     }.also(own)
@@ -377,8 +600,8 @@ class MtprotoServerTest {
                 }
                 val route = events.all.filterIsInstance<ServerEvent.Routes>().last().routes.single()
                 assertEquals(code, route.closeCode)
-                assertEquals(if (code == 1000) RouteStatus.CLOSED else RouteStatus.UNAVAILABLE, route.status)
-                assertEquals(code != 1000, events.issue(ServerIssue.RELAY))
+                assertEquals(if (code == 1011) RouteStatus.UNAVAILABLE else RouteStatus.CLOSED, route.status)
+                assertEquals(code == 1011, events.issue(ServerIssue.RELAY))
                 assertFalse(events.issue(ServerIssue.SESSION))
             }
         }

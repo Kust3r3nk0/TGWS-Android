@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -62,6 +61,26 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           npm test -- --test-reporter=junit --test-reporter-destination=test-results.xml
           npm run build
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path('dist')
+          worker = root / 'worker.js'
+          digest = hashlib.sha256(worker.read_bytes()).hexdigest()
+          source = '${{ github.event.pull_request.head.sha || github.sha }}'
+          (root / 'SHA256SUMS').write_text(f'{digest}  worker.js\n')
+          (root / 'build-info.json').write_text(json.dumps({'source_commit': source, 'checked_commit': os.environ['GITHUB_SHA'], 'sha256': digest, 'deployed': False}, indent=2) + '\n')
+          PY
+      - name: Upload verified Worker module for manual deployment
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: TGWS-Cloudflare-Worker-${{ github.sha }}
+          path: |
+            cloudflare-worker/dist/worker.js
+            cloudflare-worker/dist/SHA256SUMS
+            cloudflare-worker/dist/build-info.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Collect debug APK, checksum and build information
         if: success()
         env:

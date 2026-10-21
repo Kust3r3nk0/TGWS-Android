@@ -101,7 +101,7 @@ class PremiumNavigationInstrumentedTest {
             scenario.onActivity{it.setContent{TgwsTheme(mode,true,true){
                 val density=LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(density.density,1.6f)){
-                    AppScaffold(page,{page=it},"0.4.0",mode==ThemeMode.DARK,{mode=if(mode==ThemeMode.DARK)ThemeMode.LIGHT else ThemeMode.DARK}){
+                    AppScaffold(page,{page=it},"0.4.2",mode==ThemeMode.DARK,{mode=if(mode==ThemeMode.DARK)ThemeMode.LIGHT else ThemeMode.DARK}){
                         when(page){
                             0->PremiumHome(ProxySnapshot(),NetworkView(),"8443","",TransportDraft(),true,true,{},
                                 {shares++},{copies++},{opens++},{page=1},{page=4})

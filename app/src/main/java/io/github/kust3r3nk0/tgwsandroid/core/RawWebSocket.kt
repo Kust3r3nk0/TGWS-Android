@@ -63,6 +63,7 @@ internal class RawWebSocket private constructor(
     private var fragmentBytes = 0
     private var fragmented = false
     var setupTimings=SetupTimings();private set
+    @Volatile var peerClose: WebSocketClose? = null; private set
 
     companion object {
         private const val HEADER_LIMIT = 16 * 1024
@@ -122,6 +123,8 @@ internal class RawWebSocket private constructor(
         internal fun upgrade(socket: Socket, domain: String, path: String = "/apiws", limits: Limits = Limits()): RawWebSocket {
             validateRequest(domain, path)
             val ws = RawWebSocket(socket, limits)
+            var status: Int? = null
+            var phase = UpgradeFailure.HEADERS
             try {
                 val key = Base64.getEncoder().encodeToString(ByteArray(16).also(SecureRandom()::nextBytes))
                 val request = "GET $path HTTP/1.1\r\nHost: $domain\r\nUpgrade: websocket\r\n" +
@@ -134,17 +137,22 @@ internal class RawWebSocket private constructor(
                     val bytes = ByteArrayOutputStream()
                     while (true) {
                         val ch = ws.readByte(deadline)
-                        if (++total > HEADER_LIMIT) throw ProtocolException("HTTP Upgrade headers exceed limit")
+                        if (++total > HEADER_LIMIT) { phase = UpgradeFailure.HEADER_LIMIT; throw ProtocolException("HTTP Upgrade headers exceed limit") }
                         if (ch == 13) {
                             if (ws.readByte(deadline) != 10) throw ProtocolException("HTTP response requires CRLF")
-                            if (++total > HEADER_LIMIT) throw ProtocolException("HTTP Upgrade headers exceed limit")
+                            if (++total > HEADER_LIMIT) { phase = UpgradeFailure.HEADER_LIMIT; throw ProtocolException("HTTP Upgrade headers exceed limit") }
                             return bytes.toString(Charsets.US_ASCII.name())
                         }
                         if (ch < 32 && ch != 9 || ch > 126) throw ProtocolException("Invalid HTTP response character")
                         bytes.write(ch)
                     }
                 }
-                if (!Regex("HTTP/1\\.1 101 [\\x20-\\x7e]*").matches(line())) throw ProtocolException("WebSocket HTTP Upgrade rejected")
+                phase = UpgradeFailure.STATUS_LINE
+                val statusLine = line()
+                val match = Regex("HTTP/1\\.[01] ([1-5][0-9]{2}) [\\x20-\\x7e]*").matchEntire(statusLine)
+                    ?: throw ProtocolException("Malformed HTTP status")
+                status = match.groupValues[1].toInt()
+                phase = UpgradeFailure.HEADERS
                 val headers = mutableMapOf<String, MutableList<String>>()
                 while (true) {
                     val header = line()
@@ -166,19 +174,43 @@ internal class RawWebSocket private constructor(
                         part.lowercase(Locale.ROOT)
                     }
                 }
+                if (status != 101) {
+                    val retry = single("retry-after")?.takeIf { it.length <= 6 && it.all(Char::isDigit) }
+                        ?.toIntOrNull()?.coerceIn(1, 60)?.times(1000)
+                    val reason = single("x-tgws-error")?.let { raw -> RelayUpgradeReason.entries.firstOrNull { it.name == raw } }
+                    throw WebSocketUpgradeException(HttpUpgradeDiagnostic(status, UpgradeFailure.STATUS, reason, retry))
+                }
+                if (!statusLine.startsWith("HTTP/1.1 ")) { phase = UpgradeFailure.STATUS_LINE; throw ProtocolException("HTTP/1.1 required") }
                 if (tokens("upgrade") != listOf("websocket") || "upgrade" !in tokens("connection")) throw ProtocolException("Invalid WebSocket Upgrade tokens")
                 val expected = Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1")
                     .digest((key + MAGIC).toByteArray(Charsets.US_ASCII)))
+                phase = UpgradeFailure.ACCEPT
                 if (single("sec-websocket-accept") != expected) throw ProtocolException("Invalid WebSocket accept key")
+                phase = UpgradeFailure.SUBPROTOCOL
                 single("sec-websocket-protocol")?.let {
                     if (it != "binary") throw ProtocolException("Unsupported WebSocket subprotocol")
                 }
+                phase = UpgradeFailure.EXTENSIONS
                 if (headers.containsKey("sec-websocket-extensions")) throw ProtocolException("Unrequested WebSocket extension")
                 socket.soTimeout = limits.readMillis
                 return ws
             } catch (e: Exception) {
                 ws.abort()
-                throw e
+                if (e is WebSocketUpgradeException) throw e
+                val failure = when(e) {
+                    is SocketTimeoutException -> UpgradeFailure.TIMEOUT
+                    is EOFException -> UpgradeFailure.EOF
+                    is ProtocolException -> phase
+                    else -> UpgradeFailure.IO
+                }
+                val detail = WebSocketUpgradeException(HttpUpgradeDiagnostic(status, failure))
+                // Retain native timeout/EOF types for callers, without exporting their text.
+                if (e is SocketTimeoutException || e is EOFException) {
+                    if (e.cause == null) e.initCause(detail)
+                    throw e
+                }
+                if (e is ProtocolException) throw detail
+                throw IOException("WebSocket Upgrade IO failed", detail)
             }
         }
 
@@ -368,12 +400,16 @@ internal class RawWebSocket private constructor(
             when (opcode) {
                 8 -> {
                     validateClose(body)
-                    if (closing.compareAndSet(false, true)) writeFrame(8, body, allowClosing = true, timeoutMillis = limits.closeMillis)
-                    peerClosed.countDown()
-                    abort()
                     val statusCode = if(body.size>=2)((body[0].toInt() and 255) shl 8) or (body[1].toInt() and 255) else null
                     val category = if(body.size>2)body.copyOfRange(2,body.size).toString(Charsets.UTF_8)
                         .let{raw->WebSocketCloseCategory.entries.firstOrNull{it.name==raw}} else null
+                    peerClose = WebSocketClose(statusCode, category)
+                    // The received Close is authoritative even if the peer drops TCP
+                    // before our echo is written. Never replace it with an echo error.
+                    try {
+                        if (closing.compareAndSet(false, true)) writeFrame(8, body, allowClosing = true, timeoutMillis = limits.closeMillis)
+                    } catch (_: IOException) { /* Close metadata is already captured. */ }
+                    finally { peerClosed.countDown(); abort() }
                     // 1000 with an unknown reason retains the existing graceful EOF behavior.
                     // Worker close categories are fixed constants; never export arbitrary peer text.
                     if(statusCode!=null && (statusCode!=1000 || category!=null))

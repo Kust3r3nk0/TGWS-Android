@@ -4,16 +4,30 @@
   <img src="docs/images/tgws-github-cover-en.svg" width="100%" alt="TGWS-Android — native MTProto proxy for Android, English cover" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.4.0_candidate-blue)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.4.2_test_update-blue)
 
-**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.4.0-debug/TGWS-Android-0.4.0-debug.apk) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Contributing](docs/en/CONTRIBUTING.md)**
+**[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Contributing](docs/en/CONTRIBUTING.md)**
 
 **Unofficial, open-source Android 16+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
 > [!IMPORTANT]
-> **0.4.0 — Android 16+ Premium Minimal candidate.** Three tabs, dedicated settings pages, bounded safe diagnostics and a shared Update Center design. Stable publication requires a trusted Release signature and separate owner approval. The public download above is the checked 0.4.0 Debug candidate.
+> **0.4.2 — Relay Stability Fix for Android 16+.** Connection ownership/backoff fixes and typed HTTP Upgrade/Close/session diagnostics. Test APKs are listed in Releases as Debug Pre-releases, not Production. [Audit and Worker upgrade](docs/en/RELAY_STABILITY_0.4.2.md).
 
 [Release/signing/migration](docs/en/RELEASE_0.4.0.md) · [0.4.0 notes](docs/en/releases/0.4.0.md).
+
+## 0.4.2 — Relay Stability Fix
+
+[Staged 0.4.2 → 0.5.0 → 0.6.0 contract and acceptance](docs/en/SMART_CONNECTION_UPDATE.md).
+
+Reproducible connection cleanup, early backoff and network cancellation defects are fixed. The journal distinguishes HTTP Upgrade, safe Worker reasons and individual session closure. Worker limits remain in force; update **both** APK and Worker. [Audit and upgrade instructions](docs/en/RELAY_STABILITY_0.4.2.md). A test build does not certify external endpoint stability on a device.
+
+## New 0.4.1 test update
+
+Categorized errors, severity/category filters, route closure details, repeat limits, safe JSON reports and a one-shot local TCP port check. Diagnostics show the actual system WebView provider/version without starting an engine. [Changes and limits](docs/en/releases/0.4.1.md). CI passed: 270 JVM tests and 61 Android tests on each of API 36/37. [Diagnostics guide](docs/en/DIAGNOSTICS.md).
+
+<table><tr><td><img src="docs/images/0.4.1/journal-dark.png" width="260" alt="TGWS 0.4.1 error categories and levels" /></td><td><img src="docs/images/0.4.1/webview-dark.png" width="260" alt="TGWS 0.4.1 local check and system WebView" /></td></tr></table>
+
+Actual API 36 CI-emulator screenshots: a deliberately occupied port and a real local listener check. The displayed provider is the installed version, not a latest-channel certification. [Provenance](docs/en/VERIFICATION_0.4.1.md).
 
 ## Languages & technology
 
@@ -77,7 +91,7 @@ flowchart LR
 
 Build a native Kotlin / Jetpack Compose app exposing a local MTProto WebSocket proxy. This app is **not a device-wide VPN**. It targets Android API 36+ and will be developed towards feature parity with the upstream project's WebSocket, TCP fallback, Fake TLS, Cloudflare Proxy/Worker and HTTP/2 transports.
 
-[Download 0.4.0 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases/download/v0.4.0-debug/TGWS-Android-0.4.0-debug.apk)
+[Download 0.4.1 Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases)
 
 ## 0.2.0 reliability
 

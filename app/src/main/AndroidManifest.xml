@@ -23,6 +23,12 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/tgws_update_paths" />
         </provider>
+        <provider android:name=".DiagnosticFileProvider"
+            android:authorities="io.github.kust3r3nk0.tgwsandroid.diagnostics"
+            android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/tgws_diagnostic_paths" />
+        </provider>
         <service android:name=".ProxyService" android:exported="false"
             android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"

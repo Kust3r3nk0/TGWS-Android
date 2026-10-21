@@ -22,6 +22,16 @@ def validate_inputs(inputs):
     url = urllib.parse.urlsplit(inputs.get('apk_url', ''))
     if url.scheme != 'https' or not (url.hostname or '').endswith('.oaiusercontent.com') or url.username or url.password:
         raise ValueError('Expected an HTTPS runtime file reference')
+    debug_tag('0.0.0', inputs.get('debug_revision', ''))
+
+
+def debug_tag(version, revision=''):
+    # Never move or overwrite an already published tag to replace its APK.
+    if revision and (not re.fullmatch(r'[1-9][0-9]{0,2}', revision) or not 2 <= int(revision) <= 999):
+        raise ValueError('Debug revision must be an integer from 2 to 999')
+    # Build metadata keeps the existing Update Center's tag/manifest comparison
+    # compatible without changing the application's semantic version.
+    return f'v{version}' + (f'+rev.{revision}' if revision else '') + '-debug'
 
 
 def verify_run(run, source, name, repository):
@@ -64,6 +74,21 @@ def build_version(gradle):
     match=re.search(r'versionName\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+(?:-alpha)?)"',gradle)
     if not match:raise ValueError('Unsupported application version for checked debug publication')
     return match.group(1)
+
+
+def package_worker(directory, output, source, checked):
+    files = {name: single_file(directory, name) for name in ['worker.js', 'SHA256SUMS', 'build-info.json']}
+    if any(path.stat().st_size > 1024 * 1024 for path in files.values()):
+        raise ValueError('Worker artifact exceeds publication limit')
+    metadata = json.loads(files['build-info.json'].read_text())
+    digest = hashlib.sha256(files['worker.js'].read_bytes()).hexdigest()
+    if (metadata.get('source_commit') != source or metadata.get('checked_commit') != checked or
+            metadata.get('deployed') is not False or metadata.get('sha256') != digest or
+            files['SHA256SUMS'].read_text() != f'{digest}  worker.js\n'):
+        raise ValueError('Worker artifact does not match verified CI source/checksum')
+    with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+        for name, path in files.items():
+            archive.write(path, name)
 
 
 def main():
@@ -139,6 +164,9 @@ def main():
         upgrades[api] = json.loads(single_file(directories[0], 'result.json').read_text())
         verify_upgrade(upgrades[api], version_code)
     meta = json.loads(single_file('ci-apk', 'build-info.json').read_text())
+    command('gh', 'run', 'download', inputs['build_run'], '--repo', repository,
+            '--pattern', 'TGWS-Cloudflare-Worker-*', '--dir', 'ci-worker')
+    package_worker('ci-worker', output / f'TGWS-Cloudflare-Worker-{version.removesuffix("-alpha")}.zip', source, meta['commit'])
     meta.update(source_commit=source, jvm_tests=counts, android_instrumentation=devices, local_soak=soak, http2_soak=h2_soak,
                 min_sdk=min_sdk, apk_upgrade=upgrades, signer_certificate_sha256=inputs['signer_sha256'],
                 signature='Preserved workspace debug key; not production signing',
@@ -149,7 +177,7 @@ def main():
     (output / 'SHA256SUMS').write_text(''.join(
         f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n'
         for p in sorted(output.iterdir()) if p.is_file()))
-    tag = f'v{version}-debug'
+    tag = debug_tag(version, inputs.get('debug_revision', ''))
     notes = Path(f'docs/releases/{version.removesuffix("-alpha")}-debug.md')
     command('gh', 'release', 'create', tag, *map(str, sorted(output.iterdir())), '--repo', repository,
             '--target', source, '--prerelease', '--latest=false', '--title',

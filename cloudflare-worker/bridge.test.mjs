@@ -16,24 +16,25 @@ async function until(condition) {
 }
 class WebSocketStub {
   callbacks = new Map(); sent = []; code = null; closeReason = null;
+  readyState = 1;
   accept() {}
   addEventListener(type, fn) { this.callbacks.set(type, fn); }
-  emit(type, data) { this.callbacks.get(type)?.({ data }); }
+  emit(type, data) { if(type==='close')this.readyState=3;this.callbacks.get(type)?.({ data }); }
   close(code, reason) { if (this.code === null) { this.code = code; this.closeReason = reason; this.emit('close'); } }
   send(data) { this.sent.push(Uint8Array.from(data)); }
 }
-function fixture({ opened = Promise.resolve(), socketClosed = new Promise(() => {}), write, read, limits = {} } = {}) {
+function fixture({ opened = Promise.resolve(), socketClosed = new Promise(() => {}), close = () => Promise.resolve(), write, read, limits = {} } = {}) {
   const server = new WebSocketStub();
   const writes = []; let closed = 0, dials = 0, input;
   const socket = {
     opened, closed: socketClosed,
     readable: new ReadableStream({ start(controller) { input = controller; if (read) read(controller); } }),
     writable: new WritableStream({ write(data) { writes.push(Uint8Array.from(data)); return write?.(data); } }),
-    close() { closed++; },
+    close() { closed++; return close(); },
   };
   const handler = createHandler({ dial() { dials++; return socket; }, pair: () => [null, server],
     upgrade: () => ({ status: 101 }), limits: { ...defaults, connect: 100, init: 100, write: 100, idle: 200, ...limits } });
-  return { handler, server, writes, input, get closed() { return closed; }, get dials() { return dials; } };
+  return { handler, server, socket, writes, input, get closed() { return closed; }, get dials() { return dials; } };
 }
 
 test('routes match existing origin; canonical DC/IP pairs only', () => {
@@ -56,12 +57,77 @@ test('bad configuration and requests cannot open any socket', async () => {
   assert.equal(f.dials, 0);
 });
 test('connect rejection and deadline close sockets and release capacity', async () => {
-  for (const opened of [Promise.reject(new Error('Connect failed')), new Promise(() => {})]) {
+  for (const [opened,status,reason] of [[Promise.reject(new Error('Connect failed')),502,'UPSTREAM_CONNECT'], [new Promise(() => {}),504,'UPSTREAM_TIMEOUT']]) {
     const f = fixture({ opened, limits: { connect: 10, sessions: 1 } });
-    assert.equal((await f.handler(request(), env)).status, 502);
+    const response=await f.handler(request(), env);
+    assert.equal(response.status, status);
+    assert.equal(response.headers.get('X-TGWS-Error'),reason);
     assert.equal(f.closed, 1);
-    assert.equal((await f.handler(request(), env)).status, 502);
+    assert.equal((await f.handler(request(), env)).status, status);
   }
+});
+
+test('capacity and invalid configuration have distinct safe Upgrade diagnostics', async () => {
+  const f=fixture({opened:new Promise(()=>{}),limits:{sessions:1,connect:10}});
+  const configured=await f.handler(request(),{});
+  assert.equal(configured.headers.get('X-TGWS-Error'),'CONFIGURATION');
+  const first=f.handler(request(),env);
+  const busy=await f.handler(request(),env);
+  assert.equal(busy.status,503);assert.equal(busy.headers.get('X-TGWS-Error'),'CAPACITY');
+  assert.equal(busy.headers.get('Retry-After'),'2');assert.equal(busy.headers.get('Cache-Control'),'no-store');
+  assert.equal(await busy.text(),'');await first;
+});
+
+test('a closed WebSocket cannot release admission before TCP close completes', async () => {
+  let complete;
+  const f=fixture({close:()=>new Promise(resolve=>{complete=resolve;}),limits:{sessions:1}});
+  await f.handler(request(),env);
+  f.server.emit('close');
+  assert.equal((await f.handler(request(),env)).status,503);
+  assert.equal(f.dials,1);
+  complete();await pause(0);
+  assert.equal((await f.handler(request(),env)).status,101);
+  assert.equal(f.dials,2);
+  f.server.emit('close');complete();
+});
+
+test('binary mode, handlers and init deadline are ready before accept dispatches', async () => {
+  const f=fixture({limits:{init:10,idle:1000}});
+  f.server.accept=()=>{
+    assert.equal(f.server.binaryType,'arraybuffer');
+    for(const event of ['message','close','error'])assert.equal(f.server.callbacks.has(event),true);
+    f.server.emit('message',new ArrayBuffer(64));
+  };
+  assert.equal((await f.handler(request(),env)).status,101);
+  await until(()=>f.writes.length===1);await pause(20);
+  assert.equal(f.server.code,null);
+  f.server.emit('close');
+  await until(()=>!f.socket.readable.locked && !f.socket.writable.locked);
+});
+
+test('failed upgrade releases reader and writer locks and never leaks a capacity slot', async () => {
+  const f=fixture({limits:{sessions:1}});
+  // Closing during setup is possible before the Response has been returned.
+  f.server.accept=()=>{throw new Error('private URL and token');};
+  for(let i=0;i<2;i++){
+    const response=await f.handler(request(),env);
+    assert.equal(response.status,502);
+    assert.equal(response.headers.get('X-TGWS-Error'),'UPSTREAM_CONNECT');
+    await until(()=>!f.socket.readable.locked && !f.socket.writable.locked);
+  }
+  assert.equal(f.dials,2);
+});
+
+test('unaccepted pair cannot leak admission when both accept and close throw', async () => {
+  const f=fixture({limits:{sessions:1}});
+  f.server.readyState=0;
+  f.server.accept=()=>{throw new Error('not accepted');};
+  f.server.close=()=>{throw new Error('not accepted');};
+  for(let i=0;i<2;i++){
+    assert.equal((await f.handler(request(),env)).status,502);
+    await until(()=>!f.socket.readable.locked && !f.socket.writable.locked);
+  }
+  assert.equal(f.dials,2);
 });
 test('isolate capacity counts pending connect, not only accepted WebSockets', async () => {
   const f = fixture({ opened: new Promise(() => {}), limits: { connect: 20, sessions: 1 } });
@@ -69,6 +135,17 @@ test('isolate capacity counts pending connect, not only accepted WebSockets', as
   assert.equal((await f.handler(request(), env)).status, 503);
   assert.equal(f.dials, 1);
   await first;
+});
+test('default capacity admits six pending sessions but rejects seventh', async () => {
+  assert.equal(defaults.sessions, 6);
+  const f = fixture({ opened: new Promise(() => {}), limits: { connect: 30 } });
+  const pending = Array.from({ length: defaults.sessions }, () => f.handler(request(), env));
+  assert.equal((await f.handler(request(), env)).status, 503);
+  assert.equal(f.dials, 6);
+  assert.deepEqual((await Promise.all(pending)).map(response => response.status), Array(6).fill(504));
+  // All expired connection attempts have released their isolate capacity.
+  assert.equal((await f.handler(request(), env)).status, 504);
+  assert.equal(f.dials, 7);
 });
 test('socket close rejection before opened is observed and cancels setup', async () => {
   for (const opened of [new Promise(()=>{}),Promise.resolve()]) {

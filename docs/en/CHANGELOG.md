@@ -1,5 +1,76 @@
 # Changelog
 
+## 0.4.2 — Relay Stability Fix
+
+## Important
+
+TGWS-Android 0.4.2 — Relay Stability Fix. Android 16+, code 20, test candidate.
+Update **both the APK and your existing Cloudflare Worker**. This is not a
+Production acceptance claim.
+
+## Fixes
+
+- Automatic setup no longer extends its budget to 40 seconds; WSS attempts reserve bounded time for permitted TCP fallback.
+- INVALID_LENGTH is diagnosed as an incomplete header, separately from secret/authentication and unsupported format/DC.
+- Early post-Upgrade disconnects enter bounded route backoff. A permit has one
+  terminal result; only actual inbound progress resets runtime failure history.
+- HTTP endpoint overload shares cooldown across DCs, with bounded Retry-After
+  and one recovery probe.
+- Peer Close code/category survive a failed echo. Normal client EOF performs
+  bounded WS Close before raw socket release.
+- Network invalidation closes active WSS/TCP scopes, including TLS setup.
+- Worker failure before its read loop releases stream locks; admission waits
+  for both TCP and WS closure. Binary mode/handlers precede accept.
+- One failed session does not hide another live session on the same route.
+
+## Technical
+
+- Schema 3/journal records numeric HTTP Upgrade, allowlisted Worker category,
+  cooldown and individual session termination/elapsed/byte/Close metadata.
+- 503/CAPACITY, 503/CONFIGURATION, 502/UPSTREAM_CONNECT and 504/UPSTREAM_TIMEOUT
+  are distinct. No response bodies, URLs, tokens or arbitrary peer text are logged.
+- CI supplies a Worker module, checksum and source/checked commit metadata.
+- Existing UI, settings, secrets, TLS checks and system DNS remain intact.
+
+## General information
+
+Worker limits remain 6 sessions/isolate, 4 MiB + 4 byte queue, 64 messages,
+16 MiB/session across both directions. BYTE_LIMIT/IDLE_TIMEOUT remain explicit.
+Large media can still reach the budget. Automated regressions do not certify
+external Cloudflare or Telegram stability on a device.
+
+## 0.4.1 — extended diagnostics
+
+Test update based on the 0.4.0 candidate / PR #22. Android 16+, version code 18. Application ID, protected configuration and keys are preserved. No production publication.
+
+## New features
+
+- Categorized INFO / WARNING / ERROR journal: service, storage/configuration, network, DNS, TLS, TCP, WebSocket, relay, HTTP/2, routes, MTProto clients, local checks and system WebView.
+- Combined severity/category filters, first/last occurrence times and repeat counts; up to 128 in-memory events and 32 actual setup measurements.
+- Route details: DC/media, transport, stage, attempts, measured DNS/TCP/TLS/HTTP times, close code and safe close category. Missing measurements stay unknown.
+- Cancellable one-shot loopback TCP check without sending a secret; it does not authenticate MTProto or confirm Telegram connectivity.
+- Observation-based troubleshooting suggestions and explicit preview/copy/sharing of redacted JSON reports.
+
+## Fixes
+
+- Reconnecting no longer displays timings from the previous attempt.
+- Wrapped native connection failures retain their DNS/TLS/TCP category through bounded, cycle-safe cause traversal.
+- Route failures, closures, repeated failures and handshake rejection reasons are retained.
+- Cancelling a local check closes its socket; stale completion cannot reset a newer check indicator.
+
+## Optimization
+
+- Repeated warnings coalesce within 10 seconds. Logcat emits occurrences 1, 2, 4, 8…; distinct successful setup measurements remain distinct.
+- Lazy journal list, manual checks only and foreground-only provider package monitoring.
+
+## Technical
+
+Selected WebView provider/package/version and changes are recorded without loading an engine, adding WebKit or creating web UI. No page/renderer exists in TGWS and other apps’ logs are inaccessible. Channel is inferred only for known package names; latest Stable/Beta is never assumed. Future numeric versions are supported without a hardcoded version threshold.
+
+Report schema 2 excludes secrets, relay/IP/DNS addresses, carrier and messages. Read-only FileProvider scope adds only the report cache directory. TLS, system DNS, native transports, Keystore and Update Center remain intact; built-in Cloudflare DNS stays removed.
+
+
+
 
 ## 0.4.0 — Premium Minimal candidate
 

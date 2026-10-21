@@ -44,13 +44,28 @@ class NavigationThemeInstrumentedTest {
     @Before fun setup(){
         // Only the unrelated emulator launcher is stopped. TGWS errors/ANRs remain visible.
         shell("am force-stop com.google.android.apps.nexuslauncher")
+        device.waitForIdle()
         AppPreferences(context).apply{theme=ThemeMode.SYSTEM;liquidGlass=false;transparency=false}
         SettingsStore(context).recover(8443,"00112233445566778899aabbccddeeff")
     }
     @After fun cleanup(){AppPreferences(context).apply{theme=ThemeMode.SYSTEM;liquidGlass=false;transparency=false}}
     private fun selector(tag:String)=By.pkg(context.packageName).res(tag)
+    private fun visibleNode(tag:String):UiObject2? {
+        val deadline=SystemClock.elapsedRealtime()+1000
+        do {
+            val found=device.findObject(selector(tag))
+            if(found!=null)try {
+                val bounds=found.visibleBounds
+                // API 37 can expose a Compose node before layout. Clicking
+                // that 0x0 node injects at (0,0), not at the requested control.
+                if(bounds.width()>0 && bounds.height()>0)return found
+            }catch(_:androidx.test.uiautomator.StaleObjectException){/* Await the current frame's node. */}
+            SystemClock.sleep(20)
+        }while(SystemClock.elapsedRealtime()<deadline)
+        return null
+    }
     private fun node(tag:String,direction:Direction?=null):UiObject2 {
-        device.wait(Until.findObject(selector(tag)),1000)?.let{return it}
+        visibleNode(tag)?.let{return it}
         if(direction!=null)repeat(12){
             // Use the page's public Android accessibility scroll action. Gesture-driver
             // scroll completion events are unreliable for Compose's virtual scroll node.
@@ -58,7 +73,7 @@ class NavigationThemeInstrumentedTest {
             val action=if(direction==Direction.DOWN)AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
                 else AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
             val more=area.accessibilityNodeInfo.performAction(action)
-            device.wait(Until.findObject(selector(tag)),1000)?.let{return it}
+            visibleNode(tag)?.let{return it}
             if(!more)error("Control not found: $tag")
         }
         error("Control not found: $tag")

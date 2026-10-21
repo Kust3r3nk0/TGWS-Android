@@ -3,6 +3,35 @@
 Текущая минимальная ОС: **Android 16 / API 36** (указание владельца 17 октября 2026). Поддерживаются только API 36 и новее. Основа разработки — [ТЗ и уточнения](docs/DEVELOPMENT_BASELINE.md).
 
 
+## 0.4.2 — Relay Stability Fix · тестовое обновление
+
+- [x] Аудит MtprotoServer, RouteBackoff, RawWebSocket, NetworkTransportFactory, WarmConnectionPool, NetworkConnector, RouteDiagnostics, ProxyService и Worker
+- [x] HTTP Upgrade, Close и причина завершения каждой сессии в безопасном журнале
+- [x] Общий endpoint cooldown, runtime backoff и освобождение WS/TCP ресурсов без увеличения лимитов
+- [x] Регрессии Worker, протокола, отмены и сохранения диагностики; CI-модуль Worker с checksum
+- [x] Общий setup deadline с резервом TCP; INVALID_LENGTH без ложного совета о неверном секрете
+- CI и матрица API 36/37: [проверки PR #26](https://github.com/Kust3r3nk0/TGWS-Android/pull/26/checks).
+
+[Аудит и обновление Worker](docs/RELAY_STABILITY_0.4.2.md).
+
+## Следующие этапы Smart Connection Update
+
+- **0.5.0**, после проверки 0.4.2: Smart Routing, сетевые профили, Health/Live Traffic Monitor и необязательные уведомления.
+- **0.6.0**, после Smart Routing: несколько VPS-реле, Media Optimizer, энергопотребление и Android lifecycle.
+- Каждый этап — отдельная ветка/PR и Debug-приёмка; эти функции не заявляются реализованными в 0.4.2.
+
+[Согласованный контракт, ограничения и сценарий приёмки](docs/SMART_CONNECTION_UPDATE.md).
+
+## 0.4.1 — расширенная диагностика · тестовое обновление
+
+- [x] Категории/уровни/фильтры, причины закрытия маршрутов и объединение повторов
+- [x] Явная локальная проверка, подсказки и обезличенный JSON-экспорт
+- [x] Metadata-only диагностика системного WebView без загрузки движка
+- [x] Регрессии классификации вложенных ошибок и устаревших замеров
+- [x] Полный CI: 270 JVM, по 61 Android-case на API 36/37, проверка обновления с сохранением Keystore
+
+[Изменения и ограничения](docs/releases/0.4.1.md).
+
 ## 0.4.0 — Premium Minimal · кандидат
 
 - [x] Три вкладки и отдельные подразделы всех прежних настроек

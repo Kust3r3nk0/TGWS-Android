@@ -26,3 +26,11 @@ Before/after emulator runs CI saves allowlisted environment JSON, including sele
 metadata. AOSP/unknown/unavailable differ; package naming does not prove latest channel version.
 No raw dumps, serial/fingerprint/SIM/IP/config are retained. Collector only addresses a CI
 emulator; it does not instantiate/switch WebView, certify channels, or inspect personal phones.
+
+## Provider diagnostics in 0.4.1
+
+A native system-provider card and change journal use only `android.webkit.WebView.getCurrentWebViewPackage()`. [Android documents](https://developer.android.com/reference/android/webkit/WebView#getCurrentWebViewPackage()) that this call does not load WebView. No embedded UI, WebKit dependency, renderer or page is created. Future provider versions are read as metadata without a hardcoded version threshold.
+
+Refresh runs on foreground entry, selected package changes and explicit action. Missing provider and query failure are distinct. Known package names identify Stable/Beta/Dev/Canary, never certify latest versions; AOSP/OEM stays system/unknown. Other applications’ logs are inaccessible.
+
+The native guard permits only the exact reviewed metadata statement in its adapter and display string values. Engine creation, imports, other calls, bridges and WebKit dependencies remain blocked by regression tests.

@@ -7,13 +7,17 @@ import androidx.compose.runtime.setValue
 
 /** Android/UI adapter only. The core never imports Compose or this state. */
 object ProxyState {
-    private val history=DiagnosticHistory()
+    private val history=DiagnosticHistory(DiagnosticLog::emit)
     private var current by mutableStateOf(ProxySnapshot())
     internal var diagnostics by mutableStateOf(DiagnosticHistoryState())
         private set
     internal var recordDiagnostics:Boolean
         get()=history.enabled
         set(value){history.enabled=value;diagnostics=history.state}
+    internal fun record(event:DiagnosticEvent){
+        history.record(event,SystemClock.elapsedRealtime());diagnostics=history.state
+    }
+    internal fun clearDiagnostics(){history.clear();diagnostics=history.state}
     var snapshot:ProxySnapshot
         get()=current
         internal set(value){

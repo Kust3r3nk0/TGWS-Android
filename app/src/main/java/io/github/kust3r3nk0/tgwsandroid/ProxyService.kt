@@ -9,7 +9,6 @@ import android.content.Intent
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.util.Log
 import io.github.kust3r3nk0.tgwsandroid.core.MtprotoServer
 import io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint
 import io.github.kust3r3nk0.tgwsandroid.core.HandshakeRejection
@@ -26,10 +25,12 @@ class ProxyService : Service() {
         const val ACTION_PROBE = "io.github.kust3r3nk0.tgwsandroid.PROBE"
         private const val CHANNEL_ID = "proxy_connection"
         private const val NOTIFICATION_ID = 1443
-        private const val TAG = "TGWSProxy"
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val closedSessions=BoundedEventQueue<io.github.kust3r3nk0.tgwsandroid.core.SessionClosed>(
+        DiagnosticHistory.MAX_EVENTS,{task->mainHandler.post{task()}},
+        {session->ProxyState.record(sessionEvent(session,System.currentTimeMillis()))})
     private val settingsExecutor = Executors.newSingleThreadExecutor { task -> Thread(task, "TGWS-settings") }
     private var server: MtprotoServer? = null
     private var loading = false
@@ -97,7 +98,11 @@ class ProxyService : Service() {
                         val factory=io.github.kust3r3nk0.tgwsandroid.core.NetworkTransportFactory{monitor.access}
                         transportFactory=factory
                         server = MtprotoServer(settings.port, settings.secret,
-                            onEvent = { event -> mainHandler.post { receive(event) } },
+                            onEvent = { event ->
+                                if(event is ServerEvent.Closed) {
+                                    closedSessions.offer(event.session)
+                                } else mainHandler.post { receive(event) }
+                            },
                             onFatalError = { mainHandler.post { if (!destroyed && !stopping) fail(ProxyState.snapshot.issue ?: ProxyIssue.SESSION) } },
                             relayEndpoint = if(settings.transport.mode==io.github.kust3r3nk0.tgwsandroid.core.TransportMode.RELAY_ONLY)RelayEndpoint.parse(settings.relayUrl)else null,
                             transports=factory,
@@ -127,10 +132,11 @@ class ProxyService : Service() {
         // replace the cause of a fatal listener failure with another session's issue.
         if (destroyed || stopping || fatalError) return
         when (event) {
+            is ServerEvent.Closed -> { ProxyState.record(sessionEvent(event.session,System.currentTimeMillis()));return }
             is ServerEvent.Routes -> { ProxyState.snapshot=ProxyState.snapshot.copy(routes=event.routes);return }
             is ServerEvent.Traffic -> { ProxyState.snapshot=ProxyState.snapshot.copy(sent=event.sent,received=event.received);return }
             is ServerEvent.BackgroundIssue -> {
-                Log.i(TAG, "Warm WSS attempt failed: ${event.issue.name}")
+                ProxyState.record(issueEvent(ProxyIssue.valueOf(event.issue.name),System.currentTimeMillis()).copy(kind=EventKind.WARMUP_FAILED))
                 return
             }
             is ServerEvent.State -> {
@@ -143,20 +149,15 @@ class ProxyService : Service() {
                 }
                 if (phase == ProxyPhase.ERROR) fatalError = true
                 ProxyState.snapshot = ProxyState.snapshot.copy(phase = phase)
-                Log.i(TAG, "Local server state: ${event.phase.name}")
             }
             is ServerEvent.Sessions -> {
                 val previous = ProxyState.snapshot
-                if (event.established + event.pending < previous.sessions + previous.pending) {
-                    Log.i(TAG, "Client session closed")
-                }
                 ProxyState.snapshot = previous.withSessions(event.established, event.pending, event.wss, event.tcp, event.relay,event.cf,event.h2)
             }
             is ServerEvent.Diagnostic -> {
                 if (event.issue == ServerIssue.HANDSHAKE) {
                     val reason = event.rejection ?: HandshakeRejection.SECRET_OR_TRANSPORT
                     ProxyState.snapshot = ProxyState.snapshot.withRejectedHandshake(reason)
-                    Log.i(TAG, "Client handshake rejected: ${reason.name}")
                     return
                 }
                 val issue = when (event.issue) {
@@ -175,11 +176,15 @@ class ProxyService : Service() {
                     ServerIssue.DNS -> ProxyIssue.DNS
                     ServerIssue.NETWORK -> ProxyIssue.NETWORK
                 }
+                if(ProxyState.snapshot.issue==issue)ProxyState.record(issueEvent(issue,System.currentTimeMillis()))
                 ProxyState.snapshot = ProxyState.snapshot.copy(issue = issue)
-                Log.w(TAG, "Proxy diagnostic: ${event.issue.name}")
             }
         }
         if (ProxyState.snapshot.running) notifications.notify(NOTIFICATION_ID, notification())
+    }
+
+    private fun drainClosedSessions(){
+        closedSessions.drain()
     }
 
     private fun fail(issue: ProxyIssue) {
@@ -187,7 +192,6 @@ class ProxyService : Service() {
         stopping = true
         loading = false
         ProxyState.snapshot = ProxyState.snapshot.copy(phase = ProxyPhase.ERROR, issue = issue)
-        Log.e(TAG, "Unable to start local proxy: ${issue.name}")
         stopSelf()
     }
 
@@ -197,7 +201,6 @@ class ProxyService : Service() {
             ProxyState.snapshot = ProxyState.snapshot.copy(issue = ProxyIssue.NETWORK_CHANGED)
         }
         server?.disconnectSessions()
-        Log.i(TAG, "Network changed; client sessions closed")
     }
 
     private fun notification(): Notification {
@@ -218,6 +221,7 @@ class ProxyService : Service() {
         destroyed = true
         networkMonitor?.close();networkMonitor=null
         server?.stop()
+        drainClosedSessions()
         server = null
         transportFactory?.close();transportFactory=null
         settingsExecutor.shutdownNow()

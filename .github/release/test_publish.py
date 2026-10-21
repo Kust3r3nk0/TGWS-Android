@@ -1,4 +1,6 @@
 import importlib.util
+import hashlib
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -10,6 +12,36 @@ spec.loader.exec_module(publisher)
 
 
 class PublicationGuardsTest(unittest.TestCase):
+    def test_worker_publication_requires_matching_ci_source_checked_commit_and_module_digest(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);artifact=root/'worker';artifact.mkdir()
+            module=b'export default {};\n';digest=hashlib.sha256(module).hexdigest()
+            (artifact/'worker.js').write_bytes(module)
+            checksum=artifact/'SHA256SUMS';checksum.write_text(f'{digest}  worker.js\n')
+            metadata=dict(source_commit='a'*40,checked_commit='b'*40,sha256=digest,deployed=False)
+            info=artifact/'build-info.json';info.write_text(json.dumps(metadata))
+            result=root/'worker.zip'
+            publisher.package_worker(artifact,result,'a'*40,'b'*40)
+            with zipfile.ZipFile(result) as archive:
+                self.assertEqual({'worker.js','SHA256SUMS','build-info.json'},set(archive.namelist()))
+                self.assertEqual(module,archive.read('worker.js'))
+            for change in [dict(source_commit='c'*40),dict(checked_commit='c'*40),dict(sha256='c'*64),dict(deployed=True)]:
+                info.write_text(json.dumps(dict(metadata,**change)))
+                with self.subTest(change=change),self.assertRaises(ValueError):
+                    publisher.package_worker(artifact,result,'a'*40,'b'*40)
+            info.write_text(json.dumps(metadata));checksum.write_text('wrong checksum\n')
+            with self.assertRaises(ValueError):publisher.package_worker(artifact,result,'a'*40,'b'*40)
+            checksum.write_text(f'{digest}  worker.js\n');(artifact/'worker.js').write_bytes(module+b'changed')
+            with self.assertRaises(ValueError):publisher.package_worker(artifact,result,'a'*40,'b'*40)
+
+    def test_debug_revision_uses_a_distinct_tag_without_accepting_arbitrary_refs(self):
+        self.assertEqual('v0.4.2-debug', publisher.debug_tag('0.4.2'))
+        self.assertEqual('v0.4.2+rev.2-debug', publisher.debug_tag('0.4.2', '2'))
+        self.assertEqual('v0.4.2+rev.999-debug', publisher.debug_tag('0.4.2', '999'))
+        for revision in ['1', '0', '02', '-2', '1000', 'stable', '2/unsafe', '2; command', ' 2']:
+            with self.subTest(revision=revision), self.assertRaises(ValueError):
+                publisher.debug_tag('0.4.2', revision)
+
     def test_debug_publisher_accepts_stable_named_candidate_without_claiming_production(self):
         self.assertEqual('0.4.0',publisher.build_version('versionName = "0.4.0"'))
         self.assertEqual('0.3.10-alpha',publisher.build_version('versionName = "0.3.10-alpha"'))

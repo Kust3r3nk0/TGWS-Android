@@ -8,6 +8,25 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class UpdateSourceTest {
+    @Test fun immutableDebugRevisionMatchesManifestAndRemainsPreviewOnly()=runBlocking {
+        val http=FixtureUpdateHttp();val entry=http.release("0.4.2",20,true)
+        val tag="v0.4.2+rev.2-debug";entry.put("tag_name",tag)
+        val assets=entry.getJSONArray("assets")
+        for(index in 0 until assets.length()){
+            val asset=assets.getJSONObject(index)
+            val before=asset.getString("browser_download_url")
+            val after="https://github.com/$UPDATE_REPOSITORY/releases/download/$tag/${asset.getString("name") }"
+            asset.put("browser_download_url",after)
+            http.manifests.remove(before)?.let{http.manifests[after]=it}
+        }
+        val release=GithubUpdateSource(http).check("0.4.1",18,36,UpdateChannel.PREVIEW)!!
+        assertEquals(tag,release.tag);assertEquals(20L,release.versionCode)
+        assertEquals(numericVersion("0.4.2"),numericVersion(tag))
+        assertNull(GithubUpdateSource(http).check("0.4.1",18,36,UpdateChannel.STABLE))
+        // Same semantic-version debug revisions are installed explicitly by the owner.
+        assertNull(GithubUpdateSource(http).check("0.4.2",19,36,UpdateChannel.PREVIEW))
+    }
+
     @Test fun publishedNewerVersionAndCodeAreRequired()=runBlocking {
         val http=FixtureUpdateHttp();http.release("0.3.8",100);http.release("0.3.10",14);http.release("0.3.11",17)
         assertEquals("0.3.11",GithubUpdateSource(http).check("0.3.9-alpha",15,36,UpdateChannel.STABLE)?.version)

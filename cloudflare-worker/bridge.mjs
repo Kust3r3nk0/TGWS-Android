@@ -4,7 +4,7 @@ export const routes = Object.freeze({
   4: '149.154.167.91', 5: '149.154.171.5', 203: '91.105.192.100',
 });
 const PACKET = 4 * 1024 * 1024 + 4;
-export const defaults = Object.freeze({ sessions: 4, connect: 6000, init: 10000,
+export const defaults = Object.freeze({ sessions: 6, connect: 6000, init: 10000,
   write: 10000, idle: 300000, queue: PACKET, messages: 64,
   // Cloudflare WebSocket.send has no drain API; do not remove this lifetime
   // safety budget without implementing verifiable downstream flow control.
@@ -29,18 +29,28 @@ export function destination(request, token) {
 /** Injectable platform edges; tests do not replace the deployed route table. */
 export function createHandler({ dial, pair, upgrade, limits = defaults }) {
   let active = 0;
+  const unavailable = (status, reason, retry) => new Response(null, { status, headers: {
+    'Cache-Control': 'no-store', 'X-TGWS-Error': reason,
+    ...(retry ? { 'Retry-After': String(retry) } : {}),
+  } });
+  class Deadline extends Error {}
   return async (request, env) => {
-    if (!/^[a-f0-9]{32,64}$/.test(env.TGWS_RELAY_TOKEN ?? '')) return new Response(null, { status: 503 });
+    if (!/^[a-f0-9]{32,64}$/.test(env.TGWS_RELAY_TOKEN ?? '')) return unavailable(503, 'CONFIGURATION');
     const target = destination(request, env.TGWS_RELAY_TOKEN);
     if (!target) return new Response(null, { status: 404 });
-    if (active >= limits.sessions) return new Response(null, { status: 503 });
+    if (active >= limits.sessions) return unavailable(503, 'CAPACITY', 2);
     active++;
     let socket, server, reader, writer, idle, init;
     let ended = false, released = false, listensForClose = false, first = true, queued = 0, messages = 0, bytes = 0;
+    let tcpClosed = true, websocketClosed = true, accepted = false;
     let tail = Promise.resolve();
     const timers = new Map();
     const ignore = promise => Promise.resolve(promise).catch(() => {});
-    const release = () => { if (!released) { released = true; active--; } };
+    const release = () => {
+      // A close event is not proof that upstream TCP has finished closing.
+      // Do not admit a replacement until both platform resources are closed.
+      if (ended && tcpClosed && websocketClosed && !released) { released = true; active--; }
+    };
     // Fixed, non-sensitive close categories are visible to our Android client.
     // Never pass exception messages, request URLs, private endpoints, or tokens.
     function finish(code = 1011, reason = 'RELAY_ERROR') {
@@ -50,17 +60,21 @@ export function createHandler({ dial, pair, upgrade, limits = defaults }) {
       for (const [timer, reject] of timers) { clearTimeout(timer); reject(new Error('Closed')); }
       timers.clear();
       // Keep a capacity slot while the platform still owns a closing WS buffer.
-      if (!listensForClose) release();
       try { server?.close(code, reason); } catch {}
-      try { if (socket) ignore(socket.close()); } catch {}
-      try { if (reader) ignore(reader.cancel()); } catch {}
+      if (!listensForClose || server?.readyState === 3) websocketClosed = true;
+      try { if (socket) ignore(Promise.resolve(socket.close()).then(() => { tcpClosed = true; release(); })); } catch {}
+      try { if (reader) ignore(reader.cancel().finally(() => { try { reader.releaseLock(); } catch {} })); } catch {}
       try { if (writer) ignore(writer.abort()); } catch {}
+      // Deadline cancellation settles our queued writes even if the platform
+      // write is still pending; release the stream lock only after that chain.
+      ignore(tail.finally(() => { try { writer?.releaseLock(); } catch {} }));
+      release();
     }
     const touch = () => { clearTimeout(idle); idle = setTimeout(() => finish(1011, 'IDLE_TIMEOUT'), limits.idle); };
     function deadline(promise, millis) {
       let timer;
       const timeout = new Promise((_, reject) => {
-        timer = setTimeout(() => { timers.delete(timer); reject(new Error('Deadline')); }, millis);
+        timer = setTimeout(() => { timers.delete(timer); reject(new Deadline()); }, millis);
         timers.set(timer, reject);
       });
       return Promise.race([promise, timeout]).finally(() => { clearTimeout(timer); timers.delete(timer); });
@@ -72,17 +86,19 @@ export function createHandler({ dial, pair, upgrade, limits = defaults }) {
     }
     try {
       socket = dial(target);
+      tcpClosed = false;
       // closed may reject before opened; observe it even on setup failure.
-      socket.closed.catch(() => finish(1011, 'TCP_ERROR'));
+      socket.closed.then(() => { tcpClosed = true; release(); }, () => { tcpClosed = true; finish(1011, 'TCP_ERROR'); release(); });
       await deadline(socket.opened, limits.connect);
       if (ended) throw new Error('Closed during setup');
       const endpoints = pair();
       server = endpoints[1];
-      server.accept();
+      // Configure binary delivery and handlers before accept can dispatch data.
       server.binaryType = 'arraybuffer';
       reader = socket.readable.getReader();
       writer = socket.writable.getWriter();
-      server.addEventListener('close', () => { release(); finish(1000, 'CLIENT_CLOSED'); });
+      websocketClosed = false;
+      server.addEventListener('close', () => { websocketClosed = true; finish(1000, 'CLIENT_CLOSED'); release(); });
       server.addEventListener('error', () => finish(1011, 'WS_ERROR'));
       listensForClose = true;
       server.addEventListener('message', event => {
@@ -103,11 +119,13 @@ export function createHandler({ dial, pair, upgrade, limits = defaults }) {
           if (ended) return;
           await deadline(writer.write(data), limits.write);
           if (!ended) touch();
-        }).catch(error => finish(1011, error?.message === 'Deadline' ? 'WRITE_TIMEOUT' : 'TCP_ERROR'))
+        }).catch(error => finish(1011, error instanceof Deadline ? 'WRITE_TIMEOUT' : 'TCP_ERROR'))
           .finally(() => { queued -= size; messages--; });
       });
       init = setTimeout(() => finish(1002, 'INIT_TIMEOUT'), limits.init);
       touch();
+      server.accept();
+      accepted = true;
       void (async () => {
         try {
           while (!ended) {
@@ -124,6 +142,13 @@ export function createHandler({ dial, pair, upgrade, limits = defaults }) {
         finally { try { reader.releaseLock(); } catch {} }
       })();
       return upgrade(endpoints[0]);
-    } catch { finish(); return new Response(null, { status: 502 }); }
+    } catch (error) {
+      // A pair which failed before accept has no external WS peer/output queue
+      // and cannot be expected to emit a close event. TCP is still accounted.
+      if (!accepted) { listensForClose = false; websocketClosed = true; }
+      finish();
+      return unavailable(error instanceof Deadline ? 504 : 502,
+        error instanceof Deadline ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_CONNECT', 1);
+    }
   };
 }
