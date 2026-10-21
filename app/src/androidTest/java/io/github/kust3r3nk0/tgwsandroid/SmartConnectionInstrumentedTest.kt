@@ -88,6 +88,8 @@ class SmartConnectionInstrumentedTest {
             click("nav.diagnostics",false)
             ui.onNodeWithTag("diagnostics.health").performScrollTo()
             ui.onNodeWithTag("health.quality").assertTextEquals(context.getString(R.string.smart_quality_insufficient))
+            ui.onNodeWithText(context.getString(R.string.smart_success_unknown)).assertExists()
+            ui.onNodeWithText(context.getString(R.string.smart_setup_average_unknown)).assertExists()
             ui.onNodeWithTag("traffic.chart").assertDoesNotExist()
             scenario.recreate();settle();assertFalse(ProxyState.snapshot.running)
             ui.onNodeWithTag("health.quality").assertTextEquals(context.getString(R.string.smart_quality_insufficient))

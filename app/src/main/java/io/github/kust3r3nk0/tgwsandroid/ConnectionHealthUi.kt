@@ -26,9 +26,9 @@ internal fun selectionResource(reason:SelectionReason)=when(reason){SelectionRea
         Text(stringResource(qualityResource(health.quality)),Modifier.testTag("health.quality"),style=MaterialTheme.typography.titleLarge)
         if(!compact){
             Text(stringResource(R.string.smart_health_counts,health.attempts,health.setupSucceeded,health.withInboundData,health.failures))
-            Text(stringResource(R.string.smart_success,health.successPercent?.toString()?:stringResource(R.string.premium_no_data)),style=MaterialTheme.typography.bodySmall)
+            Text(if(health.successPercent==null)stringResource(R.string.smart_success_unknown)else stringResource(R.string.smart_success,health.successPercent.toString()),style=MaterialTheme.typography.bodySmall)
             Text(stringResource(R.string.smart_breaks,health.abnormalClosures,health.dropsPerMinute?.let{String.format(java.util.Locale.getDefault(),"%.1f",it)}?:stringResource(R.string.premium_no_data)),style=MaterialTheme.typography.bodySmall)
-            Text(stringResource(R.string.smart_setup_average,health.averageSetupMillis?.toString()?:stringResource(R.string.premium_no_data)),style=MaterialTheme.typography.bodySmall)
+            Text(if(health.averageSetupMillis==null)stringResource(R.string.smart_setup_average_unknown)else stringResource(R.string.smart_setup_average,health.averageSetupMillis.toString()),style=MaterialTheme.typography.bodySmall)
             if(health.enabled)Text(stringResource(R.string.smart_active_profile,stringResource(profileResource(health.profile))))
             health.selection?.let{s->Text(stringResource(R.string.smart_selection,stringResource(kindResource(s.transport)),stringResource(selectionResource(s.reason)),s.dc),Modifier.testTag("health.selection"))}
             for(session in health.active.take(8)){

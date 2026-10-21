@@ -262,8 +262,10 @@
     <string name="smart_quality_insufficient">Insufficient data</string>
     <string name="smart_health_counts">Attempts: %1$d · Established: %2$d · With inbound data: %3$d · Failures: %4$d</string>
     <string name="smart_success">Successful attempts: %1$s%%</string>
+    <string name="smart_success_unknown">Successful attempts: No data</string>
     <string name="smart_breaks">Unexpected closures: %1$d · Per minute: %2$s</string>
     <string name="smart_setup_average">Average transport setup: %1$s ms</string>
+    <string name="smart_setup_average_unknown">Average transport setup: No data</string>
     <string name="smart_active_profile">Applied profile: %1$s</string>
     <string name="smart_selection">%1$s · %2$s · DC %3$d</string>
     <string name="smart_active_session">Session %1$d · DC %2$d · %3$s · %4$d s · %5$s</string>

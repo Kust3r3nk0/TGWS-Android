@@ -262,8 +262,10 @@
     <string name="smart_quality_insufficient">Недостаточно данных</string>
     <string name="smart_health_counts">Попытки: %1$d · Установлены: %2$d · С входящими данными: %3$d · Ошибки: %4$d</string>
     <string name="smart_success">Доля успешных попыток: %1$s%%</string>
+    <string name="smart_success_unknown">Доля успешных попыток: Нет данных</string>
     <string name="smart_breaks">Непредвиденные обрывы: %1$d · В минуту: %2$s</string>
     <string name="smart_setup_average">Среднее установление транспорта: %1$s мс</string>
+    <string name="smart_setup_average_unknown">Среднее установление транспорта: Нет данных</string>
     <string name="smart_active_profile">Применённый профиль: %1$s</string>
     <string name="smart_selection">%1$s · %2$s · DC %3$d</string>
     <string name="smart_active_session">Сессия %1$d · DC %2$d · %3$s · %4$d с · %5$s</string>
