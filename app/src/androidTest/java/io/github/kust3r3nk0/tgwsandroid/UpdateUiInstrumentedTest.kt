@@ -82,6 +82,9 @@ class UpdateUiInstrumentedTest {
             scroll("updates.period.720");ui.onNodeWithTag("updates.period.720").assertIsSelected().assertIsNotEnabled()
             var launchIntent:Intent?=null
             scenario.onActivity{launchIntent=Intent(it.intent);it.startActivity(Intent(it,MainActivity::class.java).putExtra(OPEN_UPDATES,true).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP))}
+            // A new foreground window can briefly have no Compose root while
+            // Android delivers the intent; await the real destination, not a delay.
+            ui.waitUntil(10000){ui.onAllNodesWithTag("updates.hero").fetchSemanticsNodes(atLeastOneRootRequired=false).size==1}
             ui.onNodeWithTag("updates.hero").assertExists()
             scenario.onActivity{assertTrue(it.intent.filterEquals(launchIntent))}
             assertEquals(720L,storage.options().minutes);assertFalse(storage.options().auto)

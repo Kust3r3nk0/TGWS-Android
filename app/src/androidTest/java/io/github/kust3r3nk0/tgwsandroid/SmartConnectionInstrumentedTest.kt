@@ -115,6 +115,8 @@ class SmartConnectionInstrumentedTest {
             val notification=manager.activeNotifications.single{it.id==1453}.notification
             assertEquals(context.getString(R.string.smart_alert_configuration),notification.extras.getCharSequence(android.app.Notification.EXTRA_TEXT).toString())
             instrumentation.runOnMainSync{AppPreferences(context).connectionAlerts=false}
+            // NotificationManager.cancel is an asynchronous Binder request on API 36.
+            ui.waitUntil(5000){manager.activeNotifications.none{it.id in 1450..1453}}
             assertTrue(manager.activeNotifications.none{it.id in 1450..1453})
             assertEquals(secret,SettingsStore(context).load().secret)
         }finally{instrumentation.runOnMainSync{controller?.close()}}
