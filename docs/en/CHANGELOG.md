@@ -1,3 +1,37 @@
+# TGWS-Android 0.6.2 — Network Auto Configuration · Debug
+
+Android 16+ / API 36+, code 24. Debug Pre-release.
+
+## New features
+
+Settings → Smart Connection → Configure current network. With the proxy stopped,
+checks permitted configured routes using an account-free MTProto req_pq_multi /
+nonce-matched resPQ exchange on DC 2, then saves a Wi-Fi/mobile profile. This is
+availability, not Telegram authentication, ping, other DC or HD-media certification.
+Successful exchanges select the primary; permitted backups retain normal recovery.
+Progress, typed failures, HTTP status and cancellation are available.
+
+## Fixes
+
+Count inbound network bytes before client delivery, avoiding the final traffic
+snapshot race when stopping immediately after a large download.
+
+## Limits and acceptance
+
+One operation, 60 seconds total / 8 seconds per candidate, one request per minute;
+up to two candidates per configured kind, one of each kind before further aliases.
+Network change, leaving or background cancels/cleans resources. No successful
+reply means no settings replacement; storage errors restore the draft.
+Strict TLS and Android DNS remain. Only current-mode permitted routes are checked;
+relay-only never dials direct. No HTTP2 media probe. Secrets, port, Fake TLS/SNI,
+theme and endpoint contents are preserved. A winning Worker is moved first; a
+winning origin becomes primary among authorized nodes. These endpoint priorities
+are shared across profiles. Profiles distinguish network type, not SSIDs/operators.
+No external relay is invented and filtering cannot be removed without a reachable
+route. Worker remains capped at 16 MiB/session; no Worker/Node redeploy needed from
+0.6.0. Install over a compatible Debug APK without uninstalling. Device Telegram,
+network change and media acceptance remains with the owner.
+
 # Changelog
 
 # TGWS-Android 0.6.1 — Connection Recovery · Debug

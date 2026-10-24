@@ -327,4 +327,13 @@
     <string name="relays_legacy_notice">VPS Relay Manager is enabled. The single URL is retained for compatibility; the manager selects current nodes.</string>
     <string name="relays_invalid">Enter a name and unique WSS address. Maximum eight nodes.</string>
     <string name="relays_save_requirement">Saving requires a valid transport configuration: relay-only needs a single URL or an enabled manager with a primary node. Automatic mode needs configured sources or Smart Routing.</string>
+    <string name="auto_config_title">Configure current network</string>
+    <string name="auto_config_notice">Stop the proxy. Allowed routes are checked for up to a minute using an MTProto response from DC 2; a network profile is saved. Secrets and addresses are retained. This does not verify other DCs, HD media or filtering bypass. HTTP/2 media is not probed.</string>
+    <string name="auto_config_progress">Checked %1$d of %2$d</string>
+    <string name="auto_config_cancel">Cancel check</string>
+    <string name="auto_config_limited">Please wait a minute before checking again.</string>
+    <string name="auto_config_failed">No working route confirmed. Previous settings retained. Check diagnostics and your relay availability.</string>
+    <string name="auto_config_success">Current network profile saved from MTProto responses. You can start the proxy.</string>
+    <string name="auto_config_cancelled">Configuration cancelled. Previous settings retained.</string>
+    <string name="auto_config_verified">MTProto response: %1$d ms</string>
 </resources>

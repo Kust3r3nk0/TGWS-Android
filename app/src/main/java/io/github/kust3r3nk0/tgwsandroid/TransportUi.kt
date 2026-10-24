@@ -117,7 +117,7 @@ internal data class TransportDraft(val mode:TransportMode=TransportMode.DIRECT,v
         dismissButton={TextButton(onClick={preview=null}){Text(stringResource(R.string.close))}})}
 }
 
-private fun diagnosticIssueResource(issue:ServerIssue):Int=when(issue){
+internal fun diagnosticIssueResource(issue:ServerIssue):Int=when(issue){
     ServerIssue.DNS->R.string.error_dns;ServerIssue.NETWORK->R.string.error_network;ServerIssue.TLS->R.string.error_tls
     ServerIssue.HTTP2->R.string.error_http2;ServerIssue.RETRY_LATER->R.string.retry_later;ServerIssue.RELAY->R.string.error_relay
     ServerIssue.TCP->R.string.error_tcp;ServerIssue.WSS_HANDSHAKE->R.string.error_wss_handshake

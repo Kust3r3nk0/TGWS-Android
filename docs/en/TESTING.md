@@ -53,3 +53,7 @@ and bounded environment configuration. [Acceptance](RELAY_PERFORMANCE_0.6.0.md).
 ## 0.6.1 — Connection Recovery
 
 Controlled MtprotoServer regressions cover two blocked direct media aliases before a configured Worker, four failed Cloudflare candidates before a Worker, and strict MANUAL transport permissions. Existing stop/network-change/overload/media regressions remain. [Device acceptance](CONNECTION_RECOVERY_0.6.1.md).
+
+## 0.6.2
+
+NetworkAutoConfigTest checks encrypted fragmented req_pq/resPQ, nonce rejection, profile preservation and route permissions. AutoConfigInstrumentedTest checks offline controls, Activity recreation and retained settings. Existing large encrypted media and stop regressions cover the inbound counter fix.

@@ -59,3 +59,7 @@ and bounded environment configuration. [Acceptance](RELAY_PERFORMANCE_0.6.0.md).
 ## 0.6.1 — Connection Recovery
 
 Регрессии MtprotoServer: два зависших прямых media-имени перед настроенным Worker, исчерпание попыток Cloudflare и сохранение запретов MANUAL. Существующие проверки остановки, смены сети, перегрузки и media сохранены. [Проверка на устройстве](CONNECTION_RECOVERY_0.6.1.md).
+
+## 0.6.2
+
+NetworkAutoConfigTest проверяет шифрованный фрагментированный req_pq/resPQ, отклонение чужого nonce, сохранение профилей и запретов. AutoConfigInstrumentedTest проверяет offline-кнопку, пересоздание Activity и сохранение настроек. Существующая регрессия крупных шифрованных медиа и остановки покрывает исправление входящего счётчика.

@@ -31,7 +31,7 @@ internal class ProxyFormModel(application: Application) : AndroidViewModel(appli
         (configuration!!.mode!=io.github.kust3r3nk0.tgwsandroid.core.TransportMode.RELAY_ONLY || relayUrl.value.isNotEmpty() || configuration!!.relays.enabled) &&
         runCatching{io.github.kust3r3nk0.tgwsandroid.core.RelayEndpoint.parse(relayUrl.value)}.isSuccess
 
-    fun withSaved(running:Boolean=false,action:(StoredSettings)->Unit={feedbackResource.value=R.string.settings_saved}) {
+    fun withSaved(running:Boolean=false,onFailure:()->Unit={},action:(StoredSettings)->Unit={feedbackResource.value=R.string.settings_saved}) {
         if(busy.value || !valid)return
         val draft=StoredSettings(portText.value.toInt(),secretText.value,relayUrl.value,requireNotNull(configuration))
         busy.value=true;feedbackResource.value=null
@@ -45,8 +45,9 @@ internal class ProxyFormModel(application: Application) : AndroidViewModel(appli
             }catch(error:SettingsException){
                 errorResource.value=settingsError(error.issue)
                 if(error.issue==SettingsIssue.SECRET_UNAVAILABLE)secretUnavailable.value=true
+                onFailure()
             }catch(error:CancellationException){throw error}
-            catch(_:RuntimeException){errorResource.value=R.string.error_storage}
+            catch(_:RuntimeException){errorResource.value=R.string.error_storage;onFailure()}
             finally{busy.value=false}
         }
     }

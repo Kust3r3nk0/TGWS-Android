@@ -35,7 +35,7 @@ internal fun availableKinds(draft:TransportDraft,relay:String):Set<TransportKind
     }
 }
 
-@Composable internal fun SmartConnectionSettings(form:ProxyFormModel,editable:Boolean,network:AccessKind=AccessKind.NONE){
+@Composable internal fun SmartConnectionSettings(form:ProxyFormModel,editable:Boolean,network:AccessKind=AccessKind.NONE,auto:AutoConfigModel?=null){
     val options=form.transportDraft.value.profiles
     fun change(value:ConnectionProfiles){form.transportDraft.value=form.transportDraft.value.copy(profiles=value)}
     var editingName by rememberSaveable{mutableStateOf(options.id(connectionNetwork(network)).name)}
@@ -43,6 +43,19 @@ internal fun availableKinds(draft:TransportDraft,relay:String):Set<TransportKind
     val profile=options.profile(editing)
     fun update(value:ConnectionProfile)=change(options.withProfile(editing,value))
     val available=availableKinds(form.transportDraft.value,form.relayUrl.value)
+    if(auto!=null)SectionCard(stringResource(R.string.auto_config_title)){
+        Text(stringResource(R.string.auto_config_notice),style=MaterialTheme.typography.bodySmall)
+        if(auto.running){
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+            Text(stringResource(R.string.auto_config_progress,auto.completed,auto.total))
+            TextButton(onClick=auto::cancel){Text(stringResource(R.string.auto_config_cancel))}
+        }else Button(onClick={auto.start(form,connectionNetwork(network))},enabled=editable && form.valid && network!=AccessKind.NONE,
+            modifier=Modifier.fillMaxWidth().testTag("smart.auto.configure")){Text(stringResource(R.string.auto_config_title))}
+        auto.message?.let{Text(stringResource(it))}
+        for(outcome in auto.outcomes)Text(stringResource(kindResource(outcome.target.kind))+" · "+
+            if(outcome.millis!=null)stringResource(R.string.auto_config_verified,outcome.millis)else(outcome.issue?.let{stringResource(diagnosticIssueResource(it))}?:""),style=MaterialTheme.typography.bodySmall)
+        for(outcome in auto.outcomes)outcome.upgrade?.let{Text("HTTP ${it.status}",style=MaterialTheme.typography.bodySmall)}
+    }
     SectionCard(stringResource(R.string.smart_title),Modifier.testTag("smart.settings")){
         if(!editable)Text(stringResource(R.string.stop_to_edit))
         SmartSwitch(R.string.smart_enable,options.enabled,editable,"smart.enabled"){change(options.copy(enabled=it))}
@@ -57,7 +70,7 @@ internal fun availableKinds(draft:TransportDraft,relay:String):Set<TransportKind
         }
     }
     SectionCard(stringResource(R.string.smart_edit_profile)){
-        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+        FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){
             ProfileId.entries.forEach{id->FilterChip(editing==id,{editingName=id.name},enabled=editable,
                 label={Text(stringResource(profileResource(id)))},modifier=Modifier.testTag("smart.profile.${id.name}"))}
         }
