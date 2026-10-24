@@ -336,4 +336,10 @@
     <string name="auto_config_success">Профиль текущей сети настроен и сохранён по ответам MTProto. Можно запустить прокси.</string>
     <string name="auto_config_cancelled">Автонастройка отменена. Прежние настройки сохранены.</string>
     <string name="auto_config_verified">Ответ MTProto: %1$d мс</string>
+    <string name="dpi_title">Локальный DPI-прокси (SOCKS5)</string>
+    <string name="dpi_notice">Сначала запустите ByeDPI/совместимое приложение в режиме прокси на 127.0.0.1. TGWS не запускает DPI-движок и не создаёт VPN. Стратегия обхода настраивается в другом приложении; результат зависит от сети.</string>
+    <string name="dpi_enable">Направлять TCP/WSS через локальный SOCKS5</string>
+    <string name="dpi_port">Порт локального SOCKS5 (127.0.0.1)</string>
+    <string name="dpi_scope">Сохраняется сразу. При включении весь исходящий TCP/WSS прокси, включая реле и автонастройку, идёт через этот сервис. При отказе скрытого прямого подключения нет. HTTP/2 media в этом режиме не поддерживается. DNS активной Android-сети и проверка TLS сохраняются. IP-блокировку локальный DPI-сервис может не обойти.</string>
+    <string name="dpi_probe_path">Эта проверка использует локальный SOCKS5. Названия TCP/WSS описывают дальнейший транспорт, а не прямой выход в сеть.</string>
 </resources>

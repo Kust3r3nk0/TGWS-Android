@@ -21,6 +21,7 @@ internal class AutoConfigModel(app:Application):AndroidViewModel(app){
     var total by mutableIntStateOf(0);private set
     var message by mutableStateOf<Int?>(null);private set
     var outcomes by mutableStateOf<List<AutoConfigObservation>>(emptyList());private set
+    var localProxyUsed by mutableStateOf(false);private set
     private val executor=ThreadPoolExecutor(1,1,0,TimeUnit.SECONDS,ArrayBlockingQueue(1),{r->Thread(r,"tgws-auto-config").apply{isDaemon=true}})
     private var operation:Closeable?=null
     private var job:Job?=null
@@ -33,6 +34,8 @@ internal class AutoConfigModel(app:Application):AndroidViewModel(app){
         last=now
         val settings=form.configuration?:return
         val relay=form.relayUrl.value
+        val socksPort=AppPreferences(getApplication()).localSocksPort
+        localProxyUsed=socksPort!=0
         val targets=NetworkAutoConfig.targets(settings,relay,network)
         val request=++epoch
         running=true;form.busy.value=true;message=null;completed=0;total=targets.size;outcomes=emptyList()
@@ -51,7 +54,7 @@ internal class AutoConfigModel(app:Application):AndroidViewModel(app){
                 require(access.access!=null && observed==network)
                 withTimeout(60_000){for(target in targets){
                     ensureActive()
-                    val factory=NetworkTransportFactory{access.access}
+                    val factory=NetworkTransportFactory(socksPort){access.access}
                     operation=factory
                     val started=SystemClock.elapsedRealtime()
                     val outcome=try{
@@ -80,7 +83,7 @@ internal class AutoConfigModel(app:Application):AndroidViewModel(app){
             finally{operation?.close();operation=null;monitor?.close()
                 if(request==epoch){running=false;form.busy.value=false}
             }
-            if(request==epoch && selected!=null && !ProxyState.snapshot.running && form.configuration==settings && form.relayUrl.value==relay){
+            if(request==epoch && selected!=null && !ProxyState.snapshot.running && form.configuration==settings && form.relayUrl.value==relay && AppPreferences(getApplication()).localSocksPort==socksPort){
                 form.transportDraft.value=TransportDraft.from(selected)
                 form.withSaved(onFailure={form.transportDraft.value=TransportDraft.from(settings);message=R.string.auto_config_failed}){
                     message=R.string.auto_config_success;form.feedbackResource.value=R.string.auto_config_success

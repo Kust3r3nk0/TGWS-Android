@@ -13,8 +13,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Protocol
 
 /** One service-owned factory; network changes close HTTP pools and invalidate bounded DNS. */
-internal class NetworkTransportFactory(private val current:()->NetworkAccess?):TransportFactory,Closeable {
-    val connector=NetworkConnector{if(closed)null else current()}
+internal class NetworkTransportFactory(private val localSocksPort:Int=0,private val current:()->NetworkAccess?):TransportFactory,Closeable {
+    val connector=NetworkConnector(localSocksPort){if(closed)null else current()}
     override val supportsWarmWebSockets=true
     private var clientNetwork:NetworkAccess?=null
     private var client:OkHttpClient?=null
@@ -108,6 +108,7 @@ internal class NetworkTransportFactory(private val current:()->NetworkAccess?):T
         clientNetwork=access;client=result;return result
     }
     override fun openHttpMedia(domain:String,tag:ByteArray,own:(Closeable)->Unit):RemoteTransport {
+        if(localSocksPort!=0)throw java.io.IOException("HTTP2 over local SOCKS is unsupported")
         require(TelegramSecret.validDomain(domain))
         return Http2MediaTransport.open(httpClient(),"https://$domain/api".toHttpUrl(),tag,own)
     }

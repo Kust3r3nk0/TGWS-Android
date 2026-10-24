@@ -14,8 +14,8 @@ android {
         applicationId = "io.github.kust3r3nk0.tgwsandroid"
         minSdk = 36
         targetSdk = 37
-        versionCode = 24
-        versionName = "0.6.2"
+        versionCode = 25
+        versionName = "0.6.3"
         testInstrumentationRunner = "io.github.kust3r3nk0.tgwsandroid.UpgradeInstrumentation"
     }
     // Release credentials come only from the local/CI environment, never from Git.

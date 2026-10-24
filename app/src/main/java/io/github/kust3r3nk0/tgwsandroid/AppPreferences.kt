@@ -4,11 +4,16 @@ import android.content.Context
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
-/** Public UI preferences, separate from all Keystore-protected proxy configuration. */
+/** Public preferences, separate from all Keystore-protected credentials. */
 class AppPreferences(context:Context){
     private val prefs=context.applicationContext.getSharedPreferences("app_preferences",Context.MODE_PRIVATE)
     // Retire the old provider selection without touching Keystore/proxy/UI settings.
     init { if(prefs.contains("dns"))prefs.edit().remove("dns").apply() }
+    /** Public loopback port only; disabled by default, no endpoint/token stored here. */
+    var localSocksPort:Int
+        // An unreadable opt-in must fail closed, never silently restore direct routing.
+        get()=runCatching{prefs.getInt("local_socks_port",0).takeIf{it in 0..65535}?:-1}.getOrDefault(-1)
+        set(value){require(value in 0..65535);prefs.edit().putInt("local_socks_port",value).apply()}
     var connectionAlerts:Boolean
         get()=runCatching{prefs.getBoolean("connection_alerts",false)}.getOrDefault(false)
         set(value){prefs.edit().putBoolean("connection_alerts",value).apply()}

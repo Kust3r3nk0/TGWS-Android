@@ -40,7 +40,7 @@ internal class RelayChecksModel(app:Application):AndroidViewModel(app){
                 monitor=AndroidNetworkMonitor(getApplication(),Handler(Looper.getMainLooper())){changed,_->if(changed && !initial)this@RelayChecksModel.cancel()}
                 monitor.start();initial=false
                 val access=monitor
-                factory=NetworkTransportFactory{access.access}
+                factory=NetworkTransportFactory(AppPreferences(getApplication()).localSocksPort){access.access}
                 val transport=factory
                 operation=Closeable{transport.close();access.close()}
                 val started=SystemClock.elapsedRealtime()

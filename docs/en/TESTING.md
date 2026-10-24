@@ -57,3 +57,7 @@ Controlled MtprotoServer regressions cover two blocked direct media aliases befo
 ## 0.6.2
 
 NetworkAutoConfigTest checks encrypted fragmented req_pq/resPQ, nonce rejection, profile preservation and route permissions. AutoConfigInstrumentedTest checks offline controls, Activity recreation and retained settings. Existing large encrypted media and stop regressions cover the inbound counter fix.
+
+## 0.6.3
+
+LocalSocksTest: fragmented SOCKS replies, binary data, unavailable proxy without direct dialing, cancellation, invalid greeting. LocalDpiInstrumentedTest: preference preservation across Activity recreation, unchanged secret and corrupt preference fails closed. Real DPI bypass requires owner testing with a separately running engine.

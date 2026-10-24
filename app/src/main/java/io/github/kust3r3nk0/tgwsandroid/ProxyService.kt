@@ -100,7 +100,7 @@ class ProxyService : Service() {
                         }
                         networkMonitor=monitor
                         monitor.start()
-                        val factory=io.github.kust3r3nk0.tgwsandroid.core.NetworkTransportFactory{monitor.access}
+                        val factory=io.github.kust3r3nk0.tgwsandroid.core.NetworkTransportFactory(AppPreferences(this).localSocksPort){monitor.access}
                         transportFactory=factory
                         server = MtprotoServer(settings.port, settings.secret,
                             onEvent = { event ->

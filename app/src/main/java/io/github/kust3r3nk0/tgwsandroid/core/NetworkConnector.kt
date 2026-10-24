@@ -20,7 +20,8 @@ internal interface NetworkAccess {
 internal class NetworkUnavailable : IOException("Active network unavailable")
 
 /** Capture one immutable network per attempt; never resolve on one network and dial another. */
-internal class NetworkConnector(private val current:()->NetworkAccess?) : SocketConnector,Closeable {
+internal class NetworkConnector(private val localSocksPort:Int=0,private val current:()->NetworkAccess?) : SocketConnector,Closeable {
+    init { require(localSocksPort in 0..65535) }
     private val dns=BoundedDns()
     @Volatile private var closed=false
     private val timings=java.util.Collections.synchronizedMap(java.util.WeakHashMap<Socket,SetupTimings>())
@@ -49,6 +50,28 @@ internal class NetworkConnector(private val current:()->NetworkAccess?) : Socket
         val dnsStart=System.nanoTime()
         val resolved=interleave(addresses(access,host,timeoutMillis)).take(8)
         val dnsMillis=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-dnsStart)
+        if(localSocksPort!=0){
+            var failure:IOException?=null
+            for(address in resolved.take(2)){
+                currentAttempt()
+                val socket=Socket();dialing+=socket
+                try {
+                    own(socket);currentAttempt()
+                    val left=TimeUnit.NANOSECONDS.toMillis(deadline-System.nanoTime())
+                    if(left<=0)throw java.net.SocketTimeoutException("SOCKS deadline")
+                    val started=System.nanoTime()
+                    socket.connect(InetSocketAddress(InetAddress.getByAddress(byteArrayOf(127,0,0,1)),localSocksPort),left.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                    socket.tcpNoDelay=true
+                    LocalSocks.negotiate(socket,address,port,deadline)
+                    currentAttempt()
+                    timings[socket]=SetupTimings(dnsMillis,TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-started))
+                    return socket
+                }catch(error:IOException){socket.close();failure=error}
+                catch(error:Exception){socket.close();throw error}
+                finally{dialing-=socket}
+            }
+            throw failure?:IOException("SOCKS destination unavailable")
+        }
         val answers=resolved
         val results=java.util.concurrent.ExecutorCompletionService<Pair<Socket,Long>>(dialers)
         val attempts=mutableMapOf<java.util.concurrent.Future<Pair<Socket,Long>>,Socket>()
