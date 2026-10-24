@@ -3,6 +3,14 @@
 Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Only API 36 and newer are supported. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
 
+## 0.6.1 — Connection Recovery · test update
+
+- [x] Reserve setup time and one admission for a permitted configured endpoint
+- [x] Keep bounded deadlines, backoff, TCP and manual permissions
+- [x] Regressions for blocked media WSS and exhausted Cloudflare admissions
+
+[Fix and acceptance](CONNECTION_RECOVERY_0.6.1.md).
+
 ## 0.6.0 — Relay & Performance Update · test update
 
 - [x] Opt-in encrypted multi-origin manager, primary/backups/manual/automatic/media

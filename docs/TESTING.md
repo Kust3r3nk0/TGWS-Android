@@ -55,3 +55,7 @@ encrypted 24 MiB per direction over local TLS/WSS with independent client CTR.
 RelayManagerInstrumentedTest: CRUD/persistence/recreation/Keystore/secure drafts.
 Node tests: bounded progress, close admission, 20 MiB each way, pre-Upgrade shutdown
 and bounded environment configuration. [Acceptance](RELAY_PERFORMANCE_0.6.0.md).
+
+## 0.6.1 — Connection Recovery
+
+Регрессии MtprotoServer: два зависших прямых media-имени перед настроенным Worker, исчерпание попыток Cloudflare и сохранение запретов MANUAL. Существующие проверки остановки, смены сети, перегрузки и media сохранены. [Проверка на устройстве](CONNECTION_RECOVERY_0.6.1.md).

@@ -38,8 +38,8 @@ class UpdateUiInstrumentedTest {
         instrumentation.waitForIdleSync()
         AppPreferences(context).theme=ThemeMode.DARK
         storage=MemoryUpdatePersistence().apply{preferences=UpdateOptions(channel=UpdateChannel.PREVIEW)}
-        http.release("0.6.1-alpha",23,true).put("body","## Новые функции\n- Центр обновлений и фоновая проверка новых версий.\n## Исправления\n- Проверка подписи APK перед установкой.\n## Оптимизация\n- Ограничение буферов и отмена загрузки.")
-        repository=UpdateRepository(storage,GithubUpdateSource(http),"0.6.0",22,android.os.Build.VERSION.SDK_INT,{System.currentTimeMillis()-120000})
+        http.release("0.6.2-alpha",24,true).put("body","## Новые функции\n- Центр обновлений и фоновая проверка новых версий.\n## Исправления\n- Проверка подписи APK перед установкой.\n## Оптимизация\n- Ограничение буферов и отмена загрузки.")
+        repository=UpdateRepository(storage,GithubUpdateSource(http),"0.6.1",23,android.os.Build.VERSION.SDK_INT,{System.currentTimeMillis()-120000})
         runBlocking{repository.initialize()};UpdateGraph.useForTests(repository)
     }
     @After fun cleanup(){
@@ -70,7 +70,7 @@ class UpdateUiInstrumentedTest {
             val savedScroll=ui.onNodeWithTag("page.scroll").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
             click("settings.update.center")
             ui.waitUntil(10000){repository.state.value.release!=null}
-            ui.onNodeWithTag("updates.version").assertTextEquals("v0.6.1-alpha")
+            ui.onNodeWithTag("updates.version").assertTextEquals("v0.6.2-alpha")
             shot("updates-center-dark")
             click("updates.settings");ui.onNodeWithTag("updates.period.360").assertIsSelected()
             ui.onNodeWithTag("updates.back").assertIsDisplayed()
@@ -113,7 +113,7 @@ class UpdateUiInstrumentedTest {
     }
     @Test fun largeFontGlassAndTransparencyKeepActionsAccessible(){
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
-            val release=runBlocking{GithubUpdateSource(http).check("0.6.0",22,36,UpdateChannel.PREVIEW)}!!
+            val release=runBlocking{GithubUpdateSource(http).check("0.6.1",23,36,UpdateChannel.PREVIEW)}!!
             var page by mutableIntStateOf(2);var checks=0
             scenario.onActivity{it.setContent{TgwsTheme(ThemeMode.DARK,true,true){
                 val density=LocalDensity.current

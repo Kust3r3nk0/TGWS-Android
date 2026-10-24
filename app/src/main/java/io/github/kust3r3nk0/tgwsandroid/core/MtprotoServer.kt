@@ -535,15 +535,22 @@ class MtprotoServer(
                 session.run.diagnostics.mark(key,handshake.dc,handshake.media,transport,status,failure,upgrade=upgrade,retryInMillis=retryInMillis)
                 emit(session.run,ServerEvent.Routes(session.run.diagnostics.snapshot()))}}
         }
-        fun connect(key: String, issue: ServerIssue, endpointKey:String?=null, open: ((Closeable) -> Unit) -> RemoteTransport): RemoteTransport? {
+        fun connect(key: String, issue: ServerIssue, endpointKey:String?=null, reserveConfiguredEndpoint:Boolean=false,
+            open: ((Closeable) -> Unit) -> RemoteTransport): RemoteTransport? {
             session.checkOpen()
-            if(transportSettings.mode==TransportMode.AUTO_CLOUDFLARE && attempts>=4 && issue!=ServerIssue.TCP)return null
-            // Sequential WSS failures must not consume TCP's entire setup budget.
+            val automatic=transportSettings.mode==TransportMode.AUTO_CLOUDFLARE
+            // Speculative aliases must leave one of the existing four dial slots for a
+            // permitted, configured relay. Skipped/backoff routes do not consume a slot.
+            if(automatic && attempts>=(if(reserveConfiguredEndpoint)3 else 4) && issue!=ServerIssue.TCP)return null
+            // Reserve both TCP and a configured endpoint's setup budget, when allowed.
             // This is a deadline reservation, not parallel dialing or payload replay.
             val remaining=TimeUnit.NANOSECONDS.toMillis(session.deadline-System.nanoTime())
-            val reserve=if(transportSettings.mode==TransportMode.AUTO_CLOUDFLARE && issue!=ServerIssue.TCP)
+            val tcpReserve=if(automatic && issue!=ServerIssue.TCP)
                 if(!transportSettings.profiles.enabled || activeProfile().permits(TransportKind.TCP))
                     minOf(limits.wssAttemptTimeoutMillis.toLong(),(limits.connectTimeoutMillis.toLong()/2).coerceAtLeast(1))else 0L else 0L
+            val endpointReserve=if(automatic && reserveConfiguredEndpoint)
+                minOf(limits.wssAttemptTimeoutMillis.toLong(),(limits.connectTimeoutMillis-tcpReserve)/2)else 0L
+            val reserve=tcpReserve+endpointReserve
             val attemptMillis=minOf(limits.wssAttemptTimeoutMillis.toLong(),remaining-reserve)
             if(attemptMillis<=0)return null
             val endpointPermit=endpointKey?.let { endpoint -> session.run.endpointRetries.acquire(endpoint) ?: run {
@@ -704,7 +711,16 @@ class MtprotoServer(
         }
         for((position,plan) in plans.withIndex()){
             val candidate=candidates.first{it.route===plan.candidate}
-            val result=connect(candidate.route.key,candidate.issue,candidate.endpoint,candidate.open)
+            // Work only with the permission-filtered plan. A manual profile must not
+            // gain an implicit relay fallback; an endpoint in cooldown needs no budget.
+            val configuredPending=candidate.route.kind !in setOf(TransportKind.RELAY,TransportKind.WORKER) &&
+                plans.drop(position+1).any{later->
+                    val target=candidates.first{it.route===later.candidate}
+                    target.route.kind in setOf(TransportKind.RELAY,TransportKind.WORKER) &&
+                        session.run.retries.remainingMillis(target.route.key)==0L &&
+                        target.endpoint?.let{session.run.endpointRetries.remainingMillis(it)==0L}!=false
+                }
+            val result=connect(candidate.route.key,candidate.issue,candidate.endpoint,configuredPending,candidate.open)
             candidate.rotate(result!=null)
             if(result!=null){
                 session.run.smart.selected(RouteSelection(profiles.id(connectionNetwork),result.kind,handshake.dc,handshake.media,
