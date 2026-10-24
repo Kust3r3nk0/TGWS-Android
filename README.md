@@ -4,16 +4,20 @@
   <img src="docs/images/tgws-github-cover-ru.svg" width="100%" alt="TGWS-Android — нативный MTProto-прокси для Android, русский баннер" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.6.1_test_update-blue)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.6.2_test_update-blue)
 
 **Независимый open-source порт [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy) на Android 16+.** Разработка: **Makarov Lab's 3.0™**.
 
 **[Скачать Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases) · [English](README_EN.md) · [План развития](ROADMAP.md) · [Участие](CONTRIBUTING.md)**
 
 > [!IMPORTANT]
-> **0.6.1 — Connection Recovery для Android 16+.** Исправлены воспроизводимые случаи, когда неудачные пробные маршруты лишали настроенное реле времени или попытки подключения. Debug Pre-release, не Production; физическая проверка отдельно. [Исправления и проверка](docs/CONNECTION_RECOVERY_0.6.1.md).
+> **0.6.2 — Автонастройка сети.** Явная проверка ответа MTProto и сохранение профиля сети, Debug Pre-release. [Настройка и ограничения](docs/releases/0.6.2-debug.md).
 
 [Подготовка Release, подпись и миграция](docs/RELEASE_0.4.0.md) · [Изменения 0.4.0](docs/releases/0.4.0.md).
+
+## 0.6.2 — Автонастройка сети
+
+Одна кнопка проверки MTProto и сохранения профиля сети. [Настройка и ограничения](docs/releases/0.6.2-debug.md).
 
 ## 0.6.0 — Relay & Performance Update
 

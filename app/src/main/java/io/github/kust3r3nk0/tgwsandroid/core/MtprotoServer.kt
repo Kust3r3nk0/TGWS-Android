@@ -803,6 +803,9 @@ class MtprotoServer(
                         session.smartToken?.let(session.run.smart::progress);session.run.healthDirty.set(true)
                     }
                     val plain = context.fromTelegram.update(data)
+                    // Count bytes received from the network before exposing them to
+                    // the client. Stop can race the client's final read/write return.
+                    session.run.received.addAndGet(data.size.toLong());session.received.addAndGet(data.size.toLong());session.run.diagnostics.traffic(session.routeKey,received=data.size)
                     session.downstreamWriteDeadline = writeDeadline()
                     try {
                         writeWithProgress(session.output,context.toClient.update(plain)){
@@ -810,7 +813,6 @@ class MtprotoServer(
                             session.downstreamWriteDeadline = writeDeadline()
                             session.touch()
                         }
-                        session.run.received.addAndGet(data.size.toLong());session.received.addAndGet(data.size.toLong());session.run.diagnostics.traffic(session.routeKey,received=data.size)
                     } finally { session.downstreamWriteDeadline = 0L }
                     session.touch()
                 }

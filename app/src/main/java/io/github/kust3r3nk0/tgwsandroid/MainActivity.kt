@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
             val form:ProxyFormModel=viewModel()
             val tools:DiagnosticToolsModel=viewModel()
             val relayChecks:RelayChecksModel=viewModel()
+            val autoConfig:AutoConfigModel=viewModel()
             val shareScope=rememberCoroutineScope()
             val preferences=remember{AppPreferences(this@MainActivity)}
             var theme by remember{mutableStateOf(preferences.theme)}
@@ -69,7 +70,7 @@ class MainActivity : ComponentActivity() {
                 }
                 val observer=LifecycleEventObserver{_,event->when(event){
                     Lifecycle.Event.ON_START->{ProxyState.recordDiagnostics=preferences.diagnostics;tools.refreshProvider();start()}
-                    Lifecycle.Event.ON_STOP->{monitor?.close();monitor=null;providers.close();tools.cancelCheck();relayChecks.cancel()}
+                    Lifecycle.Event.ON_STOP->{monitor?.close();monitor=null;providers.close();tools.cancelCheck();relayChecks.cancel();autoConfig.cancel()}
                     Lifecycle.Event.ON_PAUSE->reveal=false
                     Lifecycle.Event.ON_RESUME->tools.refreshProvider()
                     else->Unit
@@ -93,7 +94,7 @@ class MainActivity : ComponentActivity() {
                     enableEdgeToEdge(statusBarStyle=bars,navigationBarStyle=bars)
                 }
                 val snapshot=ProxyState.snapshot
-                fun navigate(next:Int){if(next!=11)relayChecks.cancel();reveal=false;page=next}
+                fun navigate(next:Int){if(next!=11)relayChecks.cancel();if(next!=10)autoConfig.cancel();reveal=false;page=next}
                 fun copySecret(){form.withSaved(snapshot.running){copySensitive(getString(R.string.clipboard_secret),it.secret);form.feedbackResource.value=R.string.secret_copied}}
                 fun copyLink(){form.withSaved(snapshot.running){copySensitive(getString(R.string.clipboard_link),SettingsValidation.telegramLink(it.port,it.secret,it.transport.fakeTlsDomain));form.feedbackResource.value=R.string.link_copied}}
                 fun shareLink(){form.withSaved(snapshot.running){
@@ -175,7 +176,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             11->RelayManagerScreen(form,relayChecks,snapshot,!snapshot.running && !form.busy.value,reveal,{reveal=!reveal})
-                            10->SmartConnectionSettings(form,!snapshot.running && !form.busy.value,network.kind)
+                            10->SmartConnectionSettings(form,!snapshot.running && !form.busy.value,network.kind,autoConfig)
                             else->PremiumSettings({next->
                                 if(next==2 || next==3)updateParent=1
                                 navigate(next)

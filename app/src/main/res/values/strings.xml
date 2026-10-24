@@ -327,4 +327,13 @@
     <string name="relays_legacy_notice">Включён менеджер VPS-реле. Одиночный URL сохранён для совместимости; текущие узлы выбираются в менеджере.</string>
     <string name="relays_invalid">Укажите название и уникальный WSS-адрес. Максимум 8 узлов.</string>
     <string name="relays_save_requirement">Для сохранения нужен допустимый режим подключения: в режиме «Только реле» оставьте одиночный URL или включённый менеджер с основным узлом. Автоматический режим требует настроенных источников или Smart Routing.</string>
+    <string name="auto_config_title">Автонастройка текущей сети</string>
+    <string name="auto_config_notice">Остановите прокси. Проверка разрешённых маршрутов занимает до минуты: приложение запросит ответ MTProto от DC 2 и сохранит профиль этой сети. Секрет и адреса сохраняются. Проверка не подтверждает остальные DC, HD-медиа или снятие блокировки. HTTP/2 media не проверяется.</string>
+    <string name="auto_config_progress">Проверено %1$d из %2$d</string>
+    <string name="auto_config_cancel">Отменить проверку</string>
+    <string name="auto_config_limited">Повторная автонастройка доступна через минуту.</string>
+    <string name="auto_config_failed">Рабочий маршрут не подтверждён. Прежние настройки сохранены. Проверьте диагностику и доступность собственного реле.</string>
+    <string name="auto_config_success">Профиль текущей сети настроен и сохранён по ответам MTProto. Можно запустить прокси.</string>
+    <string name="auto_config_cancelled">Автонастройка отменена. Прежние настройки сохранены.</string>
+    <string name="auto_config_verified">Ответ MTProto: %1$d мс</string>
 </resources>
