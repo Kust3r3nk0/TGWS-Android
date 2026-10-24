@@ -78,7 +78,7 @@ internal object DiagnosticReport {
         if(d==null)"null" else "{\"status\": ${d.status?:"null"}, \"failure\": ${json(d.failure?.name)}, \"relay_reason\": ${json(d.relayReason?.name)}, \"retry_after_ms\": ${d.retryAfterMillis?:"null"}}"
 
     private fun selectionJson(s:io.github.kust3r3nk0.tgwsandroid.core.RouteSelection)=
-        "{\"profile\": ${json(s.profile.name)}, \"transport\": ${json(s.transport.name)}, \"dc\": ${s.dc}, \"media\": ${s.media}, \"reason\": ${json(s.reason.name)}, \"backup\": ${s.backup}}"
+        "{\"profile\": ${json(s.profile.name)}, \"transport\": ${json(s.transport.name)}, \"dc\": ${s.dc}, \"media\": ${s.media}, \"reason\": ${json(s.reason.name)}, \"backup\": ${s.backup}, \"relay_slot\": ${s.relaySlot?:"null"}}"
     private fun healthJson(h:io.github.kust3r3nk0.tgwsandroid.core.ConnectionHealth):String=buildString {
         append("{\"enabled\": ").append(h.enabled).append(", \"profile\": ").append(json(h.profile.name))
         append(", \"quality\": ").append(json(h.quality.name)).append(", \"attempts\": ").append(h.attempts)

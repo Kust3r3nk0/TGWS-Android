@@ -94,12 +94,12 @@ class SettingsStore(context: Context) {
         val previous=loadTransport(loadRelay())
         val config=transport?:if(relayUrl==null)previous else TransportSettings(
             if(relay.isEmpty())TransportMode.DIRECT else TransportMode.RELAY_ONLY,previous.fakeTlsDomain,
-            previous.cloudflareDomains,previous.workerUrls,false,previous.profiles)
+            previous.cloudflareDomains,previous.workerUrls,false,previous.profiles,previous.relays)
         validate(port, secret, relay)
         // A UI edit cannot silently overwrite settings after loss of the Keystore key.
         record()?.let(::decrypt) ?: requireFirstUse()
         loadRelay() // An unreadable relay must never silently switch to direct routes.
-        if(config.mode==TransportMode.RELAY_ONLY && relay.isEmpty())throw SettingsException(SettingsIssue.INVALID_CONFIGURATION)
+        if(config.mode==TransportMode.RELAY_ONLY && relay.isEmpty() && !config.relays.enabled)throw SettingsException(SettingsIssue.INVALID_CONFIGURATION)
         persist(port, secret, recovery = false, relayUrl = relay,transport=config)
     }
 
@@ -107,7 +107,7 @@ class SettingsStore(context: Context) {
     fun recover(port: Int, secret: String, relayUrl: String = "",transport:TransportSettings?=null) = synchronized(lock) {
         validate(port, secret, relayUrl)
         val config=transport?:TransportSettings(mode=if(relayUrl.isEmpty())TransportMode.DIRECT else TransportMode.RELAY_ONLY)
-        if(config.mode==TransportMode.RELAY_ONLY && relayUrl.isEmpty())throw SettingsException(SettingsIssue.INVALID_CONFIGURATION)
+        if(config.mode==TransportMode.RELAY_ONLY && relayUrl.isEmpty() && !config.relays.enabled)throw SettingsException(SettingsIssue.INVALID_CONFIGURATION)
         persist(port, secret, recovery = true, relayUrl = relayUrl,transport=config)
     }
 

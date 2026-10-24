@@ -38,3 +38,18 @@ tests check encrypted profiles/Keystore across recreation, honest empty health
 and opt-in actual notifications.
 
 [0.5.0](SMART_CONNECTION_0.5.0.md)
+
+## 0.6.0
+
+RelayConfigurationTest: legacy codec, Unicode, limits, duplicates, permissions, edit/delete.
+TransportRecordCodecTest: largest combined encrypted configuration and tampering.
+MtprotoServerTest: strict managed relay-only/manual/backup and media permissions;
+SmartRoutingTest: independent nodes of one transport. ManagedRelayNetworkTest: real
+encrypted 24 MiB per direction over local TLS/WSS with independent client CTR.
+RelayManagerInstrumentedTest: CRUD/persistence/recreation/Keystore/secure drafts.
+Node tests: bounded progress, close admission, 20 MiB each way, pre-Upgrade shutdown
+and bounded environment configuration. [Acceptance](RELAY_PERFORMANCE_0.6.0.md).
+
+## 0.6.1 — Connection Recovery
+
+Controlled MtprotoServer regressions cover two blocked direct media aliases before a configured Worker, four failed Cloudflare candidates before a Worker, and strict MANUAL transport permissions. Existing stop/network-change/overload/media regressions remain. [Device acceptance](CONNECTION_RECOVERY_0.6.1.md).

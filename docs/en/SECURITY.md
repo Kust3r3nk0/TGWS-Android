@@ -4,7 +4,7 @@
 
 | Version | Security support |
 | --- | --- |
-| 0.1.0-alpha | Best-effort only; not production-ready |
+| 0.6.1 Debug candidate | Best-effort only; not production-ready |
 | Earlier versions | Not supported |
 
 ## Reporting vulnerabilities

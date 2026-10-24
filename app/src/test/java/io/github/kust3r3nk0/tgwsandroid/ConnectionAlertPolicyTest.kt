@@ -8,6 +8,14 @@ class ConnectionAlertPolicyTest {
     private val failed=AlertObservation(true,health=ConnectionHealth(attempts=1,failures=1))
     private val up=AlertObservation(true,health=ConnectionHealth(attempts=1,withInboundData=1,
         active=listOf(ActiveConnection(1,2,false,TransportKind.WSS,100,true))))
+    @Test fun switchingToAnotherOwnRelayIsNotLostBecauseTransportKindIsUnchanged(){
+        val p=ConnectionAlertPolicy()
+        val primary=up.copy(health=up.health.copy(selection=RouteSelection(ProfileId.WIFI,TransportKind.RELAY,2,false,SelectionReason.USER_PRIMARY,false,1)))
+        assertTrue(p.update(true,primary,0).isEmpty())
+        val backup=up.copy(health=up.health.copy(selection=RouteSelection(ProfileId.WIFI,TransportKind.RELAY,2,false,SelectionReason.FALLBACK,true,2)))
+        assertEquals(listOf(ConnectionAlert.FALLBACK),p.update(true,backup,1))
+        assertTrue(p.update(true,backup,2).isEmpty())
+    }
     @Test fun shortReconnectDoesNotNotifyButLongOutageAndRealProgressDo(){
         val p=ConnectionAlertPolicy();assertTrue(p.update(true,failed,0).isEmpty());assertEquals(30_000L,p.deadline)
         assertTrue(p.update(true,up,20_000).isEmpty());assertNull(p.deadline)

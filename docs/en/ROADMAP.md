@@ -3,6 +3,24 @@
 Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Only API 36 and newer are supported. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
 
+## 0.6.1 — Connection Recovery · test update
+
+- [x] Reserve setup time and one admission for a permitted configured endpoint
+- [x] Keep bounded deadlines, backoff, TCP and manual permissions
+- [x] Regressions for blocked media WSS and exhausted Cloudflare admissions
+
+[Fix and acceptance](CONNECTION_RECOVERY_0.6.1.md).
+
+## 0.6.0 — Relay & Performance Update · test update
+
+- [x] Opt-in encrypted multi-origin manager, primary/backups/manual/automatic/media
+- [x] Explicit cancelable checks and safe statuses/node slots
+- [x] Bounded writes/backpressure, acknowledged cleanup and TLS shutdown
+- [x] Documented deploy/systemd/environment and retained-key server upgrades
+- Quick Settings Tile is deferred for separate FGS/device checks.
+
+[Setup and limits](RELAY_PERFORMANCE_0.6.0.md).
+
 ## 0.5.0 — Smart Connection Update · test update
 
 - [x] Passive permission-aware Smart Routing scoped to DC/media
@@ -26,7 +44,7 @@ Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 20
 ## Next Smart Connection stages
 
 - **0.5.0**: implemented on a separate branch as a test update; device acceptance remains separate.
-- **0.6.0**, after Smart Routing: multiple VPS relays, Media Optimizer and Android power/lifecycle work.
+- **0.6.0**: separate implementation after merged PR #31; device acceptance stays separate.
 - Separate branches/PRs and device acceptance; these features are not claimed in 0.4.2.
 
 [Staged contract and acceptance scenarios](SMART_CONNECTION_UPDATE.md).

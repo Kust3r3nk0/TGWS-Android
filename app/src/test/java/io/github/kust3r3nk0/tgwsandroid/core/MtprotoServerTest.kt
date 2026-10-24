@@ -19,6 +19,136 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 class MtprotoServerTest {
+    @Test fun coldSmartAutomaticDoesNotStarveConfiguredWorkerBehindBlockedDirectWss(){
+        val port=freePort();val events=Events();val calls=AtomicInteger();val channel=Channel(TransportKind.RELAY)
+        val factory=object:TransportFactory {
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport {
+                val cancelled=CountDownLatch(1);own(Closeable{cancelled.countDown()})
+                assertTrue("Direct attempt was not bounded",cancelled.await(2,TimeUnit.SECONDS));throw java.net.SocketTimeoutException("Controlled blocked direct WSS")
+            }
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                calls.incrementAndGet();val cancelled=CountDownLatch(1);own(Closeable{cancelled.countDown()})
+                if(cancelled.await(75,TimeUnit.MILLISECONDS))throw java.net.SocketTimeoutException("Worker was starved")
+                return channel.also(own)
+            }
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport=throw IOException("Controlled blocked direct TCP")
+        }
+        val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,workerUrls=listOf("wss://worker.example/private/apiws"),profiles=ConnectionProfiles(enabled=true))
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits.copy(connectTimeoutMillis=600,wssAttemptTimeoutMillis=200),transportSettings=settings).use{server->
+            server.start();await("Listener missing"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->client.getOutputStream().write(init(-4).bytes)
+                await("Configured Worker never received a usable setup budget"){events.sessions(1,0)}
+                assertEquals(1,calls.get());assertEquals(1,channel.sent.size);server.stop();assertClosed(client)}
+        }
+    }
+    @Test fun unavailableCloudflareCandidatesCannotConsumeConfiguredWorkersLastAttempt(){
+        val port=freePort();val events=Events();val cfCalls=AtomicInteger();val workerCalls=AtomicInteger();val channel=Channel(TransportKind.RELAY)
+        val factory=object:TransportFactory {
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport {cfCalls.incrementAndGet();throw IOException("Controlled unavailable CF")}
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {workerCalls.incrementAndGet();return channel.also(own)}
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport=throw IOException("Controlled unavailable TCP")
+        }
+        val profile=ConnectionProfile(primary=TransportKind.CLOUDFLARE,backups=TransportKind.entries.toSet()-TransportKind.CLOUDFLARE)
+        val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,workerUrls=listOf("wss://worker.example/apiws"),cloudflareDomains=(1..5).map{"cf$it.example"},profiles=ConnectionProfiles(enabled=true,automaticNetwork=false,automatic=profile))
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,transportSettings=settings).use{server->
+            server.start();await("Listener missing"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->client.getOutputStream().write(init().bytes)
+                await("Configured Worker was excluded by the attempt cap"){events.sessions(1,0)}
+                assertTrue(cfCalls.get()<=3);assertEquals(1,workerCalls.get());server.stop();assertClosed(client)}
+        }
+    }
+    @Test fun configuredRelayReservationDoesNotBypassManualTransportPermission(){
+        val port=freePort();val events=Events();val wssCalls=AtomicInteger();val relayCalls=AtomicInteger();val tcpCalls=AtomicInteger()
+        val profile=ConnectionProfile(mode=RoutingMode.MANUAL,primary=TransportKind.WSS,backups=emptySet())
+        val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,workerUrls=listOf("wss://worker.example/apiws"),
+            profiles=ConnectionProfiles(enabled=true,automaticNetwork=false,automatic=profile))
+        val factory=object:TransportFactory {
+            override fun openWebSocket(address:String,domain:String,own:(Closeable)->Unit):RemoteTransport {
+                wssCalls.incrementAndGet();throw IOException("Controlled unavailable direct WSS")
+            }
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {relayCalls.incrementAndGet();throw IOException()}
+            override fun openTcp(address:String,own:(Closeable)->Unit):RemoteTransport {tcpCalls.incrementAndGet();throw IOException()}
+        }
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,transportSettings=settings).use{server->
+            server.start();await("Listener missing"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->client.getOutputStream().write(init(-4).bytes);assertClosed(client)}
+            assertEquals(2,wssCalls.get());assertEquals(0,relayCalls.get());assertEquals(0,tcpCalls.get())
+        }
+    }
+    @Test fun managedRelayOnlyUsesAllowedBackupWithoutLegacyUrlOrDirectFallback(){
+        val port=freePort();val events=Events();val calls=CopyOnWriteArrayList<String>();val base=FakeFactory(failWss=false)
+        val a=RelayNode("a","Primary","wss://primary.example/private/apiws")
+        val b=RelayNode("b","Backup","wss://backup.example/secret/apiws")
+        val manager=RelayConfiguration(true,listOf(a,b),"a",listOf("b"))
+        val factory=object:TransportFactory by base {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                calls+=endpoint.domain
+                if(endpoint.domain=="primary.example")throw IOException("Controlled failure")
+                return Channel(TransportKind.RELAY).also(own)
+            }
+        }
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,
+            transportSettings=TransportSettings(mode=TransportMode.RELAY_ONLY,relays=manager)).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->client.getOutputStream().write(init().bytes);await("Backup missing"){events.sessions(1,0)}
+                await("Slot evidence missing"){events.all.filterIsInstance<ServerEvent.Health>().lastOrNull()?.health?.let{it.selection?.relaySlot==2 && it.active.any{a->a.relaySlot==2}}==true}
+                assertFalse(events.all.filterIsInstance<ServerEvent.Health>().last().health.enabled)
+                assertEquals(listOf("primary.example","backup.example"),calls.toList());assertTrue(base.tcp.isEmpty());assertTrue(base.wss.isEmpty())
+                assertFalse(events.all.toString().contains("secret"));server.stop();assertClosed(client)}
+        }
+    }
+    @Test fun enablingManagerDoesNotHidePermittedWorkerFromExplicitTransportDiagnostics(){
+        val port=freePort();val events=Events();val base=FakeFactory(failWss=false);val channel=Channel(TransportKind.RELAY)
+        val profile=ConnectionProfile(mode=RoutingMode.MANUAL,primary=TransportKind.WORKER,backups=emptySet())
+        val node=RelayNode("own","Own","wss://origin.example/apiws")
+        val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,workerUrls=listOf("wss://worker.example/apiws"),
+            profiles=ConnectionProfiles(enabled=true,automaticNetwork=false,automatic=profile),relays=RelayConfiguration(true,listOf(node),node.id))
+        val factory=object:TransportFactory by base {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                assertEquals("worker.example",endpoint.domain);return channel.also(own)
+            }
+        }
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,transportSettings=settings).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            assertTrue(server.probeRoutes());await("Worker diagnostic suppressed"){channel.closed.count==0L}
+            assertTrue(channel.sent.isEmpty());assertTrue(base.tcp.isEmpty());assertTrue(base.wss.isEmpty())
+            assertTrue(events.all.filterIsInstance<ServerEvent.Routes>().last().routes.any{it.kind==TransportKind.WORKER && it.status==RouteStatus.AVAILABLE})
+        }
+    }
+    @Test fun managedManualRelayCannotUseAnUnselectedNodeOrDirectTransport(){
+        val port=freePort();val events=Events();val calls=AtomicInteger();val base=FakeFactory(failWss=false)
+        val a=RelayNode("a","Primary","wss://primary.example/apiws");val b=RelayNode("b","Backup","wss://backup.example/apiws")
+        val manager=RelayConfiguration(true,listOf(a,b),"a",listOf("b"),RelayStrategy.MANUAL)
+        val factory=object:TransportFactory by base {
+            override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {
+                assertEquals("primary.example",endpoint.domain);calls.incrementAndGet();throw IOException("Controlled refusal")
+            }
+        }
+        MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,transportSettings=TransportSettings(mode=TransportMode.RELAY_ONLY,relays=manager)).use{server->
+            server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+            connect(port).use{client->client.getOutputStream().write(init().bytes);assertClosed(client)}
+            assertEquals(1,calls.get());assertTrue(base.tcp.isEmpty());assertTrue(base.wss.isEmpty())
+        }
+    }
+    @Test fun mediaPreferenceHonorsNodeCapabilityAndSmartManualPermissions(){
+        for(manual in listOf(false,true)){
+            val port=freePort();val events=Events();val base=FakeFactory(failWss=false);val used=CopyOnWriteArrayList<String>()
+            val a=RelayNode("a","No media","wss://no-media.example/apiws",false);val b=RelayNode("b","Media","wss://media.example/apiws")
+            val manager=RelayConfiguration(true,listOf(a,b),"a",listOf("b"),preferMedia=true)
+            val profile=ConnectionProfile(mode=if(manual)RoutingMode.MANUAL else RoutingMode.AUTOMATIC,primary=TransportKind.TCP,backups=emptySet())
+            val profiles=ConnectionProfiles(enabled=true,automaticNetwork=false,automatic=profile)
+            val factory=object:TransportFactory by base {
+                override fun openRelay(endpoint:RelayEndpoint,dc:Int,own:(Closeable)->Unit):RemoteTransport {used+=endpoint.domain;return Channel(TransportKind.RELAY).also(own)}
+            }
+            MtprotoServer(port,secretHex,events.all::add,transports=factory,limits=limits,
+                transportSettings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,profiles=profiles,relays=manager)).use{server->
+                server.start();await("Listener not ready"){events.phase(ServerPhase.LISTENING)}
+                connect(port).use{client->client.getOutputStream().write(init(-4).bytes);await("Media session missing"){events.sessions(1,0)}
+                    assertEquals(if(manual)emptyList<String>()else listOf("media.example"),used.toList())
+                    assertEquals(if(manual)1 else 0,base.tcp.size);assertTrue(base.wss.isEmpty());server.stop();assertClosed(client)}
+            }
+        }
+    }
     @Test fun smartAutomaticCanUseDirectWssWithoutDummyCloudflareConfiguration(){
         val port=freePort();val events=Events();val factory=FakeFactory(failWss=false)
         val settings=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,profiles=ConnectionProfiles(enabled=true))

@@ -5,9 +5,9 @@ import kotlin.math.pow
 enum class ConnectionQuality { EXCELLENT, GOOD, UNSTABLE, POOR, INSUFFICIENT }
 enum class SelectionReason { CONFIGURED_ORDER, USER_PRIMARY, USER_MANUAL, RECENT_PROGRESS, CONTROLLED_PROBE, FALLBACK }
 data class RouteSelection(val profile:ProfileId,val transport:TransportKind,val dc:Int,val media:Boolean,
-    val reason:SelectionReason,val backup:Boolean)
+    val reason:SelectionReason,val backup:Boolean,val relaySlot:Int?=null)
 data class ActiveConnection(val id:Long,val dc:Int,val media:Boolean,val transport:TransportKind,
-    val durationMillis:Long,val inboundProgress:Boolean)
+    val durationMillis:Long,val inboundProgress:Boolean,val relaySlot:Int?=null)
 data class ConnectionHealth(val quality:ConnectionQuality=ConnectionQuality.INSUFFICIENT,
     val attempts:Int=0,val setupSucceeded:Int=0,val withInboundData:Int=0,val failures:Int=0,
     val abnormalClosures:Int=0,val successPercent:Int?=null,val dropsPerMinute:Double?=null,
