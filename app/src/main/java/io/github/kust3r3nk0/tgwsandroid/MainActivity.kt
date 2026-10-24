@@ -158,6 +158,7 @@ class MainActivity : ComponentActivity() {
                             5->ConnectionSettings(form,!snapshot.running && !form.busy.value,reveal,{reveal=!reveal},::copySecret,::copyLink)
                             6->SectionCard(stringResource(R.string.transport_settings)){
                                 if(snapshot.running)Text(stringResource(R.string.stop_to_edit))
+                                LocalDpiSettings(preferences,!snapshot.running && !form.busy.value,form.portText.value.toIntOrNull())
                                 TransportEditor(form.transportDraft.value,{form.transportDraft.value=it},!snapshot.running && !form.busy.value,reveal,form.relayUrl.value)
                                 SaveSettingsButton(form,!snapshot.running){reveal=false}
                             }

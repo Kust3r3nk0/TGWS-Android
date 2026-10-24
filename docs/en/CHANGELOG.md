@@ -1,3 +1,37 @@
+# 0.6.3 — Local DPI/SOCKS5 · Debug
+
+Android 16+, code 25. Debug Pre-release, not guaranteed censorship bypass.
+
+## New features
+
+Settings → Transport: opt-in SOCKS5 adapter to a separately running loopback proxy
+such as ByeDPI. No DPI binary, third-party APK or VpnService is embedded. Configure
+its strategy in that app, using proxy-only mode. Set the same local port in TGWS
+(default ByeDPI port documented as 1080); settings save immediately with TGWS stopped.
+Then run auto configuration, start TGWS and open Telegram. Keep both apps running.
+
+TCP/WSS, Worker/origin relays and their checks use SOCKS5. Numeric IPv4/IPv6 targets
+use active Android network DNS. Strict end-to-end TLS, bounded deadlines and socket
+cancellation remain. Failed SOCKS never silently dials direct. HTTP2 media is
+unsupported through this adapter and fails closed. MTProto remains loopback-only;
+its port must differ from the SOCKS port. Secrets/settings remain. Disable the
+adapter with TGWS stopped to restore ordinary routing.
+
+## Limits and research
+
+Timeouts do not establish IP vs DPI blocking. Local DPI processing does not change
+the remote server IP; a reachable external WSS/VPS relay may still be required.
+Changing SNI to cloudflare.com does not create a relay. Existing Worker/origin paths
+must be configured explicitly; Worker remains capped at 16 MiB/session. The external
+app controls its network and lifecycle. TGWS cannot manage those; it closes its own
+sockets on network changes. No third-party public proxy credentials are bundled.
+Device Android 16, Telegram/media/mobile acceptance remains with the owner.
+
+Sources: [ByeDPI MIT core](https://github.com/hufrea/byedpi),
+[official Android proxy-only example](https://github.com/dovecoteescapee/ByeDPIAndroid#how-to-use-byedpi-with-adguard),
+[ByeByeDPI](https://github.com/romanvht/ByeByeDPI). None of those binaries/code was
+copied into this APK. Compatibility with a particular external build is unverified.
+
 # TGWS-Android 0.6.2 — Network Auto Configuration · Debug
 
 Android 16+ / API 36+, code 24. Debug Pre-release.

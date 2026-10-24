@@ -336,4 +336,10 @@
     <string name="auto_config_success">Current network profile saved from MTProto responses. You can start the proxy.</string>
     <string name="auto_config_cancelled">Configuration cancelled. Previous settings retained.</string>
     <string name="auto_config_verified">MTProto response: %1$d ms</string>
+    <string name="dpi_title">Local DPI proxy (SOCKS5)</string>
+    <string name="dpi_notice">First start ByeDPI/a compatible app in proxy-only mode on 127.0.0.1. TGWS does not start a DPI engine or create a VPN. Configure the bypass strategy in that app; results depend on the network.</string>
+    <string name="dpi_enable">Route TCP/WSS through local SOCKS5</string>
+    <string name="dpi_port">Local SOCKS5 port (127.0.0.1)</string>
+    <string name="dpi_scope">Saved immediately. All proxy TCP/WSS, including relays and auto configuration, use this service. Failure does not trigger hidden direct dialing. HTTP2 media is unsupported in this mode. Android network DNS and strict TLS remain. Local DPI processing may not overcome IP blocking.</string>
+    <string name="dpi_probe_path">This check uses local SOCKS5. TCP/WSS labels describe the onward transport, not direct network access.</string>
 </resources>

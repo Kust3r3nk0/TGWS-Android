@@ -45,6 +45,7 @@ internal fun availableKinds(draft:TransportDraft,relay:String):Set<TransportKind
     val available=availableKinds(form.transportDraft.value,form.relayUrl.value)
     if(auto!=null)SectionCard(stringResource(R.string.auto_config_title)){
         Text(stringResource(R.string.auto_config_notice),style=MaterialTheme.typography.bodySmall)
+        if(auto.localProxyUsed)Text(stringResource(R.string.dpi_probe_path),style=MaterialTheme.typography.bodySmall)
         if(auto.running){
             LinearProgressIndicator(Modifier.fillMaxWidth())
             Text(stringResource(R.string.auto_config_progress,auto.completed,auto.total))

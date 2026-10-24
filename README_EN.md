@@ -4,14 +4,14 @@
   <img src="docs/images/tgws-github-cover-en.svg" width="100%" alt="TGWS-Android — native MTProto proxy for Android, English cover" />
 </p>
 
-[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.6.2_test_update-blue)
+[![Android CI](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Kust3r3nk0/TGWS-Android/actions/workflows/android-ci.yml) [![Android](https://img.shields.io/badge/Android-16%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/16) [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![Status](https://img.shields.io/badge/Status-0.6.3_test_update-blue)
 
 **[Download Debug APK](https://github.com/Kust3r3nk0/TGWS-Android/releases) · [Русский](README.md) · [Roadmap](docs/en/ROADMAP.md) · [Contributing](docs/en/CONTRIBUTING.md)**
 
 **Unofficial, open-source Android 16+ port of [Flowseal/tg-ws-proxy](https://github.com/Flowseal/tg-ws-proxy).** Developed under **Makarov Lab's 3.0™**.
 
 > [!IMPORTANT]
-> **0.6.2 — Network Auto Configuration.** Explicit MTProto availability checks and saved network profiles, Debug Pre-release. [Setup and limits](docs/en/releases/0.6.2.md).
+> **0.6.3 — Local DPI/SOCKS5.** Opt-in loopback adapter for a separately running DPI/SOCKS service. [Setup and limits](docs/en/releases/0.6.3.md).
 
 [Release/signing/migration](docs/en/RELEASE_0.4.0.md) · [0.4.0 notes](docs/en/releases/0.4.0.md).
 

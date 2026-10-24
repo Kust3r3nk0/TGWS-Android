@@ -3,6 +3,10 @@
 Current minimum: **Android 16 / API 36**, per owner instruction on 17 October 2026. Only API 36 and newer are supported. Follow the [specification baseline](../DEVELOPMENT_BASELINE.md).
 
 
+## 0.6.3 — Local DPI/SOCKS5
+
+Opt-in loopback SOCKS transport, bounded handshake, no direct bypass; device compatibility requires testing. [Setup](releases/0.6.3.md).
+
 ## 0.6.2 — Network Auto Configuration
 
 Explicit bounded MTProto DC 2 probes and saved network-type profiles; no invented relay or changed secrets. [Limits](releases/0.6.2.md).
