@@ -62,7 +62,10 @@ class SmartConnectionInstrumentedTest {
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             settle();click("nav.settings",false);click("settings.smart")
             click("smart.enabled");click("smart.network.auto");click("smart.selected.CUSTOM")
-            click("smart.profile.CUSTOM");click("smart.mode.MANUAL");click("smart.primary.TCP");click("smart.power")
+            click("smart.profile.CUSTOM");ui.onNodeWithTag("smart.profile.CUSTOM").assertIsSelected()
+            click("smart.mode.MANUAL");ui.onNodeWithTag("smart.mode.MANUAL").assertIsSelected()
+            click("smart.primary.TCP");click("smart.power")
+            ui.onNodeWithTag("smart.mode.MANUAL").performScrollTo().assertIsSelected()
             click("settings.save")
             ui.waitUntil(10_000){SettingsStore(context).load().transport.profiles.enabled}
             val saved=SettingsStore(context).load()

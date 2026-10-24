@@ -58,6 +58,7 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(form.portText.value){tools.selectPort(form.portText.value)}
             LaunchedEffect(updateRequest){
                 if(updateRequest>0 || intent.getBooleanExtra(OPEN_UPDATES,false)){
+                    autoConfig.cancel()
                     updateParent=1;page=2;reveal=false;intent.removeExtra(OPEN_UPDATES)
                 }
             }

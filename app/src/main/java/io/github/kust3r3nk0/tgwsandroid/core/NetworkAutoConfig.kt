@@ -17,9 +17,11 @@ internal object MtprotoAvailabilityProbe {
             .putInt(20).putInt(0xbe7e8ef1.toInt()).put(nonce).array()
         remote.send(relay);remote.send(crypto.toTelegram.update(request))
         val bytes=java.io.ByteArrayOutputStream()
+        var emptyMessages=0
         while(bytes.size()<4096){
             val chunk=remote.receive()?:throw java.io.EOFException()
-            require(chunk.isNotEmpty() && chunk.size<=4096-bytes.size())
+            if(chunk.isEmpty()){require(++emptyMessages<=32);continue}
+            require(chunk.size<=4096-bytes.size())
             bytes.write(crypto.fromTelegram.update(chunk))
             val response=bytes.toByteArray()
             if(response.size>=4){
@@ -56,13 +58,21 @@ internal object NetworkAutoConfig {
     fun targets(settings:TransportSettings,relay:String,network:ConnectionNetwork):List<AutoConfigTarget> {
         val allowed=if(settings.profiles.enabled)settings.profiles.active(network).allowed else TransportKind.entries.toSet()
         val result=mutableListOf<AutoConfigTarget>()
+        val endpoints=mutableListOf<RelayEndpoint>()
         if(settings.mode!=TransportMode.DIRECT && TransportKind.RELAY in allowed){
             if(settings.relays.enabled)settings.relays.candidates(false).take(2).forEach{node->
+                endpoints+=RelayEndpoint.parse(node.url)!!
                 result+=AutoConfigTarget(TransportKind.RELAY,node.id){it.openRelay(RelayEndpoint.parse(node.url)!!,2){}}
-            }else RelayEndpoint.parse(relay)?.let{endpoint->result+=AutoConfigTarget(TransportKind.RELAY){it.openRelay(endpoint,2){}}}
+            }else RelayEndpoint.parse(relay)?.let{endpoint->endpoints+=endpoint;result+=AutoConfigTarget(TransportKind.RELAY){it.openRelay(endpoint,2){}}}
         }
         if(settings.mode==TransportMode.AUTO_CLOUDFLARE){
-            if(TransportKind.WORKER in allowed)settings.workerUrls.take(2).forEach{url->result+=AutoConfigTarget(TransportKind.WORKER,worker=url){it.openRelay(RelayEndpoint.parse(url)!!,2){}}}
+            if(TransportKind.WORKER in allowed)settings.workerUrls.take(2).forEach{url->
+                val endpoint=RelayEndpoint.parse(url)!!
+                if(endpoints.none{it.sameEndpoint(endpoint)}){
+                    endpoints+=endpoint
+                    result+=AutoConfigTarget(TransportKind.WORKER,worker=url){it.openRelay(endpoint,2){}}
+                }
+            }
             if(TransportKind.CLOUDFLARE in allowed)settings.cloudflareDomains.take(2).forEach{domain->result+=AutoConfigTarget(TransportKind.CLOUDFLARE){it.openWebSocket("kws2.$domain","kws2.$domain"){}}}
         }
         if(settings.mode!=TransportMode.RELAY_ONLY){

@@ -70,7 +70,7 @@ internal fun availableKinds(draft:TransportDraft,relay:String):Set<TransportKind
         }
     }
     SectionCard(stringResource(R.string.smart_edit_profile)){
-        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+        FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)){
             ProfileId.entries.forEach{id->FilterChip(editing==id,{editingName=id.name},enabled=editable,
                 label={Text(stringResource(profileResource(id)))},modifier=Modifier.testTag("smart.profile.${id.name}"))}
         }

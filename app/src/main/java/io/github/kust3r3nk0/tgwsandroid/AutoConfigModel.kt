@@ -41,10 +41,14 @@ internal class AutoConfigModel(app:Application):AndroidViewModel(app){
             var selected:TransportSettings?=null
             try{
                 var initial=true
-                monitor=AndroidNetworkMonitor(getApplication(),Handler(Looper.getMainLooper())){changed,_->if(changed && !initial)cancel()}
+                var observed=ConnectionNetwork.UNKNOWN
+                monitor=AndroidNetworkMonitor(getApplication(),Handler(Looper.getMainLooper())){changed,view->
+                    observed=connectionNetwork(view.kind)
+                    if(changed && !initial)cancel()
+                }
                 monitor.start();initial=false
                 val access=monitor
-                require(access.access!=null)
+                require(access.access!=null && observed==network)
                 withTimeout(60_000){for(target in targets){
                     ensureActive()
                     val factory=NetworkTransportFactory{access.access}
@@ -66,7 +70,11 @@ internal class AutoConfigModel(app:Application):AndroidViewModel(app){
                 }}
                 selected=NetworkAutoConfig.apply(settings,network,outcomes)
                 message=if(selected==null)R.string.auto_config_failed else null
-            }catch(_:TimeoutCancellationException){message=R.string.auto_config_failed}
+            }catch(_:TimeoutCancellationException){
+                // A slow last candidate must not discard already confirmed replies.
+                selected=NetworkAutoConfig.apply(settings,network,outcomes)
+                message=if(selected==null)R.string.auto_config_failed else null
+            }
             catch(cancel:CancellationException){throw cancel}
             catch(_:Exception){message=R.string.auto_config_failed}
             finally{operation?.close();operation=null;monitor?.close()

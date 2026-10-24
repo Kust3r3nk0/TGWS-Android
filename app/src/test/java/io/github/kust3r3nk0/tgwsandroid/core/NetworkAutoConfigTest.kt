@@ -13,7 +13,7 @@ class NetworkAutoConfigTest {
         fun ctr(material:ByteArray)=Cipher.getInstance("AES/CTR/NoPadding").apply{
             init(Cipher.ENCRYPT_MODE,SecretKeySpec(material.copyOfRange(0,32),"AES"),IvParameterSpec(material.copyOfRange(32,48)))
         }
-        var decrypt:Cipher?=null;var encrypt:Cipher?=null;var response=byteArrayOf();var sends=0
+        var decrypt:Cipher?=null;var encrypt:Cipher?=null;var response=byteArrayOf();var sends=0;var empty=true
         val remote=object:RemoteTransport {
             override val kind=TransportKind.TCP
             override fun send(data:ByteArray){
@@ -30,7 +30,7 @@ class NetworkAutoConfigTest {
                     response=encrypt!!.update(reply)
                 }
             }
-            override fun receive():ByteArray? {if(response.isEmpty())return null
+            override fun receive():ByteArray? {if(empty){empty=false;return byteArrayOf()};if(response.isEmpty())return null
                 return response.take(3).toByteArray().also{response=response.drop(it.size).toByteArray()}}
             override fun close(){}
         }
@@ -53,6 +53,9 @@ class NetworkAutoConfigTest {
         assertFalse(target.toString().contains("private"))
     }
     @Test fun relayOnlyAndExplicitTransportExclusionsAreRespected(){
+        val url="wss://worker.example/private/apiws"
+        val duplicate=TransportSettings(mode=TransportMode.AUTO_CLOUDFLARE,workerUrls=listOf(url))
+        assertEquals(1,NetworkAutoConfig.targets(duplicate,url,ConnectionNetwork.WIFI).count{it.kind in setOf(TransportKind.RELAY,TransportKind.WORKER)})
         val profile=ConnectionProfile(allowed=setOf(TransportKind.TCP),primary=TransportKind.TCP,backups=emptySet())
         val s=TransportSettings(profiles=ConnectionProfiles(enabled=true,mobile=profile))
         assertEquals(listOf(TransportKind.TCP),NetworkAutoConfig.targets(s,"",ConnectionNetwork.MOBILE).map{it.kind})
